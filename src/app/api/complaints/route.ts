@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
       voiceNoteUrl,
       latitude,
       longitude,
+      locationAddress,
       photoBase64,
       organizationSlug = 'mangalagiri',
     } = body;
@@ -58,8 +59,9 @@ export async function POST(req: NextRequest) {
     const wardNumber = matchedWard?.ward_number || '01';
     const wardName = matchedWard?.name || 'General Constituency';
 
-    // 4. Upload photo to Zoho WorkDrive
+    // 4. Upload photo & voice note to Zoho WorkDrive
     let beforePhotoUrl = photoBase64; // fallback
+    let finalVoiceNoteUrl = voiceNoteUrl || null;
     try {
       const folderId = await resolveComplaintFolder({
         constituencyName: org.name,
@@ -68,7 +70,7 @@ export async function POST(req: NextRequest) {
         date: new Date(),
       });
 
-      // Convert base64 to buffer
+      // Convert photo base64 to buffer
       const base64Data = photoBase64.replace(/^data:image\/\w+;base64,/, '');
       const buffer = Buffer.from(base64Data, 'base64');
 
@@ -78,9 +80,23 @@ export async function POST(req: NextRequest) {
         buffer,
         'image/jpeg'
       );
+
+      // Upload voice note to Zoho WorkDrive if recorded
+      if (voiceNoteUrl && voiceNoteUrl.startsWith('data:audio')) {
+        const audioBase64 = voiceNoteUrl.replace(/^data:audio\/\w+;base64,/, '');
+        const audioBuffer = Buffer.from(audioBase64, 'base64');
+        finalVoiceNoteUrl = await uploadToZohoWorkDrive(
+          folderId,
+          `voice_${ticketNumber}.webm`,
+          audioBuffer,
+          'audio/webm'
+        );
+      }
     } catch (zohoError) {
       console.error('[Zoho Upload Error - Fallback to direct]:', zohoError);
     }
+
+    const finalLocationAddress = locationAddress || `GPS (${Number(latitude).toFixed(4)}, ${Number(longitude).toFixed(4)})`;
 
     // 5. Insert Complaint into Supabase
     const { data: complaint, error: insertError } = await supabaseAdmin
@@ -94,10 +110,10 @@ export async function POST(req: NextRequest) {
         is_phone_verified: true,
         category: category,
         description: description || null,
-        voice_note_url: voiceNoteUrl || null,
+        voice_note_url: finalVoiceNoteUrl,
         latitude: latitude,
         longitude: longitude,
-        location_address: `${wardName} (GPS: ${Number(latitude).toFixed(4)}, ${Number(longitude).toFixed(4)})`,
+        location_address: finalLocationAddress,
         ward_id: matchedWard?.id || null,
         before_photo_url: beforePhotoUrl,
         status: 'NEW',

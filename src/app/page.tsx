@@ -71,6 +71,56 @@ export default function PublicCitizenPortal() {
     requestGpsLocation();
   }, []);
 
+  // Real reverse geocode to get recognizable street / landmark / area name
+  const resolveExactAddress = async (lat: number, lng: number): Promise<string> => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+        {
+          headers: { 'Accept-Language': 'en' },
+          signal: controller.signal,
+        }
+      );
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.address) {
+          const a = data.address;
+          const street = a.building || a.amenity || a.shop || a.road || a.pedestrian;
+          const area = a.neighbourhood || a.suburb || a.residential;
+          const city = a.city || a.town || a.village || a.county;
+          const parts = [street, area, city].filter(Boolean);
+          if (parts.length > 0) {
+            return parts.join(', ');
+          }
+          if (data.display_name) {
+            return data.display_name.split(',').slice(0, 3).join(', ').trim();
+          }
+        }
+      }
+    } catch (e) {
+      // Fallback to secondary fast geocoder
+    }
+
+    try {
+      const res2 = await fetch(
+        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`
+      );
+      if (res2.ok) {
+        const d = await res2.json();
+        const parts = [d.locality, d.city, d.principalSubdivision].filter(Boolean);
+        if (parts.length > 0) return parts.join(', ');
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    return `GPS Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+  };
+
   const requestGpsLocation = () => {
     if (!navigator.geolocation) {
       setLocationName('GPS not supported on device');
@@ -78,16 +128,22 @@ export default function PublicCitizenPortal() {
     }
     setGpsLoading(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
         const { latitude, longitude } = pos.coords;
         setCoords({ lat: latitude, lng: longitude });
-        setLocationName(`Ward 04, Market Area (GPS: ${latitude.toFixed(4)}, ${longitude.toFixed(4)})`);
-        setGpsLoading(false);
+        try {
+          const address = await resolveExactAddress(latitude, longitude);
+          setLocationName(address);
+        } catch {
+          setLocationName(`GPS Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`);
+        } finally {
+          setGpsLoading(false);
+        }
       },
       (err) => {
         console.warn('GPS Error:', err);
         setCoords({ lat: 16.4419, lng: 80.5649 }); // Fallback Mangalagiri coords
-        setLocationName('Mangalagiri Central (Estimated GPS)');
+        setLocationName('Main Road, Mangalagiri');
         setGpsLoading(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -110,7 +166,7 @@ export default function PublicCitizenPortal() {
     }
   };
 
-  // Voice Note Handler
+  // Voice Note Handler (Captures audio directly from user's phone microphone)
   const toggleRecording = async () => {
     if (isRecording) {
       mediaRecorderRef.current?.stop();
@@ -130,14 +186,20 @@ export default function PublicCitizenPortal() {
 
       mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const url = URL.createObjectURL(audioBlob);
-        setAudioUrl(url);
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+          setAudioUrl(reader.result as string);
+        };
+        // Turn off phone microphone hardware indicator
+        stream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorder.start();
       setIsRecording(true);
     } catch (err) {
       console.error('Audio recording not supported or permission denied:', err);
+      alert('Could not access phone microphone. Please allow microphone permission in your browser.');
     }
   };
 
@@ -201,6 +263,7 @@ export default function PublicCitizenPortal() {
           description,
           latitude: coords?.lat || 16.4419,
           longitude: coords?.lng || 80.5649,
+          locationAddress: locationName,
           photoBase64: photoPreview,
           voiceNoteUrl: audioUrl,
         }),
