@@ -24,23 +24,22 @@ export async function POST(req: NextRequest) {
 
       const sent = await sendWhatsAppOtp(cleanPhone, otpCode);
 
+      if (!sent) {
+        return NextResponse.json({
+          success: false,
+          error: 'Could not deliver OTP to WhatsApp. Please ensure your WhatsApp number is active and try again.'
+        }, { status: 502 });
+      }
+
       return NextResponse.json({
         success: true,
-        message: 'OTP sent to WhatsApp',
-        // In dev mode, return code so testing is never blocked
-        devCode: process.env.NODE_ENV === 'development' ? otpCode : undefined,
+        message: 'OTP sent to WhatsApp successfully',
       });
     }
 
     // 2. Action: VERIFY OTP
     if (action === 'verify') {
       const record = otpStore.get(cleanPhone);
-
-      // In dev mode, '123456' is always a valid bypass OTP
-      if (code === '123456') {
-        otpStore.delete(cleanPhone);
-        return NextResponse.json({ success: true, verified: true });
-      }
 
       if (!record) {
         return NextResponse.json({ error: 'OTP expired or not found. Please request a new one.' }, { status: 400 });

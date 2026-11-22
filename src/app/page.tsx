@@ -57,7 +57,6 @@ export default function PublicCitizenPortal() {
   // OTP Modal & Submission
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpCode, setOtpCode] = useState('');
-  const [otpDevHint, setOtpDevHint] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedTicket, setSubmittedTicket] = useState<string | null>(null);
 
@@ -230,12 +229,14 @@ export default function PublicCitizenPortal() {
         body: JSON.stringify({ action: 'send', phone: citizenPhone }),
       });
       const data = await res.json();
-      if (data.devCode) setOtpDevHint(data.devCode);
-      setShowOtpModal(true);
+      if (data.success) {
+        setShowOtpModal(true);
+      } else {
+        alert(data.error || 'Failed to send WhatsApp verification code. Please check your number.');
+      }
     } catch (err) {
       console.error('Failed to send OTP:', err);
-      // Fallback open OTP modal
-      setShowOtpModal(true);
+      alert('Network error while requesting WhatsApp code. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -824,11 +825,6 @@ export default function PublicCitizenPortal() {
               <p className="text-xs text-slate-500 mt-1">
                 {t.otpSubtitle}: <span className="font-bold text-slate-800">+91 {citizenPhone}</span>
               </p>
-              {otpDevHint && (
-                <div className="mt-2 text-xs font-mono bg-amber-50 text-amber-800 p-1.5 rounded-lg border border-amber-200">
-                  Dev OTP Code: <strong>{otpDevHint}</strong> (or bypass with <strong>123456</strong>)
-                </div>
-              )}
             </div>
 
             <div>

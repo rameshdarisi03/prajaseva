@@ -23,15 +23,15 @@ export function sanitizePhone(phone: string): string {
 }
 
 /**
- * Sends a WhatsApp OTP to the citizen via Meta Cloud API.
+ * Sends a WhatsApp OTP to the citizen via Meta Cloud API using the approved AUTHENTICATION template.
  */
 export async function sendWhatsAppOtp(phone: string, otpCode: string): Promise<boolean> {
   const token = process.env.META_WHATSAPP_TOKEN;
   const phoneId = process.env.META_WHATSAPP_PHONE_NUMBER_ID;
 
   if (!token || !phoneId) {
-    console.warn('[WhatsApp] Credentials missing, logging OTP for local dev:', otpCode);
-    return true;
+    console.warn('[WhatsApp] Credentials missing, cannot send OTP');
+    return false;
   }
 
   const cleanPhone = sanitizePhone(phone);
@@ -41,9 +41,26 @@ export async function sendWhatsAppOtp(phone: string, otpCode: string): Promise<b
       messaging_product: 'whatsapp',
       recipient_type: 'individual',
       to: cleanPhone,
-      type: 'text',
-      text: {
-        body: `*Praja Seva Verification Code*\n\nYour 6-digit verification code is: *${otpCode}*\n\nValid for 5 minutes. Please do not share this code with anyone.`,
+      type: 'template',
+      template: {
+        name: 'user_authcode_tenopilot',
+        language: { code: 'en' },
+        components: [
+          {
+            type: 'body',
+            parameters: [
+              { type: 'text', text: otpCode },
+            ],
+          },
+          {
+            type: 'button',
+            sub_type: 'url',
+            index: '0',
+            parameters: [
+              { type: 'text', text: otpCode },
+            ],
+          },
+        ],
       },
     };
 
@@ -57,6 +74,10 @@ export async function sendWhatsAppOtp(phone: string, otpCode: string): Promise<b
     });
 
     const data = await res.json();
+    if (data.error) {
+      console.error('[WhatsApp Cloud API Error]:', data.error);
+      return false;
+    }
     return !!data.messages?.[0]?.id;
   } catch (error) {
     console.error('[WhatsApp OTP Error]:', error);
