@@ -39,14 +39,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Constituency organization not found' }, { status: 404 });
     }
 
-    // 2. Determine sequential ticket number (e.g. CMP-1001)
-    const { count } = await supabaseAdmin
-      .from('complaints')
-      .select('id', { count: 'exact', head: true })
-      .eq('organization_id', org.id);
-
-    const nextSeq = 1001 + (count || 0);
-    const ticketNumber = `CMP-${nextSeq}`;
+    // 2. Determine sequential ticket number atomically
+    let ticketNumber = 'CMP-1001';
+    try {
+      const { data: generatedRef } = await supabaseAdmin.rpc('get_next_ticket_number', {
+        org_uuid: org.id,
+      });
+      if (generatedRef) {
+        ticketNumber = generatedRef;
+      } else {
+        const { count } = await supabaseAdmin
+          .from('complaints')
+          .select('id', { count: 'exact', head: true })
+          .eq('organization_id', org.id);
+        ticketNumber = `CMP-${1001 + (count || 0)}`;
+      }
+    } catch {
+      ticketNumber = `CMP-${Date.now().toString().slice(-4)}`;
+    }
 
     // 3. Match Ward by closest distance or default to Ward 01
     const { data: wards } = await supabaseAdmin
@@ -70,9 +80,9 @@ export async function POST(req: NextRequest) {
         date: new Date(),
       });
 
-      // Convert photo base64 to buffer
-      const base64Data = photoBase64.replace(/^data:image\/\w+;base64,/, '');
-      const buffer = Buffer.from(base64Data, 'base64');
+      // Convert photo base64 to buffer safely
+      const photoRaw = photoBase64.includes(';base64,') ? photoBase64.split(';base64,')[1] : photoBase64;
+      const buffer = Buffer.from(photoRaw, 'base64');
 
       beforePhotoUrl = await uploadToZohoWorkDrive(
         folderId,
@@ -83,8 +93,8 @@ export async function POST(req: NextRequest) {
 
       // Upload voice note to Zoho WorkDrive if recorded
       if (voiceNoteUrl && voiceNoteUrl.startsWith('data:audio')) {
-        const audioBase64 = voiceNoteUrl.replace(/^data:audio\/\w+;base64,/, '');
-        const audioBuffer = Buffer.from(audioBase64, 'base64');
+        const audioRaw = voiceNoteUrl.includes(';base64,') ? voiceNoteUrl.split(';base64,')[1] : voiceNoteUrl;
+        const audioBuffer = Buffer.from(audioRaw, 'base64');
         finalVoiceNoteUrl = await uploadToZohoWorkDrive(
           folderId,
           `voice_${ticketNumber}.webm`,
@@ -122,8 +132,11 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (insertError) {
-      console.error('[Supabase Insert Error]:', insertError);
-      return NextResponse.json({ error: 'Failed to record complaint' }, { status: 500 });
+      console.error('[Supabase Insert Error]:', insertError.message, insertError.details, insertError.hint);
+      return NextResponse.json(
+        { error: insertError.message || 'Failed to record complaint in database' },
+        { status: 500 }
+      );
     }
 
     // 6. Send Ticket Confirmation to Citizen WhatsApp via Meta Cloud API

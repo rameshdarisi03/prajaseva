@@ -189,7 +189,14 @@ export async function uploadToZohoWorkDrive(
 
   const result = await response.json();
   if (result.data && result.data[0] && result.data[0].attributes) {
-    return result.data[0].attributes.permalink || result.data[0].id;
+    const attr = result.data[0].attributes;
+    return (
+      attr.Permalink ||
+      attr.permalink ||
+      attr.download_url ||
+      (attr.resource_id ? `https://workdrive.zoho.in/file/${attr.resource_id}` : null) ||
+      result.data[0].id
+    );
   }
 
   // Fallback return ID
