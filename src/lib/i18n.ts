@@ -32,6 +32,8 @@ export const translations = {
     holdToRecord: 'మైక్ నొక్కి మాట్లాడండి',
     recording: 'రికార్డింగ్ అవుతోంది...',
     playAudio: 'మీ వాయిస్ వినండి',
+    deleteAudio: 'తొలగించండి',
+    reRecord: 'మళ్ళీ మాట్లాడండి',
     descriptionPlaceholder: 'ఉదాహరణ: మెయిన్ రోడ్డు వద్ద మురుగు నీరు నిలిచిపోయింది...',
     
     step5Contact: '📱 మీ వివరాలు',
@@ -95,6 +97,8 @@ export const translations = {
     holdToRecord: 'Tap to Record Voice Note',
     recording: 'Recording voice...',
     playAudio: 'Listen to Voice Recording',
+    deleteAudio: 'Delete',
+    reRecord: 'Re-record Voice',
     descriptionPlaceholder: 'e.g. Drain overflow in front of market shop no. 4...',
     
     step5Contact: '📱 Contact Information',
@@ -155,6 +159,8 @@ export const translations = {
     holdToRecord: 'बोलकर रिकॉर्ड करें',
     recording: 'रिकॉर्ड हो रहा है...',
     playAudio: 'अपनी आवाज सुनें',
+    deleteAudio: 'हटाएं',
+    reRecord: 'फिर से रिकॉर्ड करें',
     descriptionPlaceholder: 'उदा. मुख्य बाजार में नाली का पानी सड़क पर आ रहा है...',
     
     step5Contact: '📱 आपका संपर्क विवरण',

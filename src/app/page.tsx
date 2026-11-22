@@ -6,6 +6,7 @@ import {
   MapPin,
   Mic,
   MicOff,
+  Trash2,
   CheckCircle2,
   AlertCircle,
   Clock,
@@ -201,6 +202,12 @@ export default function PublicCitizenPortal() {
       console.error('Audio recording not supported or permission denied:', err);
       alert('Could not access phone microphone. Please allow microphone permission in your browser.');
     }
+  };
+
+  // Delete Voice Recording to allow recording again fresh
+  const handleDeleteAudio = () => {
+    setAudioUrl(null);
+    audioChunksRef.current = [];
   };
 
   // Proceed button -> Send WhatsApp OTP
@@ -542,28 +549,49 @@ export default function PublicCitizenPortal() {
                     <span className="text-xs text-slate-400">(Optional)</span>
                   </div>
 
-                  {/* 1-Tap Voice Recorder Button */}
-                  <div className="flex items-center gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                    <button
-                      type="button"
-                      onClick={toggleRecording}
-                      className={`w-11 h-11 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${
-                        isRecording
-                          ? 'bg-rose-600 text-white animate-pulse shadow-md shadow-rose-600/30'
-                          : 'bg-emerald-600 text-white shadow-sm'
-                      }`}
-                    >
-                      {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                    </button>
-                    <div className="flex-1">
-                      <span className="text-xs font-bold text-slate-800 block">
-                        {isRecording ? t.recording : audioUrl ? t.playAudio : t.holdToRecord}
-                      </span>
-                      {audioUrl && !isRecording && (
-                        <audio src={audioUrl} controls className="h-7 w-full mt-1" />
-                      )}
+                  {/* 1-Tap Voice Recorder / Audio Player Block with Delete Option */}
+                  {audioUrl && !isRecording ? (
+                    <div className="bg-emerald-50/70 p-3 rounded-xl border border-emerald-200 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+                          {t.playAudio}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleDeleteAudio}
+                          className="flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 text-xs font-bold rounded-lg border border-rose-200 shadow-xs transition-colors"
+                          title="Delete recording and record again"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                          <span>{t.deleteAudio}</span>
+                        </button>
+                      </div>
+                      <audio src={audioUrl} controls className="h-8 w-full" />
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                      <button
+                        type="button"
+                        onClick={toggleRecording}
+                        className={`w-11 h-11 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${
+                          isRecording
+                            ? 'bg-rose-600 text-white animate-pulse shadow-md shadow-rose-600/30 ring-4 ring-rose-200'
+                            : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
+                        }`}
+                      >
+                        {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                      </button>
+                      <div className="flex-1">
+                        <span className="text-xs font-bold text-slate-800 block">
+                          {isRecording ? t.recording : t.holdToRecord}
+                        </span>
+                        <p className="text-[11px] text-slate-500">
+                          {isRecording ? 'Tap mic again to finish' : 'Speak your issue in your language'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Short text description */}
                   <textarea
