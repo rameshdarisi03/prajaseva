@@ -24,6 +24,7 @@ import { translations } from '@/lib/i18n';
 import { SupportedLanguage, ComplaintCategory, Complaint } from '@/types';
 import { compressImage } from '@/lib/imageCompression';
 import { formatDateTime } from '@/lib/dateUtils';
+import LocationPickerModal from '@/components/LocationPickerModal';
 
 export default function PublicCitizenPortal() {
   const [lang, setLang] = useState<SupportedLanguage>('te');
@@ -42,6 +43,7 @@ export default function PublicCitizenPortal() {
   const [gpsLoading, setGpsLoading] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locationName, setLocationName] = useState('');
+  const [showLocationModal, setShowLocationModal] = useState(false);
 
   // Media
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -458,29 +460,53 @@ export default function PublicCitizenPortal() {
             ) : (
               /* The Frictionless 3-Click Public Form */
               <form onSubmit={handleProceedClick} className="space-y-5">
-                {/* 1. Exact Location Banner (Auto GPS Tagged) */}
-                <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0">
-                      <MapPin className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-                        {t.step1Location}
-                      </span>
-                      <p className="text-sm font-bold text-slate-800 line-clamp-1">
-                        {gpsLoading ? t.gpsDetecting : locationName || t.gpsSuccess}
-                      </p>
-                    </div>
+                {/* 1. Exact Location Banner (Ola / Rapido Style with Change & Search Modal) */}
+                <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      {t.step1Location}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowLocationModal(true)}
+                      className="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200 transition-colors flex items-center gap-1"
+                    >
+                      <span>{lang === 'te' ? 'మార్చండి / వెతకండి ✏️' : 'Change / Search ✏️'}</span>
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={requestGpsLocation}
-                    className="p-2 text-slate-400 hover:text-emerald-600 transition-colors"
-                    title="Refresh GPS"
+
+                  <div
+                    onClick={() => setShowLocationModal(true)}
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 cursor-pointer transition-colors group"
                   >
-                    <RotateCcw className={`w-4 h-4 ${gpsLoading ? 'animate-spin' : ''}`} />
-                  </button>
+                    <div className="flex items-center gap-3 min-w-0 pr-2">
+                      <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                        <MapPin className="w-5 h-5 text-rose-500" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-900 truncate">
+                          {gpsLoading ? t.gpsDetecting : locationName || t.gpsSuccess}
+                        </p>
+                        {coords && (
+                          <span className="text-[10px] text-slate-400 font-mono block">
+                            GPS: {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        requestGpsLocation();
+                      }}
+                      className="p-2 text-slate-400 hover:text-emerald-600 transition-colors flex-shrink-0"
+                      title="Auto GPS refresh"
+                    >
+                      <RotateCcw className={`w-4 h-4 ${gpsLoading ? 'animate-spin text-emerald-600' : ''}`} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* 2. Photo Evidence (1-Tap Native Camera Trigger) */}
@@ -885,6 +911,19 @@ export default function PublicCitizenPortal() {
           </div>
         </div>
       )}
+      {/* Ola / Rapido Style World-Standard Location Modal */}
+      <LocationPickerModal
+        isOpen={showLocationModal}
+        onClose={() => setShowLocationModal(false)}
+        currentLat={coords?.lat || 12.9716}
+        currentLng={coords?.lng || 77.5946}
+        currentAddress={locationName}
+        onConfirm={(lat, lng, addr) => {
+          setCoords({ lat, lng });
+          setLocationName(addr);
+        }}
+        lang={lang}
+      />
     </div>
   );
 }
