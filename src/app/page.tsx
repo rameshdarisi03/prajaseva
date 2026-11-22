@@ -141,7 +141,7 @@ export default function HomePage() {
 
             {/* Staff & Admin Login: Strictly 1 line */}
             <Link
-              href={`/m/${targetOrgSlug}`}
+              href="/login"
               className="inline-flex items-center justify-center h-9 px-3.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors shadow-xs gap-1.5 whitespace-nowrap"
             >
               <Users className="w-3.5 h-3.5 shrink-0" />
@@ -208,7 +208,7 @@ export default function HomePage() {
                 {t.nav.bookDemo}
               </a>
               <Link
-                href={`/m/${targetOrgSlug}`}
+                href="/login"
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex-1 text-center py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 whitespace-nowrap"
               >

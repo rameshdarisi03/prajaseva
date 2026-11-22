@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     // 1. STEP 1: VERIFY WHITELIST
     if (action === 'check_whitelist') {
       // Check staff_whitelist
-      const { data: staff, error: staffErr } = await supabaseAdmin
+      const { data: staff } = await supabaseAdmin
         .from('staff_whitelist')
         .select('id, full_name, role, is_active, organization_id, failed_pin_attempts, locked_until')
         .eq('phone', cleanPhone)
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
       // Check if Founder Phone in organizations
       const { data: orgFounder } = await supabaseAdmin
         .from('organizations')
-        .select('id, name, founder_phone')
+        .select('id, name, slug, founder_phone')
         .eq('founder_phone', cleanPhone)
         .maybeSingle();
 
@@ -46,10 +46,30 @@ export async function POST(req: NextRequest) {
         });
       }
 
+      // Resolve organization info
+      const orgId = staff?.organization_id || orgFounder?.id;
+      let orgSlug = orgFounder?.slug || 'org_mangalagiri';
+      let orgName = orgFounder?.name || 'Constituency Command Center';
+
+      if (staff?.organization_id && !orgFounder) {
+        const { data: orgRecord } = await supabaseAdmin
+          .from('organizations')
+          .select('id, name, slug')
+          .eq('id', staff.organization_id)
+          .maybeSingle();
+        if (orgRecord) {
+          orgSlug = orgRecord.slug || 'org_mangalagiri';
+          orgName = orgRecord.name || orgName;
+        }
+      }
+
       return NextResponse.json({
         whitelisted: true,
         name: staff?.full_name || 'Constituency Administrator',
         role: staff?.role || 'ADMIN',
+        organizationId: orgId,
+        organizationSlug: orgSlug,
+        organizationName: orgName,
       });
     }
 
@@ -65,13 +85,13 @@ export async function POST(req: NextRequest) {
         .eq('phone', cleanPhone)
         .maybeSingle();
 
-      const { data: org } = await supabaseAdmin
+      const { data: orgFounder } = await supabaseAdmin
         .from('organizations')
         .select('*')
         .eq('founder_phone', cleanPhone)
         .maybeSingle();
 
-      if (!staff && !org) {
+      if (!staff && !orgFounder) {
         return NextResponse.json({ error: 'Unauthorized access' }, { status: 403 });
       }
 
@@ -107,14 +127,29 @@ export async function POST(req: NextRequest) {
           .eq('id', staff.id);
       }
 
+      // Resolve organization
+      let orgRecord = orgFounder;
+      if (!orgRecord && staff?.organization_id) {
+        const { data: org } = await supabaseAdmin
+          .from('organizations')
+          .select('*')
+          .eq('id', staff.organization_id)
+          .maybeSingle();
+        orgRecord = org;
+      }
+
+      const orgSlug = orgRecord?.slug || 'org_mangalagiri';
+
       return NextResponse.json({
         success: true,
         session: {
           staffId: staff?.id || 'founder-admin',
-          name: staff?.full_name || org?.mla_name || 'Ramesh Darisi',
+          name: staff?.full_name || orgRecord?.mla_name || 'Ramesh Darisi',
           phone: cleanPhone,
           role: staff?.role || 'ADMIN',
-          organizationId: staff?.organization_id || org?.id || '00000000-0000-0000-0000-000000000001',
+          organizationId: staff?.organization_id || orgRecord?.id || '00000000-0000-0000-0000-000000000001',
+          organizationSlug: orgSlug,
+          organizationName: orgRecord?.name || 'Mangalagiri Assembly',
           assignedWardId: staff?.assigned_ward_id || null,
         },
       });
