@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
     if (role === 'ADMIN') {
       const { data: vList } = await supabaseAdmin
         .from('staff_whitelist')
-        .select('id, full_name, phone, role, assigned_ward_id')
+        .select('id, full_name, phone, role, assigned_ward_id, assigned_ward_ids')
         .eq('is_active', true);
       volunteers = vList || [];
     }
