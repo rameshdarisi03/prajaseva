@@ -16,7 +16,8 @@ import {
   LogOut,
   ChevronRight,
   Sparkles,
-  AlertTriangle
+  AlertTriangle,
+  Volume2
 } from 'lucide-react';
 import { Complaint, UserRole } from '@/types';
 import { formatDateTime } from '@/lib/dateUtils';
@@ -448,6 +449,14 @@ export default function ManagementPortal() {
                     </a>
                   </div>
 
+                  {/* Location Address */}
+                  {t.location_address && (
+                    <div className="flex items-start gap-1.5 text-xs text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                      <MapPin className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+                      <span className="font-semibold">{t.location_address}</span>
+                    </div>
+                  )}
+
                   {/* Description */}
                   {t.description && (
                     <p className="text-xs text-slate-700 bg-amber-50/50 p-2.5 rounded-xl border border-amber-100 line-clamp-3">
@@ -455,35 +464,72 @@ export default function ManagementPortal() {
                     </p>
                   )}
 
-                  {/* Photo Thumbnails */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 block mb-1">
-                        BEFORE PROOF
+                  {/* Citizen Voice Note Player */}
+                  {t.voice_note_url && (
+                    <div className="bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-200 space-y-1">
+                      <span className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1.5">
+                        <Volume2 className="w-3.5 h-3.5 text-emerald-600" />
+                        Citizen Voice Note
                       </span>
-                      <img
-                        src={t.before_photo_url}
-                        alt="Before"
-                        className="w-full h-28 object-cover rounded-xl border border-slate-200"
-                      />
+                      <audio src={t.voice_note_url} controls className="h-7 w-full" />
                     </div>
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 block mb-1">
-                        AFTER RESOLUTION
+                  )}
+
+                  {/* Photo Section: Single Citizen Image for NEW/IN_PROGRESS, Side-by-Side Comparison for REVIEW/RESOLVED */}
+                  {activeBucket === 'NEW' || activeBucket === 'IN_PROGRESS' ? (
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                        📸 Attached Citizen Evidence
                       </span>
-                      {t.after_photo_url ? (
+                      <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
                         <img
-                          src={t.after_photo_url}
-                          alt="After"
-                          className="w-full h-28 object-cover rounded-xl border border-emerald-300"
+                          src={t.before_photo_url}
+                          alt="Citizen Grievance Proof"
+                          className="w-full h-44 object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
                         />
-                      ) : (
-                        <div className="w-full h-28 rounded-xl bg-slate-50 border border-dashed border-slate-200 flex items-center justify-center text-[11px] text-slate-400 font-medium text-center p-2">
-                          Pending Field Work
-                        </div>
-                      )}
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                        🔍 Before & After Comparison
+                      </span>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-500 block mb-1">
+                            BEFORE (Citizen)
+                          </span>
+                          <img
+                            src={t.before_photo_url}
+                            alt="Before"
+                            className="w-full h-32 object-cover rounded-xl border border-slate-200"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold text-emerald-700 block mb-1">
+                            AFTER (Volunteer)
+                          </span>
+                          {t.after_photo_url ? (
+                            <img
+                              src={t.after_photo_url}
+                              alt="After"
+                              className="w-full h-32 object-cover rounded-xl border-2 border-emerald-500"
+                            />
+                          ) : (
+                            <div className="w-full h-32 rounded-xl bg-slate-50 border border-dashed border-slate-200 flex items-center justify-center text-[11px] text-slate-400 font-medium text-center p-2">
+                              Pending Field Work
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Proximity / Fraud Check Badge */}
                   {t.status === 'PENDING_APPROVAL' && (

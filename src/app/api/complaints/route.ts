@@ -69,41 +69,66 @@ export async function POST(req: NextRequest) {
     const wardNumber = matchedWard?.ward_number || '01';
     const wardName = matchedWard?.name || 'General Constituency';
 
-    // 4. Upload photo & voice note to Zoho WorkDrive
+    // 4. Upload photo & voice note to Supabase Storage (for instant web CDN) + Zoho WorkDrive (for archive)
     let beforePhotoUrl = photoBase64; // fallback
     let finalVoiceNoteUrl = voiceNoteUrl || null;
+
     try {
-      const folderId = await resolveComplaintFolder({
+      const photoRaw = photoBase64.includes(';base64,') ? photoBase64.split(';base64,')[1] : photoBase64;
+      const photoBuffer = Buffer.from(photoRaw, 'base64');
+
+      // 4a. Upload to Supabase Storage for reliable, instant CDN rendering
+      const photoStoragePath = `evidence/${ticketNumber}_before.jpg`;
+      const { error: photoUploadErr } = await supabaseAdmin.storage
+        .from('complaints')
+        .upload(photoStoragePath, photoBuffer, { contentType: 'image/jpeg', upsert: true });
+
+      if (!photoUploadErr) {
+        const { data: pubPhoto } = supabaseAdmin.storage
+          .from('complaints')
+          .getPublicUrl(photoStoragePath);
+        beforePhotoUrl = pubPhoto.publicUrl;
+      }
+
+      // 4b. Upload voice note to Supabase Storage if recorded
+      if (voiceNoteUrl && voiceNoteUrl.startsWith('data:audio')) {
+        const audioRaw = voiceNoteUrl.includes(';base64,') ? voiceNoteUrl.split(';base64,')[1] : voiceNoteUrl;
+        const audioBuffer = Buffer.from(audioRaw, 'base64');
+        const audioStoragePath = `voice/${ticketNumber}_audio.webm`;
+        const { error: audioUploadErr } = await supabaseAdmin.storage
+          .from('complaints')
+          .upload(audioStoragePath, audioBuffer, { contentType: 'audio/webm', upsert: true });
+
+        if (!audioUploadErr) {
+          const { data: pubAudio } = supabaseAdmin.storage
+            .from('complaints')
+            .getPublicUrl(audioStoragePath);
+          finalVoiceNoteUrl = pubAudio.publicUrl;
+        }
+
+        // Secondary: Archive voice in Zoho WorkDrive
+        resolveComplaintFolder({
+          constituencyName: org.name,
+          wardNumber: wardNumber,
+          ticketNumber: ticketNumber,
+          date: new Date(),
+        }).then((folderId) => {
+          uploadToZohoWorkDrive(folderId, `voice_${ticketNumber}.webm`, audioBuffer, 'audio/webm').catch(console.warn);
+        }).catch(console.warn);
+      }
+
+      // 4c. Secondary: Archive photo in Zoho WorkDrive
+      resolveComplaintFolder({
         constituencyName: org.name,
         wardNumber: wardNumber,
         ticketNumber: ticketNumber,
         date: new Date(),
-      });
+      }).then((folderId) => {
+        uploadToZohoWorkDrive(folderId, `before_${ticketNumber}.jpg`, photoBuffer, 'image/jpeg').catch(console.warn);
+      }).catch(console.warn);
 
-      // Convert photo base64 to buffer safely
-      const photoRaw = photoBase64.includes(';base64,') ? photoBase64.split(';base64,')[1] : photoBase64;
-      const buffer = Buffer.from(photoRaw, 'base64');
-
-      beforePhotoUrl = await uploadToZohoWorkDrive(
-        folderId,
-        `before_${ticketNumber}.jpg`,
-        buffer,
-        'image/jpeg'
-      );
-
-      // Upload voice note to Zoho WorkDrive if recorded
-      if (voiceNoteUrl && voiceNoteUrl.startsWith('data:audio')) {
-        const audioRaw = voiceNoteUrl.includes(';base64,') ? voiceNoteUrl.split(';base64,')[1] : voiceNoteUrl;
-        const audioBuffer = Buffer.from(audioRaw, 'base64');
-        finalVoiceNoteUrl = await uploadToZohoWorkDrive(
-          folderId,
-          `voice_${ticketNumber}.webm`,
-          audioBuffer,
-          'audio/webm'
-        );
-      }
-    } catch (zohoError) {
-      console.error('[Zoho Upload Error - Fallback to direct]:', zohoError);
+    } catch (mediaError) {
+      console.error('[Media Storage Error - fallback to direct]:', mediaError);
     }
 
     const finalLocationAddress = locationAddress || `GPS (${Number(latitude).toFixed(4)}, ${Number(longitude).toFixed(4)})`;

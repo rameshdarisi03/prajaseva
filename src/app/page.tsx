@@ -122,11 +122,31 @@ export default function PublicCitizenPortal() {
   };
 
   const requestGpsLocation = () => {
+    setGpsLoading(true);
+
+    const fallbackToNetworkLocation = async () => {
+      try {
+        const res = await fetch('https://api.bigdatacloud.net/data/reverse-geocode-client?localityLanguage=en');
+        if (res.ok) {
+          const d = await res.json();
+          if (d.latitude && d.longitude) {
+            setCoords({ lat: d.latitude, lng: d.longitude });
+            const parts = [d.locality, d.city, d.principalSubdivision].filter(Boolean);
+            setLocationName(parts.join(', ') || `Location (${d.latitude.toFixed(4)}, ${d.longitude.toFixed(4)})`);
+            return;
+          }
+        }
+      } catch (netErr) {
+        console.warn('Network location fallback failed:', netErr);
+      }
+      setLocationName('Tap refresh to detect GPS');
+    };
+
     if (!navigator.geolocation) {
-      setLocationName('GPS not supported on device');
+      fallbackToNetworkLocation().finally(() => setGpsLoading(false));
       return;
     }
-    setGpsLoading(true);
+
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude, longitude } = pos.coords;
@@ -140,13 +160,12 @@ export default function PublicCitizenPortal() {
           setGpsLoading(false);
         }
       },
-      (err) => {
-        console.warn('GPS Error:', err);
-        setCoords({ lat: 16.4419, lng: 80.5649 }); // Fallback Mangalagiri coords
-        setLocationName('Main Road, Mangalagiri');
+      async (err) => {
+        console.warn('GPS hardware lookup failed/denied, falling back to real network location:', err);
+        await fallbackToNetworkLocation();
         setGpsLoading(false);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 6000, maximumAge: 10000 }
     );
   };
 
@@ -259,6 +278,12 @@ export default function PublicCitizenPortal() {
         return;
       }
 
+      if (!coords || !coords.lat || !coords.lng) {
+        alert('Please allow location detection or tap the refresh icon on location before submitting.');
+        setIsSubmitting(false);
+        return;
+      }
+
       // Submit to database & Zoho
       const submitRes = await fetch('/api/complaints', {
         method: 'POST',
@@ -269,9 +294,9 @@ export default function PublicCitizenPortal() {
           citizenEmail,
           category,
           description,
-          latitude: coords?.lat || 16.4419,
-          longitude: coords?.lng || 80.5649,
-          locationAddress: locationName,
+          latitude: coords.lat,
+          longitude: coords.lng,
+          locationAddress: locationName || 'Pinpoint Location',
           photoBase64: photoPreview,
           voiceNoteUrl: audioUrl,
         }),
