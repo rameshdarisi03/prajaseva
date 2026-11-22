@@ -18,7 +18,9 @@ export async function POST(req: NextRequest) {
       longitude,
       locationAddress,
       photoBase64,
+      organizationId,
       organizationSlug = 'mangalagiri',
+      wardId,
     } = body;
 
     if (!citizenName || !citizenPhone || !category || !photoBase64 || !latitude || !longitude) {
@@ -28,12 +30,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Fetch Organization Details
-    const { data: org, error: orgError } = await supabaseAdmin
-      .from('organizations')
-      .select('*')
-      .eq('slug', organizationSlug)
-      .single();
+    // 1. Fetch Organization Details (by UUID or slug)
+    let orgQuery = supabaseAdmin.from('organizations').select('*');
+    if (organizationId) {
+      // Check if valid UUID
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(organizationId);
+      if (isUuid) {
+        orgQuery = orgQuery.eq('id', organizationId);
+      } else {
+        orgQuery = orgQuery.eq('slug', organizationId);
+      }
+    } else {
+      orgQuery = orgQuery.eq('slug', organizationSlug);
+    }
+    const { data: org, error: orgError } = await orgQuery.single();
 
     if (orgError || !org) {
       return NextResponse.json({ error: 'Constituency organization not found' }, { status: 404 });
@@ -58,14 +68,20 @@ export async function POST(req: NextRequest) {
       ticketNumber = `CMP-${Date.now().toString().slice(-4)}`;
     }
 
-    // 3. Match Ward by closest distance or default to Ward 01
+    // 3. Match Ward (use explicitly selected wardId if provided, or default to first ward)
     const { data: wards } = await supabaseAdmin
       .from('wards')
       .select('*')
       .eq('organization_id', org.id)
       .order('ward_number', { ascending: true });
 
-    const matchedWard = wards?.[0]; // Default to first ward if PostGIS bounds not mapped yet
+    let matchedWard = wards?.[0];
+    if (wardId) {
+      const explicitWard = wards?.find(w => w.id === wardId);
+      if (explicitWard) {
+        matchedWard = explicitWard;
+      }
+    }
     const wardNumber = matchedWard?.ward_number || '01';
     const wardName = matchedWard?.name || 'General Constituency';
 
