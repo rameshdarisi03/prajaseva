@@ -208,27 +208,21 @@ export default function ManagementLayout({
     );
   }
 
-  // If Not Authenticated -> Show Whitelist PIN Lock Screen
+  // If Not Authenticated -> Show Clean Login Screen
   if (!session) {
     return (
-      <div className="min-h-screen bg-[#FAF9F6] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-[#FAF9F6] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-          <div className="w-16 h-16 rounded-2xl bg-blue-600 text-white flex items-center justify-center mx-auto shadow-md">
-            <Lock className="w-8 h-8" />
+          <div className="w-14 h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center mx-auto shadow-sm">
+            <Lock className="w-7 h-7" />
           </div>
-          <h2 className="mt-4 text-2xl font-black text-slate-900 tracking-tight">
+          <h2 className="mt-4 text-2xl font-extrabold text-slate-900 tracking-tight">
             Praja Seva Command Center
           </h2>
-          <p className="mt-1 text-sm text-slate-500">
-            {org?.name || 'Constituency Grievance Operations & QA Chamber'}
-          </p>
-          <span className="inline-block mt-2 px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[11px] font-bold uppercase tracking-wider">
-            Closed Whitelist Security
-          </span>
         </div>
 
-        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4">
-          <div className="bg-white py-8 px-6 shadow-sm border border-slate-200 rounded-2xl sm:px-10">
+        <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="bg-white py-8 px-6 shadow-xs border border-slate-200 rounded-2xl sm:px-10">
             {authError && (
               <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
@@ -239,50 +233,47 @@ export default function ManagementLayout({
             {authStep === 'PHONE' ? (
               <form onSubmit={handleCheckWhitelist} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                     Official Mobile Number
                   </label>
-                  <div className="mt-1 relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
+                  <div className="relative">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
                       +91
                     </div>
                     <input
                       type="tel"
                       value={inputPhone}
                       onChange={(e) => setInputPhone(e.target.value)}
-                      placeholder="Enter registered mobile"
+                      placeholder="Enter mobile number"
                       maxLength={10}
                       className="w-full h-11 pl-12 pr-3.5 rounded-xl bg-slate-50 border border-slate-200 font-mono text-slate-900 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                       required
                     />
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Pre-authorized staff & volunteers only.
-                  </p>
                 </div>
 
                 <button
                   type="submit"
                   disabled={authLoading}
-                  className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
                 >
-                  {authLoading ? 'Verifying Whitelist...' : 'Continue to PIN Verification'}
+                  {authLoading ? 'Verifying...' : 'Login to Portal'}
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </form>
             ) : (
               <form onSubmit={handleVerifyPin} className="space-y-4">
                 <div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
                       Enter 4-Digit Security PIN
                     </label>
                     <button
                       type="button"
                       onClick={() => setAuthStep('PHONE')}
-                      className="text-xs text-blue-600 hover:underline"
+                      className="text-xs text-blue-600 hover:underline font-semibold"
                     >
-                      Change Phone
+                      Change
                     </button>
                   </div>
                   <input
@@ -292,11 +283,11 @@ export default function ManagementLayout({
                     value={inputPin}
                     onChange={(e) => setInputPin(e.target.value)}
                     placeholder="••••"
-                    className="w-full h-12 mt-1 px-4 text-center tracking-[1em] font-mono text-2xl font-bold rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full h-12 px-4 text-center tracking-[1em] font-mono text-2xl font-bold rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     autoFocus
                     required
                   />
-                  <p className="text-[11px] text-slate-400 mt-1 text-center">
+                  <p className="text-[11px] text-slate-400 mt-1.5 text-center">
                     Verifying authorization for +91 {inputPhone}
                   </p>
                 </div>
@@ -304,21 +295,13 @@ export default function ManagementLayout({
                 <button
                   type="submit"
                   disabled={authLoading || inputPin.length < 4}
-                  className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
-                  {authLoading ? 'Signing In...' : 'Unlock Executive Chamber'}
+                  {authLoading ? 'Verifying PIN...' : 'Continue with PIN'}
+                  <ChevronRight className="w-4 h-4" />
                 </button>
               </form>
             )}
-
-            <div className="mt-6 pt-4 border-t border-slate-100 text-center">
-              <Link
-                href={`/p/${orgParam}`}
-                className="text-xs text-slate-500 hover:text-blue-600 flex items-center justify-center gap-1"
-              >
-                Go to Public Citizen Grievance Portal <ExternalLink className="w-3 h-3" />
-              </Link>
-            </div>
           </div>
         </div>
       </div>
