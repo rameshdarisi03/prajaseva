@@ -124,8 +124,28 @@ export async function PATCH(req: NextRequest) {
         isProximityVerified = proximityMeters <= 150; // within 150m is verified
       }
 
-      // Upload to Zoho WorkDrive
+      // 1. Process After Photo: Upload to Supabase Storage for direct CDN rendering
       let afterPhotoUrl = afterPhotoBase64;
+      const base64Data = afterPhotoBase64.replace(/^data:image\/\w+;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+
+      try {
+        const storagePath = `resolution/${complaint.ticket_number}_after.jpg`;
+        const { error: supaErr } = await supabaseAdmin.storage
+          .from('complaints')
+          .upload(storagePath, buffer, { contentType: 'image/jpeg', upsert: true });
+
+        if (!supaErr) {
+          const { data: pubData } = supabaseAdmin.storage
+            .from('complaints')
+            .getPublicUrl(storagePath);
+          afterPhotoUrl = pubData.publicUrl;
+        }
+      } catch (uploadErr) {
+        console.error('[Supabase Storage After Photo Error]:', uploadErr);
+      }
+
+      // 2. Archive into Zoho WorkDrive according to hierarchy: /[Constituency]/[Ward]/[Date]/[TicketNumber]/
       try {
         const folderId = await resolveComplaintFolder({
           constituencyName: complaint.organization?.name || 'Mangalagiri',
@@ -133,16 +153,14 @@ export async function PATCH(req: NextRequest) {
           ticketNumber: complaint.ticket_number,
         });
 
-        const base64Data = afterPhotoBase64.replace(/^data:image\/\w+;base64,/, '');
-        const buffer = Buffer.from(base64Data, 'base64');
-        afterPhotoUrl = await uploadToZohoWorkDrive(
+        uploadToZohoWorkDrive(
           folderId,
           `after_${complaint.ticket_number}.jpg`,
           buffer,
           'image/jpeg'
-        );
+        ).catch((zErr) => console.error('[Zoho Async Upload Error]:', zErr));
       } catch (e) {
-        console.error('[Zoho Upload After Photo Error]:', e);
+        console.error('[Zoho Resolve Folder Error]:', e);
       }
 
       const { data: updated, error } = await supabaseAdmin
