@@ -30,18 +30,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Fetch Organization Details (by UUID or slug)
+    // 1. Fetch Organization Details (by UUID, clean org ID, or slug)
     let orgQuery = supabaseAdmin.from('organizations').select('*');
     if (organizationId) {
-      // Check if valid UUID
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(organizationId);
       if (isUuid) {
         orgQuery = orgQuery.eq('id', organizationId);
       } else {
-        orgQuery = orgQuery.eq('slug', organizationId);
+        const cleanSlug = organizationId.replace(/^org[_-]/i, '');
+        orgQuery = orgQuery.or(`slug.eq.${organizationId},slug.eq.org_${cleanSlug},slug.eq.${cleanSlug}`);
       }
     } else {
-      orgQuery = orgQuery.eq('slug', organizationSlug);
+      const cleanSlug = organizationSlug.replace(/^org[_-]/i, '');
+      orgQuery = orgQuery.or(`slug.eq.${organizationSlug},slug.eq.org_${cleanSlug},slug.eq.${cleanSlug}`);
     }
     const { data: org, error: orgError } = await orgQuery.single();
 

@@ -12,14 +12,15 @@ export async function GET(
       return NextResponse.json({ error: 'Organization ID is required' }, { status: 400 });
     }
 
-    // Resolve organization by UUID or slug
+    // Resolve organization by UUID, clean org ID, or slug
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orgId);
     let orgQuery = supabaseAdmin.from('organizations').select('*');
 
     if (isUuid) {
       orgQuery = orgQuery.eq('id', orgId);
     } else {
-      orgQuery = orgQuery.eq('slug', orgId);
+      const cleanSlug = orgId.replace(/^org[_-]/i, '');
+      orgQuery = orgQuery.or(`slug.eq.${orgId},slug.eq.org_${cleanSlug},slug.eq.${cleanSlug}`);
     }
 
     const { data: organization, error: orgErr } = await orgQuery.single();

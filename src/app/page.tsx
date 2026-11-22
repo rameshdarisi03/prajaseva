@@ -5,14 +5,14 @@ export default async function RootPage() {
   try {
     const { data: org } = await supabaseAdmin
       .from('organizations')
-      .select('id')
+      .select('id, slug')
       .limit(1)
       .single();
 
-    if (org?.id) {
-      redirect(`/p/${org.id}`);
+    if (org) {
+      redirect(`/p/${org.slug || 'org_mangalagiri'}`);
     }
   } catch {}
 
-  redirect('/p/00000000-0000-0000-0000-000000000001');
+  redirect('/p/org_mangalagiri');
 }
