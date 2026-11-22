@@ -1,22 +1,56 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Lock, AlertCircle, ChevronRight } from 'lucide-react';
+import { Lock, AlertCircle, ChevronRight, MessageSquare, RotateCcw, KeyRound } from 'lucide-react';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTarget = searchParams.get('redirect');
 
-  const [authStep, setAuthStep] = useState<'PHONE' | 'PIN'>('PHONE');
+  const [authStep, setAuthStep] = useState<'PHONE' | 'OTP' | 'PIN'>('PHONE');
   const [inputPhone, setInputPhone] = useState('');
+  const [inputOtp, setInputOtp] = useState('');
   const [inputPin, setInputPin] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
-  // Step 1: Verify Whitelist
-  const handleCheckWhitelist = async (e: React.FormEvent) => {
+  // Timer for OTP resend cooldown
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  // Step 1: Send WhatsApp OTP
+  const handleSendOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setAuthError(null);
+    try {
+      setAuthLoading(true);
+      const res = await fetch('/api/management/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'send_otp', phone: inputPhone }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Server error');
+
+      setAuthStep('OTP');
+      setResendCooldown(45);
+    } catch (err: any) {
+      setAuthError(err.message || 'Unable to send OTP. Please contact your constituency office.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  // Step 2: Verify WhatsApp OTP
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
     try {
@@ -24,24 +58,25 @@ function LoginForm() {
       const res = await fetch('/api/management/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'check_whitelist', phone: inputPhone }),
+        body: JSON.stringify({ action: 'verify_otp', phone: inputPhone, code: inputOtp }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Server error');
+      if (!res.ok) throw new Error(data.error || 'Invalid OTP code');
 
-      if (!data.whitelisted) {
-        throw new Error(data.message || 'Mobile number is not registered with any constituency office.');
-      }
+      // Save session
+      localStorage.setItem('praja_seva_session', JSON.stringify(data.session));
 
-      setAuthStep('PIN');
+      // Redirect to user's assigned constituency
+      const destination = redirectTarget || `/m/${data.session.organizationSlug || 'org_mangalagiri'}`;
+      router.push(destination);
     } catch (err: any) {
-      setAuthError(err.message || 'Unable to verify number. Please contact your administrator.');
+      setAuthError(err.message || 'Incorrect verification code. Please check WhatsApp.');
     } finally {
       setAuthLoading(false);
     }
   };
 
-  // Step 2: Verify 4-digit PIN
+  // Step 2 Fallback: Verify 4-Digit Security PIN
   const handleVerifyPin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
@@ -55,10 +90,7 @@ function LoginForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Incorrect PIN');
 
-      // Save session
       localStorage.setItem('praja_seva_session', JSON.stringify(data.session));
-
-      // Resolve destination
       const destination = redirectTarget || `/m/${data.session.organizationSlug || 'org_mangalagiri'}`;
       router.push(destination);
     } catch (err: any) {
@@ -88,8 +120,9 @@ function LoginForm() {
             </div>
           )}
 
-          {authStep === 'PHONE' ? (
-            <form onSubmit={handleCheckWhitelist} className="space-y-4">
+          {/* STEP 1: PHONE INPUT */}
+          {authStep === 'PHONE' && (
+            <form onSubmit={handleSendOtp} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                   Official Mobile Number
@@ -116,11 +149,90 @@ function LoginForm() {
                 disabled={authLoading || inputPhone.replace(/\D/g, '').length < 10}
                 className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 whitespace-nowrap"
               >
-                {authLoading ? 'Verifying...' : 'Login to Portal'}
+                {authLoading ? 'Sending WhatsApp OTP...' : 'Login to Portal'}
                 <ChevronRight className="w-4 h-4" />
               </button>
             </form>
-          ) : (
+          )}
+
+          {/* STEP 2: WHATSAPP OTP VERIFICATION */}
+          {authStep === 'OTP' && (
+            <form onSubmit={handleVerifyOtp} className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+                    Enter WhatsApp OTP
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthStep('PHONE');
+                      setInputOtp('');
+                      setAuthError(null);
+                    }}
+                    className="text-xs text-blue-600 hover:underline font-semibold"
+                  >
+                    Change
+                  </button>
+                </div>
+
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={inputOtp}
+                  onChange={(e) => setInputOtp(e.target.value.replace(/\D/g, ''))}
+                  placeholder="••••••"
+                  className="w-full h-12 px-4 text-center tracking-[0.5em] font-mono text-2xl font-bold rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                  required
+                />
+
+                <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+                  <span>Sent to WhatsApp +91 {inputPhone}</span>
+                  {resendCooldown > 0 ? (
+                    <span className="text-slate-400 font-mono">{resendCooldown}s</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleSendOtp()}
+                      disabled={authLoading}
+                      className="text-blue-600 hover:underline font-semibold flex items-center gap-1"
+                    >
+                      <RotateCcw className="w-3 h-3" /> Resend
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={authLoading || inputOtp.length < 6}
+                className="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 whitespace-nowrap"
+              >
+                {authLoading ? 'Verifying OTP...' : 'Verify OTP & Login'}
+                <ChevronRight className="w-4 h-4" />
+              </button>
+
+              <div className="pt-2 text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthStep('PIN');
+                    setAuthError(null);
+                  }}
+                  className="text-xs text-slate-500 hover:text-slate-800 font-medium inline-flex items-center gap-1"
+                >
+                  <KeyRound className="w-3.5 h-3.5" />
+                  Or log in with 4-digit Security PIN
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* STEP 2 FALLBACK: 4-DIGIT SECURITY PIN */}
+          {authStep === 'PIN' && (
             <form onSubmit={handleVerifyPin} className="space-y-4">
               <div>
                 <div className="flex items-center justify-between mb-1.5">
@@ -130,13 +242,13 @@ function LoginForm() {
                   <button
                     type="button"
                     onClick={() => {
-                      setAuthStep('PHONE');
+                      setAuthStep('OTP');
                       setInputPin('');
                       setAuthError(null);
                     }}
                     className="text-xs text-blue-600 hover:underline font-semibold"
                   >
-                    Change
+                    Use WhatsApp OTP
                   </button>
                 </div>
                 <input
@@ -151,7 +263,7 @@ function LoginForm() {
                   required
                 />
                 <p className="text-[11px] text-slate-400 mt-1.5 text-center">
-                  Verifying authorization for +91 {inputPhone}
+                  Authorizing +91 {inputPhone}
                 </p>
               </div>
 

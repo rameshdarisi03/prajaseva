@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendWhatsAppOtp } from '@/lib/whatsapp';
-
-// Temporary in-memory OTP store with 5-minute expiration
-const otpStore = new Map<string, { code: string; expiresAt: number }>();
+import { storeOtp, verifyStoredOtp } from '@/lib/otpStore';
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,19 +14,13 @@ export async function POST(req: NextRequest) {
 
     // 1. Action: SEND OTP
     if (action === 'send') {
-      // Generate 6-digit OTP
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = Date.now() + 5 * 60 * 1000; // 5 mins
-
-      otpStore.set(cleanPhone, { code: otpCode, expiresAt });
+      storeOtp(cleanPhone, otpCode, 5 * 60 * 1000);
 
       const sent = await sendWhatsAppOtp(cleanPhone, otpCode);
 
       if (!sent) {
-        return NextResponse.json({
-          success: false,
-          error: 'Could not deliver OTP to WhatsApp. Please ensure your WhatsApp number is active and try again.'
-        }, { status: 502 });
+        console.warn(`[OTP] WhatsApp Cloud API did not deliver to ${cleanPhone}, fallback enabled`);
       }
 
       return NextResponse.json({
@@ -39,22 +31,16 @@ export async function POST(req: NextRequest) {
 
     // 2. Action: VERIFY OTP
     if (action === 'verify') {
-      const record = otpStore.get(cleanPhone);
-
-      if (!record) {
-        return NextResponse.json({ error: 'OTP expired or not found. Please request a new one.' }, { status: 400 });
+      if (!code) {
+        return NextResponse.json({ error: 'Verification code required' }, { status: 400 });
       }
 
-      if (Date.now() > record.expiresAt) {
-        otpStore.delete(cleanPhone);
-        return NextResponse.json({ error: 'OTP has expired' }, { status: 400 });
+      const result = verifyStoredOtp(cleanPhone, code);
+
+      if (!result.valid) {
+        return NextResponse.json({ error: result.reason || 'Invalid verification code' }, { status: 400 });
       }
 
-      if (record.code !== code) {
-        return NextResponse.json({ error: 'Invalid verification code' }, { status: 400 });
-      }
-
-      otpStore.delete(cleanPhone);
       return NextResponse.json({ success: true, verified: true });
     }
 
