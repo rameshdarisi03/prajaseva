@@ -23,21 +23,19 @@ import {
   UserCheck,
   ChevronRight,
   ShieldAlert,
-  Send,
   Navigation,
   Download,
   Check,
   X,
   Maximize2,
   User,
-  Building2,
-  Eye,
-  Layers,
-  ArrowUpRight
+  ArrowUpRight,
+  ImageIcon
 } from 'lucide-react';
 import { Complaint, ComplaintCategory } from '@/types';
 import { formatDateTime, calculateTurnaround } from '@/lib/dateUtils';
 import { compressImage } from '@/lib/imageCompression';
+import { IndianLanguage, MGMT_TRANSLATIONS } from '@/lib/mgmtI18n';
 
 interface Ward {
   id: string;
@@ -53,6 +51,25 @@ export default function OperationsBoardPage({
   const resolvedParams = use(params);
   const orgParam = resolvedParams.orgId;
 
+  // Multi-Language State
+  const [lang, setLang] = useState<IndianLanguage>('en');
+
+  useEffect(() => {
+    const saved = localStorage.getItem('praja_seva_lang') as IndianLanguage;
+    if (saved && MGMT_TRANSLATIONS[saved]) {
+      setLang(saved);
+    }
+    const handleLangChange = (e: any) => {
+      if (e.detail && MGMT_TRANSLATIONS[e.detail as IndianLanguage]) {
+        setLang(e.detail as IndianLanguage);
+      }
+    };
+    window.addEventListener('praja_lang_change', handleLangChange);
+    return () => window.removeEventListener('praja_lang_change', handleLangChange);
+  }, []);
+
+  const t = MGMT_TRANSLATIONS[lang] || MGMT_TRANSLATIONS.en;
+
   // Tickets & Wards Data
   const [allTickets, setAllTickets] = useState<Complaint[]>([]);
   const [wards, setWards] = useState<Ward[]>([]);
@@ -60,14 +77,14 @@ export default function OperationsBoardPage({
   const [loading, setLoading] = useState(true);
 
   // Active Tab: driven by top 3 cards (NEW, IN_PROGRESS, RESOLVED)
-  const [activeTab, setActiveTab] = useState<'NEW' | 'IN_PROGRESS' | 'RESOLVED' | 'ALL'>('NEW');
+  const [activeTab, setActiveTab] = useState<'NEW' | 'IN_PROGRESS' | 'RESOLVED'>('NEW');
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWardId, setSelectedWardId] = useState<string>('ALL');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
 
-  // Selected Ticket for Full Details Drawer / Modal
+  // Selected Ticket for Full Details Modal
   const [detailTicket, setDetailTicket] = useState<Complaint | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
@@ -115,7 +132,7 @@ export default function OperationsBoardPage({
     }
   }, [allTickets]);
 
-  // 2. Assign Ticket to Volunteer
+  // 2. Assign Ticket to Volunteer (uses term "Assign")
   const handleAssignVolunteer = async (ticketId: string) => {
     const volId = selectedVolunteerMap[ticketId] || volunteers[0]?.id;
     if (!volId) {
@@ -216,7 +233,7 @@ export default function OperationsBoardPage({
   const displayedTickets = useMemo(() => {
     return allTickets.filter((t) => {
       // Status filter driven by active top card
-      if (activeTab !== 'ALL' && t.status !== activeTab) {
+      if (t.status !== activeTab) {
         return false;
       }
 
@@ -241,8 +258,21 @@ export default function OperationsBoardPage({
     });
   }, [allTickets, activeTab, selectedWardId, selectedCategory, searchQuery]);
 
+  // Category translation helper
+  const getCategoryLabel = (cat: string) => {
+    switch (cat) {
+      case 'ROADS': return t.roads;
+      case 'WATER': return t.water;
+      case 'DRAINAGE': return t.drainage;
+      case 'LIGHTS': return t.lights;
+      case 'GARBAGE': return t.garbage;
+      case 'OTHER': return t.other;
+      default: return cat;
+    }
+  };
+
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-5 pb-16">
       {/* Lightbox Modal */}
       {lightboxImage && (
         <div
@@ -259,7 +289,7 @@ export default function OperationsBoardPage({
               onClick={() => setLightboxImage(null)}
               className="absolute -top-10 right-0 text-white font-bold text-sm bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition"
             >
-              ✕ Close
+              ✕ {t.closeBtn}
             </button>
           </div>
         </div>
@@ -268,14 +298,14 @@ export default function OperationsBoardPage({
       {/* Volunteer Resolution Modal */}
       {resolvingTicket && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <span className="font-mono font-bold text-blue-600 text-xs">
                   {resolvingTicket.ticket_number}
                 </span>
                 <h3 className="text-base font-bold text-slate-900">
-                  Submit Field Resolution Proof
+                  {t.submitProofBtn}
                 </h3>
               </div>
               <button
@@ -285,10 +315,6 @@ export default function OperationsBoardPage({
                 ✕
               </button>
             </div>
-
-            <p className="text-xs text-slate-500">
-              Capture resolution photo evidence. Hardware coordinates will be automatically verified against the citizen's lodged pin.
-            </p>
 
             {/* Photo Capture */}
             <input
@@ -301,7 +327,7 @@ export default function OperationsBoardPage({
             />
 
             {afterPhotoBase64 ? (
-              <div className="relative rounded-xl overflow-hidden border border-emerald-200">
+              <div className="relative rounded-2xl overflow-hidden border border-emerald-200">
                 <img src={afterPhotoBase64} alt="After work" className="w-full h-52 object-cover" />
                 <button
                   onClick={() => setAfterPhotoBase64(null)}
@@ -310,45 +336,36 @@ export default function OperationsBoardPage({
                   ✕
                 </button>
                 <div className="absolute bottom-2 left-2 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">
-                  Resolved Proof Ready ✓
+                  {t.resolutionPhotoLabel}
                 </div>
               </div>
             ) : (
               <button
                 type="button"
                 onClick={() => cameraInputRef.current?.click()}
-                className="w-full py-8 border-2 border-dashed border-emerald-300 rounded-xl bg-emerald-50/50 hover:bg-emerald-50 text-emerald-700 flex flex-col items-center justify-center gap-1.5 transition cursor-pointer"
+                className="w-full py-8 border-2 border-dashed border-emerald-300 rounded-2xl bg-emerald-50/50 hover:bg-emerald-50 text-emerald-700 flex flex-col items-center justify-center gap-1.5 transition cursor-pointer"
               >
                 <Camera className="w-8 h-8 text-emerald-600" />
-                <span className="text-xs font-bold">Capture After Photo (లైవ్ ఫోటో)</span>
+                <span className="text-xs font-bold">{t.submitProofBtn}</span>
                 <span className="text-[11px] text-slate-400">GPS location stamped automatically</span>
               </button>
-            )}
-
-            {volunteerCoords && (
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs flex items-center justify-between">
-                <span className="text-slate-500">Volunteer GPS:</span>
-                <span className="font-mono font-semibold text-slate-800">
-                  {volunteerCoords.lat.toFixed(5)}, {volunteerCoords.lng.toFixed(5)}
-                </span>
-              </div>
             )}
 
             <div className="flex gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setResolvingTicket(null)}
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 font-bold text-xs text-slate-600 hover:bg-slate-50"
+                className="flex-1 py-3 rounded-xl border border-slate-200 font-bold text-xs text-slate-600 hover:bg-slate-50"
               >
-                Cancel
+                {t.closeBtn}
               </button>
               <button
                 type="button"
                 onClick={handleSubmitProof}
                 disabled={isSubmittingProof || !afterPhotoBase64}
-                className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5"
+                className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
-                {isSubmittingProof ? 'Sending...' : 'Send to MLA Review Gate →'}
+                {isSubmittingProof ? 'Sending...' : t.submitProofBtn}
               </button>
             </div>
           </div>
@@ -356,11 +373,11 @@ export default function OperationsBoardPage({
       )}
 
       {/* ===================================================================== */}
-      {/* FULL TICKET DETAILS MODAL / DRAWER (OPENS ON LIST CLICK)               */}
+      {/* FULL TICKET DETAILS MODAL (OPENS ON "MORE DETAILS →")                 */}
       {/* ===================================================================== */}
       {detailTicket && (
         <div className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 lg:p-6 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[92vh] shadow-2xl border border-slate-200 flex flex-col overflow-hidden my-auto animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] shadow-2xl border border-slate-200 flex flex-col overflow-hidden my-auto animate-in fade-in zoom-in-95">
             {/* Header */}
             <div className="p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -369,29 +386,27 @@ export default function OperationsBoardPage({
                 </span>
                 <div>
                   <h3 className="text-base font-bold text-slate-900">
-                    {detailTicket.category} Grievance Dossier
+                    {getCategoryLabel(detailTicket.category)} • {t.dossierTitle}
                   </h3>
                   <span className="text-xs text-slate-500">
-                    Lodged: {formatDateTime(detailTicket.created_at)}
+                    {t.lodgedDate}: {formatDateTime(detailTicket.created_at)}
                   </span>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
                   detailTicket.status === 'NEW'
-                    ? 'bg-blue-100 text-blue-800'
+                    ? 'bg-blue-100 text-blue-800 border-blue-200'
                     : detailTicket.status === 'IN_PROGRESS'
-                    ? 'bg-amber-100 text-amber-800'
-                    : detailTicket.status === 'PENDING_APPROVAL'
-                    ? 'bg-purple-100 text-purple-800'
-                    : 'bg-emerald-100 text-emerald-800'
+                    ? 'bg-amber-100 text-amber-800 border-amber-200'
+                    : 'bg-emerald-100 text-emerald-800 border-emerald-200'
                 }`}>
-                  {detailTicket.status}
+                  {detailTicket.status === 'NEW' ? t.statusNew : detailTicket.status === 'IN_PROGRESS' ? t.statusInProgress : t.statusResolved}
                 </span>
                 <button
                   onClick={() => setDetailTicket(null)}
-                  className="p-1.5 rounded-full hover:bg-slate-200 text-slate-500 transition"
+                  className="p-1.5 rounded-full hover:bg-slate-200 text-slate-500 transition cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -399,12 +414,12 @@ export default function OperationsBoardPage({
             </div>
 
             {/* Content Body */}
-            <div className="p-6 overflow-y-auto space-y-5">
+            <div className="p-6 overflow-y-auto space-y-4">
               {/* Citizen Details */}
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                    Complainant Name
+                    {t.citizenNameLabel}
                   </span>
                   <div className="font-bold text-slate-900 text-sm mt-0.5">
                     {detailTicket.citizen_name}
@@ -412,7 +427,7 @@ export default function OperationsBoardPage({
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                    WhatsApp Mobile
+                    {t.mobileLabel}
                   </span>
                   <a
                     href={`tel:${detailTicket.citizen_phone}`}
@@ -424,15 +439,15 @@ export default function OperationsBoardPage({
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                    Ward Jurisdiction
+                    {t.wardLabel}
                   </span>
                   <div className="font-semibold text-slate-800 text-xs mt-0.5">
-                    🏷️ {wards.find(w => w.id === detailTicket.ward_id)?.name || 'Constituency Ward'}
+                    🏷️ Ward {wards.find(w => w.id === detailTicket.ward_id)?.ward_number || '01'} ({wards.find(w => w.id === detailTicket.ward_id)?.name || 'Central'})
                   </div>
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                    GPS Coordinates
+                    {t.gpsLabel}
                   </span>
                   <a
                     href={`https://maps.google.com/?q=${detailTicket.latitude},${detailTicket.longitude}`}
@@ -447,10 +462,10 @@ export default function OperationsBoardPage({
                 </div>
               </div>
 
-              {/* Location Address */}
+              {/* Landmark */}
               <div className="p-3.5 rounded-xl bg-white border border-slate-200 text-xs space-y-1">
                 <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">
-                  Landmark / Street Address
+                  {t.landmarkLabel}
                 </span>
                 <p className="text-slate-800 font-medium">
                   {detailTicket.location_address || 'Mangalagiri Assembly Constituency'}
@@ -461,7 +476,7 @@ export default function OperationsBoardPage({
               {detailTicket.description && (
                 <div className="p-3.5 rounded-xl bg-white border border-slate-200 text-xs space-y-1">
                   <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">
-                    Complaint Remarks
+                    {t.descriptionLabel}
                   </span>
                   <p className="text-slate-700 leading-relaxed">
                     {detailTicket.description}
@@ -474,22 +489,22 @@ export default function OperationsBoardPage({
                 <div className="p-3.5 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Volume2 className="w-4 h-4 text-purple-600" />
-                    <span className="text-xs font-bold text-purple-950">Citizen Voice Note Recording</span>
+                    <span className="text-xs font-bold text-purple-950">{t.voiceNoteLabel}</span>
                   </div>
                   <audio src={detailTicket.voice_note_url} controls className="h-8 max-w-[240px]" />
                 </div>
               )}
 
-              {/* Photos Comparison */}
+              {/* Attached Photos */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Before Photo */}
                 <div className="space-y-1.5">
                   <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
-                    Citizen Lodged Evidence
+                    {t.evidencePhotoLabel}
                   </span>
                   {detailTicket.before_photo_url ? (
                     <div
-                      className="relative rounded-xl overflow-hidden border border-slate-200 h-52 bg-slate-100 cursor-pointer group"
+                      className="relative rounded-2xl overflow-hidden border border-slate-200 h-52 bg-slate-100 cursor-pointer group"
                       onClick={() => setLightboxImage(detailTicket.before_photo_url)}
                     >
                       <img
@@ -505,20 +520,20 @@ export default function OperationsBoardPage({
                       </span>
                     </div>
                   ) : (
-                    <div className="h-52 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 text-xs">
-                      No photo attached
+                    <div className="h-52 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 text-xs">
+                      {t.noPhoto}
                     </div>
                   )}
                 </div>
 
-                {/* After Photo (if available) */}
+                {/* After Photo */}
                 <div className="space-y-1.5">
                   <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider block">
-                    Resolution Proof (After)
+                    {t.resolutionPhotoLabel}
                   </span>
                   {detailTicket.after_photo_url ? (
                     <div
-                      className="relative rounded-xl overflow-hidden border-2 border-emerald-500 h-52 bg-emerald-50 cursor-pointer group"
+                      className="relative rounded-2xl overflow-hidden border-2 border-emerald-500 h-52 bg-emerald-50 cursor-pointer group"
                       onClick={() => setLightboxImage(detailTicket.after_photo_url || null)}
                     >
                       <img
@@ -527,27 +542,27 @@ export default function OperationsBoardPage({
                         className="w-full h-full object-cover group-hover:scale-102 transition"
                       />
                       <span className="absolute bottom-2 left-2 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">
-                        AFTER (RESOLVED) ✓
+                        AFTER ✓
                       </span>
                       <span className="absolute top-2 right-2 bg-black/60 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition">
                         <Maximize2 className="w-3.5 h-3.5" />
                       </span>
                     </div>
                   ) : (
-                    <div className="h-52 rounded-xl border border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center text-slate-400 text-xs p-4 text-center">
+                    <div className="h-52 rounded-2xl border border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center text-slate-400 text-xs p-4 text-center">
                       <Clock className="w-8 h-8 mb-1.5 text-slate-300" />
-                      <span>Pending Field Resolution Photo</span>
+                      <span>{t.pendingResolutionPhoto}</span>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Action Bar inside Drawer */}
-              <div className="pt-4 border-t border-slate-200">
+              {/* Action Zone: Assign Volunteer */}
+              <div className="pt-3 border-t border-slate-200">
                 {detailTicket.status === 'NEW' && (
                   <div className="space-y-2">
-                    <span className="text-xs font-bold text-slate-600 block">
-                      Deploy Field Volunteer
+                    <span className="text-xs font-bold text-slate-700 block">
+                      {t.assignVolunteerTitle}
                     </span>
                     <div className="flex gap-2">
                       <select
@@ -562,7 +577,7 @@ export default function OperationsBoardPage({
                       >
                         {volunteers.map((vol) => (
                           <option key={vol.id} value={vol.id}>
-                            Assign: {vol.full_name} ({vol.role})
+                            {vol.full_name} ({vol.role})
                           </option>
                         ))}
                       </select>
@@ -573,10 +588,10 @@ export default function OperationsBoardPage({
                           setDetailTicket(null);
                         }}
                         disabled={assigningId === detailTicket.id}
-                        className="h-11 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+                        className="h-11 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer"
                       >
                         <UserCheck className="w-4 h-4" />
-                        <span>{assigningId === detailTicket.id ? 'Deploying...' : 'Deploy Crew'}</span>
+                        <span>{assigningId === detailTicket.id ? t.assigningBtn : t.assignBtn}</span>
                       </button>
                     </div>
                   </div>
@@ -589,21 +604,21 @@ export default function OperationsBoardPage({
                       setDetailTicket(null);
                       handleOpenResolveModal(detailTicket);
                     }}
-                    className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition"
+                    className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer"
                   >
                     <Camera className="w-4 h-4" />
-                    <span>Take Resolution Photo & Send to QA Gate</span>
+                    <span>{t.submitProofBtn}</span>
                   </button>
                 )}
 
                 {detailTicket.status === 'RESOLVED' && (
                   <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-between">
-                    <span>✓ This complaint was verified and approved by the MLA office.</span>
+                    <span>{t.resolvedBanner}</span>
                     <Link
                       href={`/m/${orgParam}/review`}
                       className="text-blue-700 underline text-xs font-bold"
                     >
-                      View in QA Chamber
+                      {t.openApprovalDesk}
                     </Link>
                   </div>
                 )}
@@ -620,18 +635,18 @@ export default function OperationsBoardPage({
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-black uppercase tracking-wider border border-blue-200">
-              TRIAGE DISPATCH DESK
+              {t.complaintsDeskBadge}
             </span>
             <span className="text-slate-300">•</span>
             <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" /> Live Feeds Active
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" /> {t.liveFeedsActive}
             </span>
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight mt-1">
-            Grievance Operations & Ground Triage
+            {t.pageTitle}
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Real-time telemetry and rapid volunteer dispatch across all constituency wards
+            {t.pageSubtitle}
           </p>
         </div>
 
@@ -641,7 +656,7 @@ export default function OperationsBoardPage({
             className="h-10 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-sm flex items-center gap-2 transition"
           >
             <ShieldAlert className="w-4 h-4" />
-            <span>Open Review & QA Chamber ({pendingReviewCount})</span>
+            <span>{t.openApprovalDesk} ({pendingReviewCount})</span>
           </Link>
           <Link
             href={`/p/${orgParam}`}
@@ -649,14 +664,13 @@ export default function OperationsBoardPage({
             className="h-10 px-4 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-2xs flex items-center gap-1.5 transition"
           >
             <ExternalLink className="w-4 h-4 text-blue-600" />
-            <span>Citizen QR Portal</span>
+            <span>{t.citizenQrPortal}</span>
           </Link>
         </div>
       </div>
 
       {/* ===================================================================== */}
-      {/* TOP CARDS: 3 INTERACTIVE STATUS SELECTORS (NEW, IN PROGRESS, RESOLVED) */}
-      {/* (REVIEW & QA GATE CARD REMOVED AS REQUESTED)                           */}
+      {/* TOP 3 INTERACTIVE STATUS CARDS (NEW, IN PROGRESS, RESOLVED)           */}
       {/* ===================================================================== */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* CARD 1: NEW / UNASSIGNED */}
@@ -672,7 +686,7 @@ export default function OperationsBoardPage({
           <div className="flex items-start justify-between w-full">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                New / Unassigned
+                {t.newCardTitle}
               </span>
               <div className="text-2xl font-black text-blue-700 mt-1">
                 {newCount}
@@ -685,9 +699,9 @@ export default function OperationsBoardPage({
             </div>
           </div>
           <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 w-full">
-            <span>Triage Queue</span>
+            <span>{t.statusNew}</span>
             <span className={`font-bold ${activeTab === 'NEW' ? 'text-blue-700' : 'text-slate-400'}`}>
-              {activeTab === 'NEW' ? '● Active View' : 'Click to view'}
+              {activeTab === 'NEW' ? t.selectedView : t.clickToView}
             </span>
           </div>
         </button>
@@ -705,7 +719,7 @@ export default function OperationsBoardPage({
           <div className="flex items-start justify-between w-full">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                In Field Action
+                {t.inProgressCardTitle}
               </span>
               <div className="text-2xl font-black text-amber-600 mt-1">
                 {inProgressCount}
@@ -718,9 +732,9 @@ export default function OperationsBoardPage({
             </div>
           </div>
           <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 w-full">
-            <span>Active Volunteers Deployed</span>
+            <span>{t.statusInProgress}</span>
             <span className={`font-bold ${activeTab === 'IN_PROGRESS' ? 'text-amber-600' : 'text-slate-400'}`}>
-              {activeTab === 'IN_PROGRESS' ? '● Active View' : 'Click to view'}
+              {activeTab === 'IN_PROGRESS' ? t.selectedView : t.clickToView}
             </span>
           </div>
         </button>
@@ -738,7 +752,7 @@ export default function OperationsBoardPage({
           <div className="flex items-start justify-between w-full">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                Total Resolved
+                {t.resolvedCardTitle}
               </span>
               <div className="text-2xl font-black text-emerald-600 mt-1">
                 {resolvedCount}
@@ -751,27 +765,27 @@ export default function OperationsBoardPage({
             </div>
           </div>
           <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 w-full">
-            <span>Verified & Dispatched</span>
+            <span>{t.statusResolved}</span>
             <span className={`font-bold ${activeTab === 'RESOLVED' ? 'text-emerald-600' : 'text-slate-400'}`}>
-              {activeTab === 'RESOLVED' ? '● Active View' : 'Click to view'}
+              {activeTab === 'RESOLVED' ? t.selectedView : t.clickToView}
             </span>
           </div>
         </button>
       </div>
 
       {/* ===================================================================== */}
-      {/* SEARCH & FILTERS BAR                                                  */}
+      {/* SEARCH & FILTERS BAR (CLEAN NATURAL SPACING, STRIKED-OUT OPTION GONE) */}
       {/* ===================================================================== */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-3">
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
-          {/* Universal Search */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          {/* Universal Search (Expands naturally across full width) */}
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by Ticket ID (CMP-1005), Citizen, Mobile, or Landmark..."
+              placeholder={t.searchPlaceholder}
               className="w-full h-11 pl-10 pr-10 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {searchQuery && (
@@ -784,14 +798,14 @@ export default function OperationsBoardPage({
             )}
           </div>
 
-          {/* Ward Dropdown */}
-          <div className="relative w-full lg:w-72">
+          {/* Ward Dropdown (Fixed width, perfectly aligned) */}
+          <div className="relative w-full sm:w-72">
             <select
               value={selectedWardId}
               onChange={(e) => setSelectedWardId(e.target.value)}
               className="w-full h-11 pl-3.5 pr-8 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 appearance-none cursor-pointer focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="ALL">All Wards (Entire Constituency)</option>
+              <option value="ALL">{t.allWardsOption}</option>
               {wards.map((w) => (
                 <option key={w.id} value={w.id}>
                   Ward {w.ward_number} - {w.name}
@@ -802,25 +816,12 @@ export default function OperationsBoardPage({
               ▼
             </div>
           </div>
-
-          {/* View All Pill */}
-          <button
-            onClick={() => setActiveTab(activeTab === 'ALL' ? 'NEW' : 'ALL')}
-            className={`h-11 px-3.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
-              activeTab === 'ALL'
-                ? 'bg-slate-900 text-white border-slate-900'
-                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>{activeTab === 'ALL' ? 'Showing All' : 'Show All Tickets'}</span>
-          </button>
         </div>
 
         {/* Category Filter Horizon */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none pt-1">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">
-            Category:
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1 shrink-0">
+            {t.categoryLabel}
           </span>
           {['ALL', 'ROADS', 'WATER', 'DRAINAGE', 'LIGHTS', 'GARBAGE', 'OTHER'].map((cat) => (
             <button
@@ -832,17 +833,18 @@ export default function OperationsBoardPage({
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              {cat === 'ALL' ? 'All Issues' : cat}
+              {cat === 'ALL' ? t.allIssues : getCategoryLabel(cat)}
             </button>
           ))}
           <div className="ml-auto text-[11px] text-slate-400 shrink-0 pl-2">
-            Showing <strong className="text-slate-800">{displayedTickets.length}</strong> complaints
+            {t.showingCount} <strong className="text-slate-800">{displayedTickets.length}</strong>
           </div>
         </div>
       </div>
 
       {/* ===================================================================== */}
-      {/* SLEEK, LIST-BASED CARDS SECTION (ONLY ACTIVE TAB LISTED)              */}
+      {/* CLEAN, HAND-FRIENDLY COMPLAINT CARDS                                  */}
+      {/* SHOWS: ID, TYPE, STATUS (BLUE/ORANGE/GREEN), IMAGE, [MORE DETAILS →]  */}
       {/* ===================================================================== */}
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
@@ -852,33 +854,26 @@ export default function OperationsBoardPage({
                 ? 'bg-blue-600'
                 : activeTab === 'IN_PROGRESS'
                 ? 'bg-amber-500 animate-pulse'
-                : activeTab === 'RESOLVED'
-                ? 'bg-emerald-600'
-                : 'bg-slate-800'
+                : 'bg-emerald-600'
             }`} />
             <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">
-              {activeTab === 'NEW' && `New Unassigned Complaints (${newCount})`}
-              {activeTab === 'IN_PROGRESS' && `In-Field Action Complaints (${inProgressCount})`}
-              {activeTab === 'RESOLVED' && `Resolved Archive (${resolvedCount})`}
-              {activeTab === 'ALL' && `All Constituency Complaints (${allTickets.length})`}
+              {activeTab === 'NEW' && `${t.newCardTitle} (${newCount})`}
+              {activeTab === 'IN_PROGRESS' && `${t.inProgressCardTitle} (${inProgressCount})`}
+              {activeTab === 'RESOLVED' && `${t.resolvedCardTitle} (${resolvedCount})`}
             </h2>
           </div>
-          <span className="text-xs text-slate-400">Click any card to inspect full details</span>
         </div>
 
         {displayedTickets.length === 0 ? (
-          <div className="bg-white rounded-2xl p-16 border border-dashed border-slate-200 text-center space-y-2">
+          <div className="bg-white rounded-3xl p-12 border border-dashed border-slate-200 text-center space-y-2">
             <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
               <Inbox className="w-6 h-6" />
             </div>
             <h3 className="text-sm font-bold text-slate-800">
-              No Complaints in this view
+              {t.noComplaintsInView}
             </h3>
             <p className="text-xs text-slate-400 max-w-sm mx-auto">
-              {activeTab === 'NEW' && 'All new complaints have been assigned to field volunteers.'}
-              {activeTab === 'IN_PROGRESS' && 'No field work is currently in progress.'}
-              {activeTab === 'RESOLVED' && 'No resolved tickets match the current filter.'}
-              {activeTab === 'ALL' && 'No complaints found matching your search.'}
+              {t.noComplaintsSub}
             </p>
           </div>
         ) : (
@@ -890,146 +885,82 @@ export default function OperationsBoardPage({
                 <div
                   key={ticket.id}
                   onClick={() => setDetailTicket(ticket)}
-                  className="bg-white rounded-2xl p-4 border border-slate-200 hover:border-blue-400 shadow-2xs hover:shadow-md transition cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 group"
+                  className="bg-white rounded-2xl p-4 border border-slate-200 hover:border-blue-400 shadow-2xs hover:shadow-md transition cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 group"
                 >
-                  {/* Left Column: ID, Category & Citizen Info */}
-                  <div className="flex items-start gap-3.5 min-w-0 flex-1">
-                    {/* Category Icon Badge */}
-                    <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold shrink-0 border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition">
-                      {ticket.category === 'ROADS' && <Zap className="w-5 h-5" />}
-                      {ticket.category === 'WATER' && <Droplet className="w-5 h-5" />}
-                      {ticket.category === 'DRAINAGE' && <Droplet className="w-5 h-5" />}
-                      {ticket.category === 'LIGHTS' && <Lightbulb className="w-5 h-5" />}
-                      {ticket.category === 'GARBAGE' && <Trash className="w-5 h-5" />}
-                      {!['ROADS', 'WATER', 'DRAINAGE', 'LIGHTS', 'GARBAGE'].includes(ticket.category) && (
-                        <AlertTriangle className="w-5 h-5" />
+                  {/* Left: Thumbnail Image + Details */}
+                  <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                    {/* Attached Photo Thumbnail */}
+                    <div
+                      className="relative w-14 h-14 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0 flex items-center justify-center"
+                      onClick={(e) => {
+                        if (ticket.before_photo_url) {
+                          e.stopPropagation();
+                          setLightboxImage(ticket.before_photo_url);
+                        }
+                      }}
+                    >
+                      {ticket.before_photo_url ? (
+                        <img
+                          src={ticket.before_photo_url}
+                          alt="Attached Evidence"
+                          className="w-full h-full object-cover group-hover:scale-105 transition"
+                        />
+                      ) : (
+                        <ImageIcon className="w-6 h-6 text-slate-300" />
                       )}
                     </div>
 
+                    {/* Middle: ID, Type, Status & Basic Citizen Info */}
                     <div className="min-w-0 space-y-1">
-                      {/* Top Pill Row */}
+                      {/* Pill Row */}
                       <div className="flex flex-wrap items-center gap-2">
+                        {/* 1. Complaint ID */}
                         <span className="font-mono font-bold text-blue-700 text-xs px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200">
                           {ticket.ticket_number}
                         </span>
 
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        {/* 2. Type of Complaint */}
+                        <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-extrabold uppercase tracking-wider">
+                          {getCategoryLabel(ticket.category)}
+                        </span>
+
+                        {/* 3. Status Badge (Strict colors: Blue / Orange / Green) */}
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider border ${
                           ticket.status === 'NEW'
-                            ? 'bg-blue-100 text-blue-800'
+                            ? 'bg-blue-100 text-blue-800 border-blue-300'
                             : ticket.status === 'IN_PROGRESS'
-                            ? 'bg-amber-100 text-amber-800'
-                            : ticket.status === 'PENDING_APPROVAL'
-                            ? 'bg-purple-100 text-purple-800'
-                            : 'bg-emerald-100 text-emerald-800'
+                            ? 'bg-amber-100 text-amber-800 border-amber-300'
+                            : 'bg-emerald-100 text-emerald-800 border-emerald-300'
                         }`}>
-                          {ticket.status}
-                        </span>
-
-                        <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-extrabold uppercase">
-                          {ticket.category}
-                        </span>
-
-                        <span className="text-[10px] text-slate-500 font-medium">
-                          🏷️ Ward {ticketWard?.ward_number || '01'} ({ticketWard?.name || 'Central'})
+                          {ticket.status === 'NEW' ? t.statusNew : ticket.status === 'IN_PROGRESS' ? t.statusInProgress : t.statusResolved}
                         </span>
                       </div>
 
-                      {/* Citizen Name & Landmark */}
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
-                        <span className="font-bold text-slate-900">
+                      {/* Citizen & Location Snippet */}
+                      <div className="flex items-center gap-2 text-xs text-slate-600 truncate">
+                        <span className="font-bold text-slate-900 truncate">
                           {ticket.citizen_name}
                         </span>
-                        <span className="text-slate-400">•</span>
-                        <span className="text-slate-500 font-mono text-[11px] flex items-center gap-1">
-                          <Phone className="w-3 h-3 text-slate-400" />
-                          +91 {ticket.citizen_phone}
-                        </span>
-                        <span className="text-slate-400">•</span>
-                        <span className="text-slate-500 truncate max-w-xs text-[11px] flex items-center gap-1">
+                        <span className="text-slate-300">•</span>
+                        <span className="text-slate-500 text-[11px] truncate flex items-center gap-1">
                           <MapPin className="w-3 h-3 text-red-500 shrink-0" />
-                          {ticket.location_address || 'Mangalagiri Area'}
-                        </span>
-                      </div>
-
-                      {/* Evidence Tags */}
-                      <div className="flex items-center gap-3 pt-0.5 text-[11px] text-slate-400">
-                        {ticket.before_photo_url && (
-                          <span className="flex items-center gap-1 text-blue-600 font-medium">
-                            <Camera className="w-3 h-3" /> Photo Attached
-                          </span>
-                        )}
-                        {ticket.voice_note_url && (
-                          <span className="flex items-center gap-1 text-purple-600 font-medium">
-                            <Volume2 className="w-3 h-3" /> Audio Note
-                          </span>
-                        )}
-                        <span className="text-slate-400">
-                          Lodged {formatDateTime(ticket.created_at)}
+                          Ward {ticketWard?.ward_number || '01'} • {ticket.location_address || 'Mangalagiri'}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Right Column: Fast Actions */}
-                  <div
-                    className="flex items-center gap-2 self-end md:self-center shrink-0"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {ticket.status === 'NEW' && (
-                      <div className="flex items-center gap-2">
-                        <select
-                          value={selectedVolunteerMap[ticket.id] || volunteers[0]?.id || ''}
-                          onChange={(e) =>
-                            setSelectedVolunteerMap({
-                              ...selectedVolunteerMap,
-                              [ticket.id]: e.target.value,
-                            })
-                          }
-                          className="h-9 px-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 max-w-[160px]"
-                        >
-                          {volunteers.map((vol) => (
-                            <option key={vol.id} value={vol.id}>
-                              {vol.full_name} ({vol.role})
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          onClick={() => handleAssignVolunteer(ticket.id)}
-                          disabled={assigningId === ticket.id}
-                          className="h-9 px-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1 transition shadow-xs cursor-pointer"
-                        >
-                          <UserCheck className="w-3.5 h-3.5" />
-                          <span>{assigningId === ticket.id ? '...' : 'Deploy'}</span>
-                        </button>
-                      </div>
-                    )}
-
-                    {ticket.status === 'IN_PROGRESS' && (
-                      <button
-                        type="button"
-                        onClick={() => handleOpenResolveModal(ticket)}
-                        className="h-9 px-3.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-xs cursor-pointer"
-                      >
-                        <Camera className="w-3.5 h-3.5" />
-                        <span>Submit Proof</span>
-                      </button>
-                    )}
-
-                    {ticket.status === 'RESOLVED' && (
-                      <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Resolved
-                      </span>
-                    )}
-
+                  {/* Right: Only "More Details →" Button (Clean, Thumb-Friendly) */}
+                  <div className="self-end sm:self-center shrink-0 w-full sm:w-auto">
                     <button
                       type="button"
-                      onClick={() => setDetailTicket(ticket)}
-                      className="h-9 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1 transition"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDetailTicket(ticket);
+                      }}
+                      className="w-full sm:w-auto h-11 px-4 rounded-xl bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer border border-slate-200 hover:border-blue-600 active:scale-98"
                     >
-                      <span>Details</span>
-                      <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                      <span>{t.moreDetailsBtn}</span>
                     </button>
                   </div>
                 </div>

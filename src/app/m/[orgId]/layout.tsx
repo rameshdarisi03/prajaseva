@@ -25,6 +25,8 @@ import {
   RotateCcw,
   KeyRound
 } from 'lucide-react';
+import { IndianLanguage, MGMT_TRANSLATIONS } from '@/lib/mgmtI18n';
+import { SUPPORTED_LANGUAGES } from '@/lib/landingI18n';
 import { UserRole } from '@/types';
 
 interface SessionUser {
@@ -70,6 +72,26 @@ export default function ManagementLayout({
   // Organization Metadata
   const [org, setOrg] = useState<Organization | null>(null);
   const [pendingReviewCount, setPendingReviewCount] = useState<number>(0);
+
+  // Multi-Language State
+  const [lang, setLang] = useState<IndianLanguage>('en');
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const savedLang = localStorage.getItem('praja_seva_lang') as IndianLanguage;
+    if (savedLang && MGMT_TRANSLATIONS[savedLang]) {
+      setLang(savedLang);
+    }
+  }, []);
+
+  const handleSelectLang = (newLang: IndianLanguage) => {
+    setLang(newLang);
+    setIsLangMenuOpen(false);
+    localStorage.setItem('praja_seva_lang', newLang);
+    window.dispatchEvent(new CustomEvent('praja_lang_change', { detail: newLang }));
+  };
+
+  const t = MGMT_TRANSLATIONS[lang] || MGMT_TRANSLATIONS.en;
 
   // Timer for OTP resend cooldown
   useEffect(() => {
@@ -558,23 +580,50 @@ export default function ManagementLayout({
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-semibold text-slate-800">Ground Network Active</span>
+              <span className="font-semibold text-slate-800">{t.groundNetworkActive}</span>
               <span className="text-slate-300">•</span>
-              <span className="text-slate-500 font-medium">Auto-Sync On</span>
+              <span className="text-slate-500 font-medium">{t.autoSyncOn}</span>
             </div>
             <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-bold border border-blue-200">
-              Executive Admin Chamber
+              {t.adminChamber}
             </span>
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              className="h-9 px-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 flex items-center gap-1.5 transition"
-            >
-              <Globe2 className="w-3.5 h-3.5 text-blue-600" />
-              <span>తెలుగు | EN</span>
-            </button>
+            {/* Interactive Indian Language Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
+                className="h-9 px-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 flex items-center gap-1.5 transition cursor-pointer"
+              >
+                <Globe2 className="w-3.5 h-3.5 text-blue-600" />
+                <span>{SUPPORTED_LANGUAGES.find(l => l.code === lang)?.nativeName || 'తెలుగు | EN'}</span>
+              </button>
+
+              {isLangMenuOpen && (
+                <div className="absolute right-0 mt-1.5 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 animate-in fade-in zoom-in-95">
+                  <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                    Select Language / భాష ఎంచుకోండి
+                  </div>
+                  <div className="max-h-64 overflow-y-auto py-1">
+                    {SUPPORTED_LANGUAGES.map((l) => (
+                      <button
+                        key={l.code}
+                        type="button"
+                        onClick={() => handleSelectLang(l.code)}
+                        className={`w-full px-3 py-1.5 text-left text-xs font-medium flex items-center justify-between hover:bg-slate-50 transition cursor-pointer ${
+                          lang === l.code ? 'text-blue-600 font-bold bg-blue-50/50' : 'text-slate-700'
+                        }`}
+                      >
+                        <span>{l.nativeName}</span>
+                        <span className="text-[10px] text-slate-400 font-mono">({l.name})</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
             <Link
               href={`/m/${orgParam}/review`}

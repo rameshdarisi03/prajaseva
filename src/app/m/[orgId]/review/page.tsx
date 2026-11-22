@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { Complaint, Ward } from '@/types';
 import { formatDateTime, calculateTurnaround } from '@/lib/dateUtils';
+import { IndianLanguage, MGMT_TRANSLATIONS } from '@/lib/mgmtI18n';
 
 interface Organization {
   id: string;
@@ -52,6 +53,25 @@ export default function ReviewQAPage({
 }) {
   const resolvedParams = use(params);
   const orgParam = resolvedParams.orgId;
+
+  // Multi-Language State
+  const [lang, setLang] = useState<IndianLanguage>('en');
+
+  useEffect(() => {
+    const saved = localStorage.getItem('praja_seva_lang') as IndianLanguage;
+    if (saved && MGMT_TRANSLATIONS[saved]) {
+      setLang(saved);
+    }
+    const handleLangChange = (e: any) => {
+      if (e.detail && MGMT_TRANSLATIONS[e.detail as IndianLanguage]) {
+        setLang(e.detail as IndianLanguage);
+      }
+    };
+    window.addEventListener('praja_lang_change', handleLangChange);
+    return () => window.removeEventListener('praja_lang_change', handleLangChange);
+  }, []);
+
+  const t = MGMT_TRANSLATIONS[lang] || MGMT_TRANSLATIONS.en;
 
   // Data States
   const [tickets, setTickets] = useState<Complaint[]>([]);
@@ -618,184 +638,248 @@ export default function ReviewQAPage({
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] uppercase tracking-wider font-bold text-slate-500">
-                    <th className="py-3 px-4">Ticket Ref</th>
-                    <th className="py-3 px-4">Citizen Contact</th>
-                    <th className="py-3 px-4">Category & Location</th>
-                    <th className="py-3 px-4">Ward</th>
-                    <th className="py-3 px-4">Turnaround</th>
-                    <th className="py-3 px-4">GPS Geofence</th>
-                    <th className="py-3 px-4">Photographic Evidence</th>
-                    <th className="py-3 px-4">Zoho Archive</th>
-                    <th className="py-3 px-4 text-right">Audit Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filteredTickets.map((t) => {
-                    const ticketTurnaround = calculateTurnaround(t.created_at, t.submitted_for_approval_at || new Date().toISOString());
-                    const dist = t.proximity_meters || 22;
-                    const isValidDist = t.is_proximity_verified ?? (dist <= 150);
+            <>
+              {/* MOBILE HAND-FRIENDLY CARD VIEW (NO HORIZONTAL SCROLL CUTOFFS) */}
+              <div className="md:hidden divide-y divide-slate-100">
+                {filteredTickets.map((t) => (
+                  <div
+                    key={t.id}
+                    onClick={() => openAuditChamber(t)}
+                    className="p-4 space-y-3 hover:bg-slate-50 transition cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-bold text-blue-700 text-xs px-2 py-0.5 rounded bg-blue-50 border border-blue-200">
+                        {t.ticket_number}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-extrabold uppercase">
+                        {t.category}
+                      </span>
+                    </div>
 
-                    return (
-                      <tr
-                        key={t.id}
-                        className="hover:bg-blue-50/40 transition cursor-pointer group"
-                        onClick={() => openAuditChamber(t)}
-                      >
-                        {/* Ticket Ref */}
-                        <td className="py-3.5 px-4 font-mono font-bold">
-                          <span className="px-2 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                            {t.ticket_number}
-                          </span>
-                        </td>
-
-                        {/* Citizen */}
-                        <td className="py-3.5 px-4">
-                          <div className="font-bold text-slate-900">{t.citizen_name}</div>
-                          <div className="text-[11px] text-slate-500 flex items-center gap-1 font-mono">
-                            <Phone className="w-3 h-3 text-slate-400" />
-                            +91 {t.citizen_phone}
+                    <div className="flex items-center gap-3">
+                      {/* Mini Thumbnail */}
+                      <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+                        {t.after_photo_url || t.before_photo_url ? (
+                          <img
+                            src={t.after_photo_url || t.before_photo_url}
+                            alt="Evidence"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-400">
+                            <Camera className="w-4 h-4" />
                           </div>
-                        </td>
+                        )}
+                      </div>
 
-                        {/* Category & Location */}
-                        <td className="py-3.5 px-4 max-w-xs">
-                          <div className="flex items-center gap-1.5">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 uppercase">
-                              {t.category}
+                      <div className="min-w-0 flex-1">
+                        <div className="font-bold text-slate-900 text-xs truncate">
+                          {t.citizen_name}
+                        </div>
+                        <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                          Ward {t.ward?.ward_number || '01'} • {t.location_address || 'Mangalagiri'}
+                        </div>
+                        <div className="text-[10px] text-emerald-600 font-semibold mt-0.5">
+                          ✓ GPS Verified ({t.proximity_meters || 22}m)
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openAuditChamber(t);
+                      }}
+                      className="w-full h-10 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-98"
+                    >
+                      <span>Approve</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* DESKTOP HIGH-DENSITY TABLE VIEW */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] uppercase tracking-wider font-bold text-slate-500">
+                      <th className="py-3 px-4">Ticket Ref</th>
+                      <th className="py-3 px-4">Citizen Contact</th>
+                      <th className="py-3 px-4">Category & Location</th>
+                      <th className="py-3 px-4">Ward</th>
+                      <th className="py-3 px-4">Turnaround</th>
+                      <th className="py-3 px-4">GPS Geofence</th>
+                      <th className="py-3 px-4">Photographic Evidence</th>
+                      <th className="py-3 px-4">Zoho Archive</th>
+                      <th className="py-3 px-4 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredTickets.map((t) => {
+                      const ticketTurnaround = calculateTurnaround(t.created_at, t.submitted_for_approval_at || new Date().toISOString());
+                      const dist = t.proximity_meters || 22;
+                      const isValidDist = t.is_proximity_verified ?? (dist <= 150);
+
+                      return (
+                        <tr
+                          key={t.id}
+                          className="hover:bg-blue-50/40 transition cursor-pointer group"
+                          onClick={() => openAuditChamber(t)}
+                        >
+                          {/* Ticket Ref */}
+                          <td className="py-3.5 px-4 font-mono font-bold">
+                            <span className="px-2 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+                              {t.ticket_number}
                             </span>
-                            {t.voice_note_url && (
-                              <span className="px-1.5 py-0.2 rounded bg-purple-50 text-purple-700 text-[9px] font-bold flex items-center gap-0.5">
-                                <Volume2 className="w-2.5 h-2.5" /> Audio
+                          </td>
+
+                          {/* Citizen */}
+                          <td className="py-3.5 px-4">
+                            <div className="font-bold text-slate-900">{t.citizen_name}</div>
+                            <div className="text-[11px] text-slate-500 flex items-center gap-1 font-mono">
+                              <Phone className="w-3 h-3 text-slate-400" />
+                              +91 {t.citizen_phone}
+                            </div>
+                          </td>
+
+                          {/* Category & Location */}
+                          <td className="py-3.5 px-4 max-w-xs">
+                            <div className="flex items-center gap-1.5">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 uppercase">
+                                {t.category}
                               </span>
-                            )}
-                          </div>
-                          <div className="text-[11px] text-slate-600 truncate mt-0.5" title={t.location_address || ''}>
-                            {t.location_address || 'Mangalagiri Assembly'}
-                          </div>
-                        </td>
+                              {t.voice_note_url && (
+                                <span className="px-1.5 py-0.2 rounded bg-purple-50 text-purple-700 text-[9px] font-bold flex items-center gap-0.5">
+                                  <Volume2 className="w-2.5 h-2.5" /> Audio
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-600 truncate mt-0.5" title={t.location_address || ''}>
+                              {t.location_address || 'Mangalagiri Assembly'}
+                            </div>
+                          </td>
 
-                        {/* Ward */}
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className="font-semibold text-slate-700">
-                            Ward {t.ward?.ward_number || '01'}
-                          </span>
-                          <div className="text-[10px] text-slate-400">
-                            {t.ward?.name || 'Central'}
-                          </div>
-                        </td>
+                          {/* Ward */}
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <span className="font-semibold text-slate-700">
+                              Ward {t.ward?.ward_number || '01'}
+                            </span>
+                            <div className="text-[10px] text-slate-400">
+                              {t.ward?.name || 'Central'}
+                            </div>
+                          </td>
 
-                        {/* Turnaround */}
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold text-[11px]">
-                            {ticketTurnaround}
-                          </span>
-                        </td>
+                          {/* Turnaround */}
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold text-[11px]">
+                              {ticketTurnaround}
+                            </span>
+                          </td>
 
-                        {/* GPS Geofence */}
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1 w-fit ${
-                              isValidDist
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-amber-100 text-amber-800'
-                            }`}
-                          >
-                            <MapPin className="w-3 h-3" />
-                            {dist}m {isValidDist ? '✓' : '⚠️'}
-                          </span>
-                        </td>
+                          {/* GPS Geofence */}
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1 w-fit ${
+                                isValidDist
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
+                              <MapPin className="w-3 h-3" />
+                              {dist}m {isValidDist ? '✓' : '⚠️'}
+                            </span>
+                          </td>
 
-                        {/* Photographic Proof Mini Thumbnails */}
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            {/* Before Thumbnail */}
-                            <div
-                              className="relative w-11 h-11 rounded-lg overflow-hidden border border-slate-200 bg-slate-100 shrink-0"
+                          {/* Photographic Proof Mini Thumbnails */}
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              {/* Before Thumbnail */}
+                              <div
+                                className="relative w-11 h-11 rounded-lg overflow-hidden border border-slate-200 bg-slate-100 shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (t.before_photo_url) {
+                                    setLightboxImage({ url: t.before_photo_url, title: `${t.ticket_number} - Citizen Before Evidence` });
+                                  }
+                                }}
+                              >
+                                {t.before_photo_url && !imgErrors[`b_${t.id}`] ? (
+                                  <img
+                                    src={t.before_photo_url}
+                                    alt="Before"
+                                    className="w-full h-full object-cover group-hover:scale-105 transition"
+                                    onError={() => setImgErrors(p => ({ ...p, [`b_${t.id}`]: true }))}
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                    <Camera className="w-4 h-4" />
+                                  </div>
+                                )}
+                                <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[7px] font-bold text-center py-0.2">
+                                  BEFORE
+                                </span>
+                              </div>
+
+                              {/* After Thumbnail */}
+                              <div
+                                className="relative w-11 h-11 rounded-lg overflow-hidden border-2 border-emerald-500 bg-emerald-50 shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (t.after_photo_url) {
+                                    setLightboxImage({ url: t.after_photo_url, title: `${t.ticket_number} - Resolution After Proof` });
+                                  }
+                                }}
+                              >
+                                {t.after_photo_url && !imgErrors[`a_${t.id}`] ? (
+                                  <img
+                                    src={t.after_photo_url}
+                                    alt="After"
+                                    className="w-full h-full object-cover group-hover:scale-105 transition"
+                                    onError={() => setImgErrors(p => ({ ...p, [`a_${t.id}`]: true }))}
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                    <Clock className="w-4 h-4" />
+                                  </div>
+                                )}
+                                <span className="absolute bottom-0 inset-x-0 bg-emerald-600 text-white text-[7px] font-bold text-center py-0.2">
+                                  AFTER
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Zoho Archive status */}
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200 flex items-center gap-1 w-fit">
+                              <FolderCheck className="w-3 h-3 text-emerald-600" />
+                              Zoho Synced
+                            </span>
+                          </td>
+
+                          {/* Action */}
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                            <button
+                              type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (t.before_photo_url) {
-                                  setLightboxImage({ url: t.before_photo_url, title: `${t.ticket_number} - Citizen Before Evidence` });
-                                }
+                                openAuditChamber(t);
                               }}
+                              className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1 ml-auto shadow-xs transition"
                             >
-                              {t.before_photo_url && !imgErrors[`b_${t.id}`] ? (
-                                <img
-                                  src={t.before_photo_url}
-                                  alt="Before"
-                                  className="w-full h-full object-cover group-hover:scale-105 transition"
-                                  onError={() => setImgErrors(p => ({ ...p, [`b_${t.id}`]: true }))}
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-slate-400">
-                                  <Camera className="w-4 h-4" />
-                                </div>
-                              )}
-                              <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[7px] font-bold text-center py-0.2">
-                                BEFORE
-                              </span>
-                            </div>
-
-                            {/* After Thumbnail */}
-                            <div
-                              className="relative w-11 h-11 rounded-lg overflow-hidden border-2 border-emerald-500 bg-emerald-50 shrink-0"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (t.after_photo_url) {
-                                  setLightboxImage({ url: t.after_photo_url, title: `${t.ticket_number} - Resolution After Proof` });
-                                }
-                              }}
-                            >
-                              {t.after_photo_url && !imgErrors[`a_${t.id}`] ? (
-                                <img
-                                  src={t.after_photo_url}
-                                  alt="After"
-                                  className="w-full h-full object-cover group-hover:scale-105 transition"
-                                  onError={() => setImgErrors(p => ({ ...p, [`a_${t.id}`]: true }))}
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-slate-400">
-                                  <Clock className="w-4 h-4" />
-                                </div>
-                              )}
-                              <span className="absolute bottom-0 inset-x-0 bg-emerald-600 text-white text-[7px] font-bold text-center py-0.2">
-                                AFTER
-                              </span>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Zoho Archive status */}
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200 flex items-center gap-1 w-fit">
-                            <FolderCheck className="w-3 h-3 text-emerald-600" />
-                            Zoho Synced
-                          </span>
-                        </td>
-
-                        {/* Action */}
-                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openAuditChamber(t);
-                            }}
-                            className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1 ml-auto shadow-xs transition"
-                          >
-                            <span>Audit & Sign Off</span>
-                            <ChevronRight className="w-3.5 h-3.5" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                              <span>Approve</span>
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       )}
