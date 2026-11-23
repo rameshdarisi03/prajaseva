@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { resolveComplaintFolder, uploadToZohoWorkDrive } from '@/lib/zoho';
 import { broadcastResolutionPoster } from '@/lib/whatsapp';
 import { calculateTurnaround, formatDDMMYYYY } from '@/lib/dateUtils';
+import { generateAndUploadPoster } from '@/lib/serverPoster';
 
 // Haversine formula to compute distance in meters between two coordinates
 function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -195,10 +196,9 @@ export async function PATCH(req: NextRequest) {
       const resolvedAt = new Date().toISOString();
       const turnaroundStr = calculateTurnaround(complaint.created_at, resolvedAt);
 
-      // Default fallback if no poster image was supplied
-      let posterUrl = complaint.poster_url || complaint.after_photo_url || complaint.before_photo_url;
+      let posterUrl: string | null = null;
 
-      // If high-resolution 4:5 Victory Poster JPEG was captured from frontend, upload to Supabase Storage CDN & Zoho WorkDrive
+      // 1. If high-resolution 4:5 Victory Poster JPEG was captured from frontend, upload to Supabase Storage CDN & Zoho WorkDrive
       if (posterBase64 && typeof posterBase64 === 'string' && posterBase64.startsWith('data:image')) {
         try {
           const raw = posterBase64.includes(';base64,') ? posterBase64.split(';base64,')[1] : posterBase64;
@@ -235,6 +235,23 @@ export async function PATCH(req: NextRequest) {
         }
       }
 
+      // 2. If no valid frontend poster was uploaded, generate 1080x1350 Victory PR Poster deterministically on server
+      if (!posterUrl) {
+        try {
+          const generatedUrl = await generateAndUploadPoster(complaint, turnaroundStr);
+          if (generatedUrl) {
+            posterUrl = generatedUrl;
+          }
+        } catch (genErr) {
+          console.error('[Server Poster Generation Fallback Error]:', genErr);
+        }
+      }
+
+      // Final fallback to existing poster or photo URLs
+      if (!posterUrl) {
+        posterUrl = complaint.poster_url || complaint.after_photo_url || complaint.before_photo_url;
+      }
+
       const { data: approved, error } = await supabaseAdmin
         .from('complaints')
         .update({
@@ -257,7 +274,7 @@ export async function PATCH(req: NextRequest) {
           category: complaint.category,
           wardName: complaint.ward?.name || 'Mangalagiri',
           mlaName: complaint.organization?.mla_name || 'Ramesh Darisi',
-          posterUrl: posterUrl,
+          posterUrl: posterUrl || '',
           turnaroundTime: turnaroundStr,
           mlaGroupId: complaint.organization?.whatsapp_group_mla,
           townGroupId: complaint.ward?.whatsapp_group_jid || complaint.organization?.whatsapp_group_town,
