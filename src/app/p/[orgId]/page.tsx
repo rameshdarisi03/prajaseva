@@ -11,11 +11,9 @@ import {
   AlertCircle,
   Clock,
   ArrowRight,
-  Share2,
   Search,
   RotateCcw,
   Volume2,
-  Sparkles,
   Phone,
   ShieldCheck,
   Send,
@@ -26,14 +24,14 @@ import {
   Check,
   Zap,
   Droplet,
-  Flame,
   Lightbulb,
   Trash,
-  HelpCircle,
   LucideIcon
 } from 'lucide-react';
-import { translations } from '@/lib/i18n';
-import { SupportedLanguage, ComplaintCategory, Complaint } from '@/types';
+import { IndianLanguage } from '@/lib/mgmtI18n';
+import { SUPPORTED_LANGUAGES } from '@/lib/landingI18n';
+import { CITIZEN_TRANSLATIONS } from '@/lib/citizenI18n';
+import { ComplaintCategory, Complaint } from '@/types';
 import { compressImage } from '@/lib/imageCompression';
 import { formatDateTime } from '@/lib/dateUtils';
 import LocationPickerModal from '@/components/LocationPickerModal';
@@ -69,9 +67,33 @@ export default function ScopedCitizenPortal({
   const resolvedParams = use(params);
   const orgParam = resolvedParams.orgId;
 
-  const [lang, setLang] = useState<SupportedLanguage>('te');
+  // Language State - Supporting all 9 Indian Languages
+  const [lang, setLang] = useState<IndianLanguage>('te');
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'raise' | 'track'>('raise');
-  const t = translations[lang];
+
+  useEffect(() => {
+    const saved = localStorage.getItem('praja_seva_lang') as IndianLanguage;
+    if (saved && CITIZEN_TRANSLATIONS[saved]) {
+      setLang(saved);
+    }
+    const handleLangChange = (e: any) => {
+      if (e.detail && CITIZEN_TRANSLATIONS[e.detail as IndianLanguage]) {
+        setLang(e.detail as IndianLanguage);
+      }
+    };
+    window.addEventListener('praja_lang_change', handleLangChange);
+    return () => window.removeEventListener('praja_lang_change', handleLangChange);
+  }, []);
+
+  const handleSelectLang = (newLang: IndianLanguage) => {
+    setLang(newLang);
+    setIsLangMenuOpen(false);
+    localStorage.setItem('praja_seva_lang', newLang);
+    window.dispatchEvent(new CustomEvent('praja_lang_change', { detail: newLang }));
+  };
+
+  const ct = CITIZEN_TRANSLATIONS[lang] || CITIZEN_TRANSLATIONS.te;
 
   // Organization & Wards State
   const [org, setOrg] = useState<Organization | null>(null);
@@ -106,7 +128,6 @@ export default function ScopedCitizenPortal({
   // Submission & Confirmation
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedTicket, setSubmittedTicket] = useState<string | null>(null);
-  const [ticketDetails, setTicketDetails] = useState<any>(null);
 
   // Tracking Tab State
   const [trackQuery, setTrackQuery] = useState('');
@@ -190,7 +211,6 @@ export default function ScopedCitizenPortal({
           setGpsLoading(false);
         },
         async () => {
-          // Fallback to IP geolocation
           try {
             const ipRes = await fetch('https://api.bigdatacloud.net/data/client-info');
             if (ipRes.ok) {
@@ -206,7 +226,6 @@ export default function ScopedCitizenPortal({
               }
             }
           } catch {}
-          // Constituency Default fallback
           const defaultLat = 16.4419;
           const defaultLng = 80.5649;
           setCoords({ lat: defaultLat, lng: defaultLng });
@@ -228,7 +247,7 @@ export default function ScopedCitizenPortal({
     setShowLocationModal(false);
   };
 
-  // Image Capture
+  // 3. Photo capture & compression
   const handlePhotoCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -237,14 +256,14 @@ export default function ScopedCitizenPortal({
       setIsCompressing(true);
       const res = await compressImage(file, 1280, 1280, 0.8);
       setPhotoPreview(res.base64);
-    } catch {
+    } catch (err) {
       alert('Failed to process image. Please try again.');
     } finally {
       setIsCompressing(false);
     }
   };
 
-  // Voice Note Recording
+  // 4. Voice Recording
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -253,7 +272,9 @@ export default function ScopedCitizenPortal({
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
       };
 
       mediaRecorder.onstop = () => {
@@ -263,19 +284,19 @@ export default function ScopedCitizenPortal({
         reader.onloadend = () => {
           setAudioUrl(reader.result as string);
         };
+        stream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorder.start();
       setIsRecording(true);
     } catch {
-      alert('Microphone permission denied or unavailable.');
+      alert('Microphone access denied. Please enable microphone permissions in your browser.');
     }
   };
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
       setIsRecording(false);
     }
   };
@@ -285,7 +306,7 @@ export default function ScopedCitizenPortal({
     audioChunksRef.current = [];
   };
 
-  // Submit Complaint
+  // 5. Submit Complaint
   const handleSubmitComplaint = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -293,86 +314,79 @@ export default function ScopedCitizenPortal({
       alert('Please enter your full name');
       return;
     }
-    if (!citizenPhone.trim() || citizenPhone.length < 10) {
+    const cleanPhone = citizenPhone.replace(/\D/g, '');
+    if (cleanPhone.length !== 10) {
       alert('Please enter a valid 10-digit WhatsApp phone number');
       return;
     }
     if (!photoPreview) {
-      alert('Please take a live photo of the issue');
+      alert('Please take or attach a photo of the grievance');
       return;
     }
     if (!coords) {
-      alert('Location required. Please allow GPS or select landmark.');
+      alert('Location pin is required. Please enable GPS.');
       return;
     }
 
     try {
       setIsSubmitting(true);
-      const payload = {
-        organizationId: org?.id,
-        organizationSlug: org?.slug,
-        wardId: selectedWardId,
-        citizenName: citizenName.trim(),
-        citizenPhone: citizenPhone.replace(/\D/g, '').slice(-10),
-        category,
-        description: description.trim() || undefined,
-        voiceNoteUrl: audioUrl || undefined,
-        latitude: coords.lat,
-        longitude: coords.lng,
-        locationAddress: locationName,
-        photoBase64: photoPreview,
-      };
-
       const res = await fetch('/api/complaints', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          organizationId: org?.id,
+          organizationSlug: org?.slug || orgParam,
+          wardId: selectedWardId || wards[0]?.id,
+          citizenName: citizenName.trim(),
+          citizenPhone: cleanPhone,
+          category,
+          description: description.trim() || undefined,
+          photoBase64: photoPreview,
+          voiceNoteUrl: audioUrl || undefined,
+          latitude: coords.lat,
+          longitude: coords.lng,
+          locationAddress: locationName,
+        }),
       });
 
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to submit grievance');
-      }
+      if (!res.ok) throw new Error(data.error || 'Failed to submit grievance');
 
       setSubmittedTicket(data.complaint.ticket_number);
-      setTicketDetails(data.complaint);
     } catch (err: any) {
-      alert(err.message || 'Error recording complaint. Please try again.');
+      alert(err.message || 'Error lodging grievance. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Track Complaint
+  // 6. Track Complaint
   const handleTrackComplaint = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!trackQuery.trim()) return;
 
     try {
       setTrackLoading(true);
+      setHasSearched(true);
       const res = await fetch(`/api/complaints/track?query=${encodeURIComponent(trackQuery.trim())}`);
       const data = await res.json();
       setTrackedComplaints(data.complaints || []);
-      setHasSearched(true);
     } catch {
-      alert('Failed to search complaints');
+      setTrackedComplaints([]);
     } finally {
       setTrackLoading(false);
     }
   };
 
-  // Category visual mapping
-  const categoryConfig: Record<
-    ComplaintCategory,
-    { label: string; icon: LucideIcon; color: string; bg: string }
-  > = {
-    ROADS: { label: 'Roads & Potholes', icon: Flame, color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200' },
-    WATER: { label: 'Water Supply', icon: Droplet, color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200' },
-    DRAINAGE: { label: 'Drainage & Sewage', icon: Droplet, color: 'text-indigo-600', bg: 'bg-indigo-50 border-indigo-200' },
-    LIGHTS: { label: 'Street Lights', icon: Lightbulb, color: 'text-yellow-600', bg: 'bg-yellow-50 border-yellow-200' },
-    GARBAGE: { label: 'Sanitation & Garbage', icon: Trash, color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200' },
-    OTHER: { label: 'Electricity / Other', icon: Zap, color: 'text-purple-600', bg: 'bg-purple-50 border-purple-200' },
-  };
+  // Categories configuration with pure dynamic labels
+  const categories: { key: ComplaintCategory; label: string; icon: LucideIcon; color: string; bg: string }[] = [
+    { key: 'ROADS', label: ct.catRoads, icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200' },
+    { key: 'WATER', label: ct.catWater, icon: Droplet, color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200' },
+    { key: 'DRAINAGE', label: ct.catDrainage, icon: Droplet, color: 'text-indigo-600', bg: 'bg-indigo-50 border-indigo-200' },
+    { key: 'LIGHTS', label: ct.catLights, icon: Lightbulb, color: 'text-yellow-600', bg: 'bg-yellow-50 border-yellow-200' },
+    { key: 'GARBAGE', label: ct.catGarbage, icon: Trash, color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200' },
+    { key: 'OTHER', label: ct.catOther, icon: Zap, color: 'text-purple-600', bg: 'bg-purple-50 border-purple-200' },
+  ];
 
   if (loadingOrg) {
     return (
@@ -417,12 +431,12 @@ export default function ScopedCitizenPortal({
           currentAddress={locationName}
           onConfirm={handleLocationConfirmed}
           onClose={() => setShowLocationModal(false)}
-          lang={lang}
+          lang={lang === 'te' || lang === 'en' || lang === 'hi' ? lang : 'te'}
         />
       )}
 
       {/* Top Official Sticky Header */}
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm backdrop-blur-md bg-white/95">
+      <header className="sticky top-0 z-40 bg-white/95 border-b border-slate-200 shadow-sm backdrop-blur-md">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-sm">
@@ -434,7 +448,7 @@ export default function ScopedCitizenPortal({
                   {org.name}
                 </span>
                 <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] font-bold uppercase tracking-wider">
-                  Official
+                  {ct.officialBadge}
                 </span>
               </div>
               <span className="text-xs text-slate-500 font-medium truncate max-w-[240px]">
@@ -443,14 +457,40 @@ export default function ScopedCitizenPortal({
             </div>
           </div>
 
-          {/* Bilingual Toggle */}
-          <button
-            onClick={() => setLang(lang === 'en' ? 'te' : 'en')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition shadow-2xs"
-          >
-            <Globe2 className="w-3.5 h-3.5 text-blue-600" />
-            <span>{lang === 'en' ? 'తెలుగు' : 'English'}</span>
-          </button>
+          {/* Full Indian Languages Selector Dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition shadow-2xs cursor-pointer"
+            >
+              <Globe2 className="w-3.5 h-3.5 text-blue-600" />
+              <span>{SUPPORTED_LANGUAGES.find((l) => l.code === lang)?.nativeName || 'తెలుగు'}</span>
+            </button>
+
+            {isLangMenuOpen && (
+              <div className="absolute right-0 mt-1.5 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 animate-in fade-in zoom-in-95">
+                <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                  Select Language / భాష ఎంచుకోండి
+                </div>
+                <div className="max-h-64 overflow-y-auto py-1">
+                  {SUPPORTED_LANGUAGES.map((l) => (
+                    <button
+                      key={l.code}
+                      type="button"
+                      onClick={() => handleSelectLang(l.code)}
+                      className={`w-full px-3 py-1.5 text-left text-xs font-medium flex items-center justify-between hover:bg-slate-50 transition cursor-pointer ${
+                        lang === l.code ? 'text-blue-600 font-bold bg-blue-50/50' : 'text-slate-700'
+                      }`}
+                    >
+                      <span>{l.nativeName}</span>
+                      <span className="text-[10px] text-slate-400 font-mono">({l.name})</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -459,7 +499,7 @@ export default function ScopedCitizenPortal({
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-blue-200">
-              Praja Seva • Citizen Grievance Redressal
+              {ct.portalSubtitle}
             </p>
             <h2 className="text-lg font-bold text-white mt-0.5">
               {org.constituencySlogan || 'ప్రజల కోసం... ప్రజా సేవలో...'}
@@ -467,7 +507,7 @@ export default function ScopedCitizenPortal({
           </div>
           <div className="hidden sm:flex items-center gap-2 bg-white/10 backdrop-blur-xs px-3 py-1.5 rounded-full text-xs font-medium border border-white/20">
             <Zap className="w-3.5 h-3.5 text-amber-300" />
-            <span>24/7 Redressal Cell</span>
+            <span>{ct.redressalCell}</span>
           </div>
         </div>
       </div>
@@ -486,7 +526,7 @@ export default function ScopedCitizenPortal({
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            {t.tabRaise}
+            {ct.tabRaise}
           </button>
           <button
             onClick={() => setActiveTab('track')}
@@ -496,7 +536,7 @@ export default function ScopedCitizenPortal({
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            {t.tabTrack}
+            {ct.tabTrack}
           </button>
         </div>
 
@@ -510,17 +550,17 @@ export default function ScopedCitizenPortal({
                   <CheckCircle2 className="w-10 h-10" />
                 </div>
                 <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold uppercase tracking-wider">
-                  Grievance Registered Successfully
+                  {ct.successBadge}
                 </span>
                 <h2 className="text-2xl font-black text-slate-900 mt-2 font-mono">
                   {submittedTicket}
                 </h2>
                 <p className="text-sm text-slate-600 mt-2 max-w-md mx-auto">
-                  Your grievance has been officially registered with MLA Office. Your ticket has been assigned to the{' '}
+                  {ct.successMsgPrefix}{' '}
                   <strong className="text-slate-900">
                     {selectedWardObj?.name || 'Local Ward Crew'}
-                  </strong>
-                  .
+                  </strong>{' '}
+                  {ct.successMsgSuffix}
                 </p>
 
                 {/* Ward Badge */}
@@ -540,24 +580,24 @@ export default function ScopedCitizenPortal({
                       className="w-full h-40 object-cover"
                     />
                     <div className="bg-slate-50 py-1.5 px-3 text-[11px] text-slate-500 font-medium">
-                      Citizen Photographic Evidence
+                      {ct.evidenceLabel}
                     </div>
                   </div>
                 )}
 
                 <div className="mt-6 p-4 rounded-xl bg-slate-50 border border-slate-200 text-left space-y-2 text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Complainant:</span>
+                    <span className="text-slate-500">{ct.complainantLabel}</span>
                     <span className="font-semibold text-slate-800">{citizenName}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500">WhatsApp Alert:</span>
+                    <span className="text-slate-500">{ct.whatsappAlertLabel}</span>
                     <span className="font-semibold text-emerald-600 flex items-center gap-1">
                       <Check className="w-3.5 h-3.5" /> +91 {citizenPhone}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Location:</span>
+                    <span className="text-slate-500">{ct.locationLabel}</span>
                     <span className="font-semibold text-slate-800 truncate max-w-[200px]">
                       {locationName}
                     </span>
@@ -572,18 +612,18 @@ export default function ScopedCitizenPortal({
                       setAudioUrl(null);
                       setDescription('');
                     }}
-                    className="px-6 py-2.5 rounded-xl border border-slate-300 font-semibold text-slate-700 hover:bg-slate-100 transition text-sm"
+                    className="px-6 py-2.5 rounded-xl border border-slate-300 font-semibold text-slate-700 hover:bg-slate-100 transition text-sm cursor-pointer"
                   >
-                    Submit Another Grievance
+                    {ct.submitAnotherBtn}
                   </button>
                   <button
                     onClick={() => {
                       setActiveTab('track');
                       setTrackQuery(submittedTicket);
                     }}
-                    className="px-6 py-2.5 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition text-sm flex items-center justify-center gap-1.5"
+                    className="px-6 py-2.5 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition text-sm flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    Track Progress <ArrowRight className="w-4 h-4" />
+                    {ct.trackProgressBtn}
                   </button>
                 </div>
               </div>
@@ -595,10 +635,10 @@ export default function ScopedCitizenPortal({
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                       <MapPin className="w-4 h-4 text-blue-600" />
-                      1. Select Ward / Area (వార్డు ఎంచుకోండి)
+                      {ct.step1Ward}
                     </label>
                     <span className="text-[11px] font-semibold text-blue-600">
-                      {wards.length} Wards Active
+                      {wards.length} {ct.wardsActive}
                     </span>
                   </div>
 
@@ -622,7 +662,7 @@ export default function ScopedCitizenPortal({
                   {selectedWardObj?.incharge_name && (
                     <p className="text-[11px] text-slate-500 mt-2 flex items-center gap-1">
                       <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                      Ward Incharge: <strong className="text-slate-700">{selectedWardObj.incharge_name}</strong>
+                      {ct.wardIncharge} <strong className="text-slate-700">{selectedWardObj.incharge_name}</strong>
                     </p>
                   )}
                 </div>
@@ -630,19 +670,18 @@ export default function ScopedCitizenPortal({
                 {/* 2. Issue Category Touchpads */}
                 <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2">
-                    2. Select Grievance Category (సమస్య రకం)
+                    {ct.step2Category}
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                    {(Object.keys(categoryConfig) as ComplaintCategory[]).map((catKey) => {
-                      const cfg = categoryConfig[catKey];
+                    {categories.map((cfg) => {
                       const Icon = cfg.icon;
-                      const isSelected = category === catKey;
+                      const isSelected = category === cfg.key;
                       return (
                         <button
-                          key={catKey}
+                          key={cfg.key}
                           type="button"
-                          onClick={() => setCategory(catKey)}
-                          className={`p-3 rounded-xl border text-left transition flex flex-col justify-between h-20 ${
+                          onClick={() => setCategory(cfg.key)}
+                          className={`p-3 rounded-xl border text-left transition flex flex-col justify-between h-20 cursor-pointer ${
                             isSelected
                               ? 'bg-blue-50/70 border-blue-500 ring-2 ring-blue-500/20'
                               : 'bg-white border-slate-200 hover:border-slate-300'
@@ -671,19 +710,19 @@ export default function ScopedCitizenPortal({
                   </div>
                 </div>
 
-                {/* 3. Ola/Rapido Live Location Card */}
+                {/* 3. Live Location Card */}
                 <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs">
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                       <Navigation className="w-4 h-4 text-blue-600" />
-                      3. Live Incident Location (స్థలం)
+                      {ct.step3Location}
                     </label>
                     <button
                       type="button"
                       onClick={() => setShowLocationModal(true)}
-                      className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                      className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer"
                     >
-                      Change / Search ✏️
+                      {ct.changeSearch}
                     </button>
                   </div>
 
@@ -694,10 +733,10 @@ export default function ScopedCitizenPortal({
                       </div>
                       <div className="flex flex-col min-w-0">
                         <span className="text-xs font-bold text-slate-900 truncate">
-                          {gpsLoading ? 'Detecting exact GPS...' : locationName || 'Detecting address...'}
+                          {gpsLoading ? ct.detectingGps : locationName || ct.detectingAddress}
                         </span>
                         <span className="text-[11px] text-slate-500 font-mono">
-                          {coords ? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}` : 'Waiting for GPS pin...'}
+                          {coords ? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}` : ct.waitingGps}
                         </span>
                       </div>
                     </div>
@@ -706,10 +745,10 @@ export default function ScopedCitizenPortal({
                       type="button"
                       onClick={requestGpsLocation}
                       disabled={gpsLoading}
-                      className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-700 shrink-0 flex items-center gap-1 transition"
+                      className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-700 shrink-0 flex items-center gap-1 transition cursor-pointer"
                     >
                       <RotateCcw className={`w-3.5 h-3.5 text-blue-600 ${gpsLoading ? 'animate-spin' : ''}`} />
-                      <span>GPS</span>
+                      <span>{ct.gpsButton}</span>
                     </button>
                   </div>
                 </div>
@@ -717,7 +756,7 @@ export default function ScopedCitizenPortal({
                 {/* 4. Issue Evidence (Camera + Voice Note) */}
                 <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-3">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                    4. Evidence: Photo & Voice Note (సాక్ష్యం)
+                    {ct.step4Evidence}
                   </label>
 
                   {/* Photo Capture */}
@@ -746,7 +785,7 @@ export default function ScopedCitizenPortal({
                           <Trash2 className="w-4 h-4" />
                         </button>
                         <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[11px] px-2 py-0.5 rounded font-medium">
-                          Photo Evidence Attached ✓
+                          {ct.photoAttached}
                         </div>
                       </div>
                     ) : (
@@ -758,10 +797,10 @@ export default function ScopedCitizenPortal({
                       >
                         <Camera className="w-7 h-7 text-blue-600" />
                         <span className="text-sm font-bold">
-                          {isCompressing ? 'Compressing photo...' : 'Take Live Photo (కెమెరా)'}
+                          {isCompressing ? ct.compressingPhoto : ct.takePhoto}
                         </span>
                         <span className="text-[11px] text-slate-500">
-                          Clear photo helps rapid volunteer dispatch
+                          {ct.photoHint}
                         </span>
                       </button>
                     )}
@@ -797,12 +836,12 @@ export default function ScopedCitizenPortal({
                         {isRecording ? (
                           <>
                             <MicOff className="w-4 h-4 text-red-600" />
-                            <span>Recording... Tap to Stop (వాయిస్ ఆపండి)</span>
+                            <span>{ct.recordingVoice}</span>
                           </>
                         ) : (
                           <>
                             <Mic className="w-4 h-4 text-blue-600" />
-                            <span>Record Voice Note (వాయిస్ సందేశం)</span>
+                            <span>{ct.recordVoice}</span>
                           </>
                         )}
                       </button>
@@ -814,7 +853,7 @@ export default function ScopedCitizenPortal({
                     <textarea
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Optional details / landmark notes (వివరాలు)..."
+                      placeholder={ct.detailsPlaceholder}
                       rows={2}
                       className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
@@ -825,11 +864,11 @@ export default function ScopedCitizenPortal({
                 <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                      5. Citizen Information (మీ వివరాలు)
+                      {ct.step5Citizen}
                     </label>
                     <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                       <ShieldCheck className="w-3.5 h-3.5" />
-                      WhatsApp Updates
+                      {ct.whatsappUpdatesBadge}
                     </span>
                   </div>
 
@@ -839,7 +878,7 @@ export default function ScopedCitizenPortal({
                         type="text"
                         value={citizenName}
                         onChange={(e) => setCitizenName(e.target.value)}
-                        placeholder="Your Full Name (పూర్తి పేరు)"
+                        placeholder={ct.namePlaceholder}
                         className="w-full h-11 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-medium text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                         required
                       />
@@ -854,7 +893,7 @@ export default function ScopedCitizenPortal({
                         value={citizenPhone}
                         onChange={(e) => setCitizenPhone(e.target.value)}
                         maxLength={10}
-                        placeholder="WhatsApp Phone Number (వాట్సాప్ నంబర్)"
+                        placeholder={ct.phonePlaceholder}
                         className="w-full h-11 pl-12 pr-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-mono font-medium text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                         required
                       />
@@ -866,14 +905,14 @@ export default function ScopedCitizenPortal({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-base shadow-lg shadow-blue-500/25 flex flex-col items-center justify-center transition disabled:opacity-50 cursor-pointer"
+                  className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-base shadow-lg shadow-blue-500/25 flex flex-col items-center justify-center transition disabled:opacity-50 cursor-pointer active:scale-98"
                 >
                   <span className="flex items-center gap-2">
                     <Send className="w-5 h-5" />
-                    {isSubmitting ? 'Registering Grievance...' : 'Submit Grievance (ఫిర్యాదు సమర్పించండి)'}
+                    {isSubmitting ? ct.submittingBtn : ct.submitBtn}
                   </span>
                   <span className="text-[11px] font-normal text-blue-100 mt-0.5">
-                    Instant Ticket ID generated & forwarded to Ward Team
+                    {ct.submitSubtitle}
                   </span>
                 </button>
               </form>
@@ -886,7 +925,7 @@ export default function ScopedCitizenPortal({
           <div className="space-y-4">
             <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs">
               <h3 className="text-sm font-bold text-slate-900 mb-2">
-                Track Ticket Status by Phone or Ticket ID
+                {ct.trackTitle}
               </h3>
               <form onSubmit={handleTrackComplaint} className="flex gap-2">
                 <div className="relative flex-1">
@@ -895,16 +934,16 @@ export default function ScopedCitizenPortal({
                     type="text"
                     value={trackQuery}
                     onChange={(e) => setTrackQuery(e.target.value)}
-                    placeholder="Enter Ticket ID (e.g. CMP-1001) or Mobile..."
+                    placeholder={ct.trackPlaceholder}
                     className="w-full h-11 pl-9 pr-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={trackLoading}
-                  className="h-11 px-4 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition"
+                  className="h-11 px-5 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition cursor-pointer"
                 >
-                  {trackLoading ? 'Searching...' : 'Search'}
+                  {trackLoading ? ct.searchingBtn : ct.trackSearchBtn}
                 </button>
               </form>
             </div>
@@ -914,86 +953,97 @@ export default function ScopedCitizenPortal({
               <div className="space-y-3">
                 {trackedComplaints.length === 0 ? (
                   <div className="bg-white rounded-2xl p-8 border border-slate-200 text-center text-slate-500 text-sm">
-                    No complaints found for "{trackQuery}". Please verify ticket number or mobile.
+                    {ct.noComplaintsFound}
                   </div>
                 ) : (
-                  trackedComplaints.map((item) => (
-                    <div
-                      key={item.id}
-                      className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-3"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono font-bold text-blue-600 text-base">
-                          {item.ticket_number}
-                        </span>
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                            item.status === 'RESOLVED'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : item.status === 'IN_PROGRESS'
-                              ? 'bg-amber-100 text-amber-800'
-                              : item.status === 'PENDING_APPROVAL'
-                              ? 'bg-purple-100 text-purple-800'
-                              : 'bg-blue-100 text-blue-800'
-                          }`}
-                        >
-                          {item.status.replace('_', ' ')}
-                        </span>
-                      </div>
+                  trackedComplaints.map((item) => {
+                    const statusText =
+                      item.status === 'NEW'
+                        ? ct.statusNew
+                        : item.status === 'IN_PROGRESS'
+                        ? ct.statusInProgress
+                        : item.status === 'PENDING_APPROVAL'
+                        ? ct.statusPendingApproval
+                        : ct.statusResolved;
 
-                      <div className="text-xs text-slate-600 space-y-1">
-                        <div className="flex justify-between">
-                          <span className="text-slate-400">Category:</span>
-                          <span className="font-semibold text-slate-800">{item.category}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-400">Lodged:</span>
-                          <span className="font-semibold text-slate-800">
-                            {formatDateTime(item.created_at)}
+                    return (
+                      <div
+                        key={item.id}
+                        className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono font-bold text-blue-600 text-base">
+                            {item.ticket_number}
+                          </span>
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
+                              item.status === 'RESOLVED'
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                : item.status === 'IN_PROGRESS'
+                                ? 'bg-amber-100 text-amber-800 border-amber-300'
+                                : item.status === 'PENDING_APPROVAL'
+                                ? 'bg-purple-100 text-purple-800 border-purple-300'
+                                : 'bg-blue-100 text-blue-800 border-blue-300'
+                            }`}
+                          >
+                            {statusText}
                           </span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-400">Location:</span>
-                          <span className="font-semibold text-slate-800 truncate max-w-[200px]">
-                            {item.location_address || 'Mangalagiri'}
-                          </span>
+
+                        <div className="text-xs text-slate-600 space-y-1">
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">{ct.categoryLabel}</span>
+                            <span className="font-semibold text-slate-800">{item.category}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">{ct.lodgedLabel}</span>
+                            <span className="font-semibold text-slate-800">
+                              {formatDateTime(item.created_at)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">{ct.locationLabel}</span>
+                            <span className="font-semibold text-slate-800 truncate max-w-[200px]">
+                              {item.location_address || 'Mangalagiri'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Before / After Photos if available */}
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+                          {item.before_photo_url && (
+                            <div>
+                              <span className="text-[10px] text-slate-400 font-semibold block mb-1">
+                                {ct.evidenceLabel}
+                              </span>
+                              <img
+                                src={item.before_photo_url}
+                                alt="Before"
+                                className="w-full h-24 object-cover rounded-lg border border-slate-200"
+                              />
+                            </div>
+                          )}
+                          {item.after_photo_url ? (
+                            <div>
+                              <span className="text-[10px] text-emerald-600 font-semibold block mb-1">
+                                {ct.resolutionPhotoLabel}
+                              </span>
+                              <img
+                                src={item.after_photo_url}
+                                alt="After"
+                                className="w-full h-24 object-cover rounded-lg border border-emerald-200"
+                              />
+                            </div>
+                          ) : (
+                            <div className="h-24 rounded-lg bg-slate-50 border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 text-center p-2">
+                              <Clock className="w-4 h-4 mb-1" />
+                              <span className="text-[10px]">{ct.statusInProgress}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
-
-                      {/* Before / After Photos if available */}
-                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
-                        {item.before_photo_url && (
-                          <div>
-                            <span className="text-[10px] text-slate-400 font-semibold block mb-1">
-                              Citizen Evidence
-                            </span>
-                            <img
-                              src={item.before_photo_url}
-                              alt="Before"
-                              className="w-full h-24 object-cover rounded-lg border border-slate-200"
-                            />
-                          </div>
-                        )}
-                        {item.after_photo_url ? (
-                          <div>
-                            <span className="text-[10px] text-emerald-600 font-semibold block mb-1">
-                              Resolved Work
-                            </span>
-                            <img
-                              src={item.after_photo_url}
-                              alt="After"
-                              className="w-full h-24 object-cover rounded-lg border border-emerald-200"
-                            />
-                          </div>
-                        ) : (
-                          <div className="h-24 rounded-lg bg-slate-50 border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 text-center p-2">
-                            <Clock className="w-4 h-4 mb-1" />
-                            <span className="text-[10px]">Work In Progress</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             )}
