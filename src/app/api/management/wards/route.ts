@@ -58,6 +58,34 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// PATCH: Edit existing ward
+export async function PATCH(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { id, wardNumber, name } = body;
+
+    if (!id || !wardNumber || !name) {
+      return NextResponse.json({ error: 'Ward ID, number, and name are required' }, { status: 400 });
+    }
+
+    const { data: updatedWard, error } = await supabaseAdmin
+      .from('wards')
+      .update({
+        ward_number: wardNumber.trim(),
+        name: name.trim(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    return NextResponse.json({ success: true, ward: updatedWard });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
 // DELETE: Delete ward
 export async function DELETE(req: NextRequest) {
   try {

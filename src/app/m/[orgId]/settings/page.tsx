@@ -73,9 +73,14 @@ export default function SettingsAndQRPage({
   const [showAddWard, setShowAddWard] = useState(false);
   const [wardNumber, setWardNumber] = useState('');
   const [wardName, setWardName] = useState('');
-  const [inchargeName, setInchargeName] = useState('');
-  const [inchargePhone, setInchargePhone] = useState('');
   const [isSubmittingWard, setIsSubmittingWard] = useState(false);
+
+  // Edit Ward Modal
+  const [showEditWard, setShowEditWard] = useState(false);
+  const [editingWardId, setEditingWardId] = useState<string | null>(null);
+  const [editWardNumber, setEditWardNumber] = useState('');
+  const [editWardName, setEditWardName] = useState('');
+  const [isUpdatingWard, setIsUpdatingWard] = useState(false);
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<'poster' | 'pr_poster' | 'wards' | 'profile'>('pr_poster');
@@ -271,8 +276,6 @@ export default function SettingsAndQRPage({
           organizationId: org?.id || orgParam,
           wardNumber: wardNumber.trim(),
           name: wardName.trim(),
-          inchargeName: inchargeName.trim() || undefined,
-          inchargePhone: inchargePhone.trim() || undefined,
         }),
       });
 
@@ -282,13 +285,52 @@ export default function SettingsAndQRPage({
       setShowAddWard(false);
       setWardNumber('');
       setWardName('');
-      setInchargeName('');
-      setInchargePhone('');
       loadData();
     } catch (err: any) {
       alert(err.message || 'Failed to add ward');
     } finally {
       setIsSubmittingWard(false);
+    }
+  };
+
+  // Open Edit Ward Modal
+  const handleOpenEditWard = (ward: Ward) => {
+    setEditingWardId(ward.id);
+    setEditWardNumber(ward.ward_number);
+    setEditWardName(ward.name);
+    setShowEditWard(true);
+  };
+
+  // Handle Update Ward
+  const handleUpdateWard = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingWardId || !editWardNumber.trim() || !editWardName.trim()) {
+      alert('Ward number and name are required');
+      return;
+    }
+
+    try {
+      setIsUpdatingWard(true);
+      const res = await fetch('/api/management/wards', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingWardId,
+          wardNumber: editWardNumber.trim(),
+          name: editWardName.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setShowEditWard(false);
+      setEditingWardId(null);
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to update ward');
+    } finally {
+      setIsUpdatingWard(false);
     }
   };
 
@@ -318,20 +360,21 @@ export default function SettingsAndQRPage({
       {/* Add Ward Modal */}
       {showAddWard && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200 space-y-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-bold text-slate-900">
-                Add Constituency Ward / Area
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Plus className="w-4 h-4 text-blue-600" />
+                <span>Add Constituency Ward / Area</span>
               </h3>
               <button
                 onClick={() => setShowAddWard(false)}
-                className="text-slate-400 hover:text-slate-600 font-bold"
+                className="text-slate-400 hover:text-slate-600 font-bold p-1 rounded-lg"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleAddWard} className="space-y-3">
+            <form onSubmit={handleAddWard} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
                   Ward Number
@@ -341,7 +384,7 @@ export default function SettingsAndQRPage({
                   value={wardNumber}
                   onChange={(e) => setWardNumber(e.target.value)}
                   placeholder="e.g. 06"
-                  className="w-full h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full h-11 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
@@ -355,52 +398,92 @@ export default function SettingsAndQRPage({
                   value={wardName}
                   onChange={(e) => setWardName(e.target.value)}
                   placeholder="e.g. Ward 06 - Vidya Nagar & Bus Route"
-                  className="w-full h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full h-11 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                  Ward Incharge Name (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={inchargeName}
-                  onChange={(e) => setInchargeName(e.target.value)}
-                  placeholder="e.g. Sri V. Nageswara Rao"
-                  className="w-full h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                  Incharge Phone (Optional)
-                </label>
-                <input
-                  type="tel"
-                  maxLength={10}
-                  value={inchargePhone}
-                  onChange={(e) => setInchargePhone(e.target.value)}
-                  placeholder="98480 12345"
-                  className="w-full h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2.5 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowAddWard(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-slate-200 font-bold text-xs text-slate-600"
+                  className="flex-1 py-3 rounded-xl border border-slate-200 font-bold text-xs text-slate-600 hover:bg-slate-50 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingWard}
-                  className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm disabled:opacity-50"
+                  className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm disabled:opacity-50 transition"
                 >
                   {isSubmittingWard ? 'Creating...' : 'Save Ward'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Ward Modal */}
+      {showEditWard && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Edit3 className="w-4 h-4 text-blue-600" />
+                <span>Edit Ward / Area</span>
+              </h3>
+              <button
+                onClick={() => setShowEditWard(false)}
+                className="text-slate-400 hover:text-slate-600 font-bold p-1 rounded-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateWard} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Ward Number
+                </label>
+                <input
+                  type="text"
+                  value={editWardNumber}
+                  onChange={(e) => setEditWardNumber(e.target.value)}
+                  placeholder="e.g. 01"
+                  className="w-full h-11 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Ward / Area Name
+                </label>
+                <input
+                  type="text"
+                  value={editWardName}
+                  onChange={(e) => setEditWardName(e.target.value)}
+                  placeholder="e.g. Ward 01 - Old Town & Bus Stand"
+                  className="w-full h-11 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditWard(false)}
+                  className="flex-1 py-3 rounded-xl border border-slate-200 font-bold text-xs text-slate-600 hover:bg-slate-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingWard}
+                  className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm disabled:opacity-50 transition"
+                >
+                  {isUpdatingWard ? 'Updating...' : 'Save Changes'}
                 </button>
               </div>
             </form>
@@ -1000,74 +1083,143 @@ export default function SettingsAndQRPage({
       {/* Tab 2: Ward Management */}
       {activeTab === 'wards' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-slate-500">
-              Citizens scanning the Universal QR will select their ward from this list on the public portal.
-            </p>
+          {/* Responsive Header Toolbar */}
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 shadow-2xs">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
+                <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                  Constituency Wards & Areas
+                </h3>
+                <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[11px] font-mono font-bold">
+                  {wards.length}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500">
+                Citizens select their area from this list when lodging grievances on the public portal.
+              </p>
+            </div>
             <button
               type="button"
-              onClick={() => setShowAddWard(true)}
-              className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 transition"
+              onClick={() => {
+                setWardNumber('');
+                setWardName('');
+                setShowAddWard(true);
+              }}
+              className="w-full sm:w-auto h-11 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 shrink-0 transition cursor-pointer"
             >
-              <Plus className="w-4 h-4" />
-              <span>+ Add New Ward</span>
+              <Plus className="w-4 h-4 shrink-0" />
+              <span className="whitespace-nowrap">+ Add New Ward</span>
             </button>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+          {/* MOBILE CARDS VIEW (sm:hidden) - Zero Squishing, Beautiful Hierarchy */}
+          <div className="space-y-2.5 sm:hidden">
+            {wards.length === 0 ? (
+              <div className="p-8 text-center text-slate-400 bg-white rounded-2xl border border-slate-200 text-xs">
+                No wards configured. Tap "+ Add New Ward" to create one.
+              </div>
+            ) : (
+              wards.map((ward) => (
+                <div
+                  key={ward.id}
+                  className="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-2xs flex items-center justify-between gap-3 hover:border-slate-300 transition"
+                >
+                  {/* Ward Number Square Pill */}
+                  <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-200/80 flex items-center justify-center shrink-0">
+                    <span className="font-mono font-black text-blue-700 text-sm">
+                      {ward.ward_number}
+                    </span>
+                  </div>
+
+                  {/* Ward / Area Name & Status (Full Width Breathing Room) */}
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-bold text-slate-900 text-sm leading-snug break-words">
+                      {ward.name}
+                    </h4>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                        Active on Portal
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions: Edit & Delete */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditWard(ward)}
+                      className="w-9 h-9 rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-600 flex items-center justify-center transition border border-slate-200 cursor-pointer active:scale-95"
+                      title="Edit Ward"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteWard(ward.id, ward.name)}
+                      className="w-9 h-9 rounded-xl bg-slate-50 hover:bg-red-50 text-slate-600 hover:text-red-600 flex items-center justify-center transition border border-slate-200 cursor-pointer active:scale-95"
+                      title="Delete Ward"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* DESKTOP TABLE VIEW (hidden sm:block) - Clean Columns, No Unused Volunteer Section */}
+          <div className="hidden sm:block bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[10px] font-bold">
                 <tr>
-                  <th className="px-5 py-3.5">Ward #</th>
+                  <th className="px-5 py-3.5 w-24">Ward #</th>
                   <th className="px-5 py-3.5">Ward / Area Name</th>
-                  <th className="px-5 py-3.5">Incharge Contact</th>
-                  <th className="px-5 py-3.5">Status</th>
-                  <th className="px-5 py-3.5 text-right">Actions</th>
+                  <th className="px-5 py-3.5 w-44">Status</th>
+                  <th className="px-5 py-3.5 text-right w-32">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
                 {wards.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-5 py-8 text-center text-slate-400">
+                    <td colSpan={4} className="px-5 py-8 text-center text-slate-400">
                       No wards configured. Click "+ Add New Ward" to create one.
                     </td>
                   </tr>
                 ) : (
                   wards.map((ward) => (
                     <tr key={ward.id} className="hover:bg-slate-50/80 transition">
-                      <td className="px-5 py-4 font-mono font-bold text-blue-600">
+                      <td className="px-5 py-4 font-mono font-bold text-blue-600 text-sm">
                         {ward.ward_number}
                       </td>
-                      <td className="px-5 py-4 font-bold text-slate-900">
+                      <td className="px-5 py-4 font-bold text-slate-900 text-sm">
                         {ward.name}
                       </td>
-                      <td className="px-5 py-4 text-slate-600">
-                        {ward.incharge_name ? (
-                          <span>
-                            {ward.incharge_name}{' '}
-                            {ward.incharge_phone && (
-                              <span className="font-mono text-[11px] text-slate-400">
-                                (+91 {ward.incharge_phone})
-                              </span>
-                            )}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400">Not assigned</span>
-                        )}
-                      </td>
                       <td className="px-5 py-4">
-                        <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold text-[11px]">
+                        <span className="inline-flex items-center gap-1.5 text-emerald-700 font-semibold text-xs bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/60">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Active on Portal
                         </span>
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <button
-                          onClick={() => handleDeleteWard(ward.id, ward.name)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
-                          title="Delete Ward"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="inline-flex items-center gap-1 justify-end">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditWard(ward)}
+                            className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
+                            title="Edit Ward"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteWard(ward.id, ward.name)}
+                            className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                            title="Delete Ward"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
