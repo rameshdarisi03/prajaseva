@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, use, useRef } from 'react';
 import {
   Settings,
   QrCode,
@@ -18,10 +18,25 @@ import {
   Globe2,
   Sparkles,
   Award,
-  Users
+  Users,
+  ChevronDown,
+  ChevronUp,
+  Camera,
+  Image as ImageIcon,
+  Layers,
+  Eye,
+  Check,
+  Edit3,
+  RotateCcw
 } from 'lucide-react';
 import { IndianLanguage, MGMT_TRANSLATIONS } from '@/lib/mgmtI18n';
-import VictoryPRPoster, { CoalitionBrandingConfig, DEFAULT_COALITION_CONFIG } from '@/components/VictoryPRPoster';
+import VictoryPRPoster, {
+  CoalitionBrandingConfig,
+  DEFAULT_COALITION_CONFIG,
+  DEFAULT_PARTIES,
+  CoalitionParty,
+} from '@/components/VictoryPRPoster';
+import ImageCropModal from '@/components/ImageCropModal';
 import { Complaint } from '@/types';
 
 interface Ward {
@@ -68,6 +83,117 @@ export default function SettingsAndQRPage({
   // Coalition & PR Poster Branding State
   const [coalitionConfig, setCoalitionConfig] = useState<CoalitionBrandingConfig>(DEFAULT_COALITION_CONFIG);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
+
+  // Simplified UI & Accordion State
+  const [expandedLeader, setExpandedLeader] = useState<'pm' | 'cm' | 'dyCm' | 'mla' | null>('pm');
+  const [mobilePrView, setMobilePrView] = useState<'settings' | 'preview'>('settings');
+
+  // Image Crop Modal State
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [cropTarget, setCropTarget] = useState<
+    { type: 'leader'; key: 'pm' | 'cm' | 'dyCm' | 'mla' } | { type: 'party'; id: string } | null
+  >(null);
+  const [cropTitle, setCropTitle] = useState('Adjust & Crop Photo');
+  const [cropAspectRatio, setCropAspectRatio] = useState<'circle' | 'square'>('circle');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Trigger file upload from device
+  const triggerPhotoUpload = (
+    target: { type: 'leader'; key: 'pm' | 'cm' | 'dyCm' | 'mla' } | { type: 'party'; id: string },
+    title: string,
+    aspect: 'circle' | 'square' = 'circle'
+  ) => {
+    setCropTarget(target);
+    setCropTitle(title);
+    setCropAspectRatio(aspect);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setCropImageSrc(event.target.result as string);
+        setCropModalOpen(true);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCropComplete = (croppedDataUrl: string) => {
+    if (!cropTarget) return;
+    if (cropTarget.type === 'leader') {
+      const key = cropTarget.key;
+      setCoalitionConfig((prev) => ({
+        ...prev,
+        [key]: {
+          ...prev[key],
+          photoUrl: croppedDataUrl,
+        },
+      }));
+    } else if (cropTarget.type === 'party') {
+      const partyId = cropTarget.id;
+      setCoalitionConfig((prev) => ({
+        ...prev,
+        parties: (prev.parties || DEFAULT_PARTIES).map((p) =>
+          p.id === partyId ? { ...p, logoUrl: croppedDataUrl } : p
+        ),
+      }));
+    }
+    setCropModalOpen(false);
+    setCropImageSrc(null);
+    setCropTarget(null);
+  };
+
+  // Party Management Helpers
+  const currentParties = coalitionConfig.parties || DEFAULT_PARTIES;
+
+  const handleToggleParty = (id: string) => {
+    setCoalitionConfig((prev) => ({
+      ...prev,
+      parties: (prev.parties || DEFAULT_PARTIES).map((p) =>
+        p.id === id ? { ...p, enabled: !p.enabled } : p
+      ),
+    }));
+  };
+
+  const handleUpdatePartyName = (id: string, newName: string) => {
+    setCoalitionConfig((prev) => ({
+      ...prev,
+      parties: (prev.parties || DEFAULT_PARTIES).map((p) =>
+        p.id === id ? { ...p, name: newName } : p
+      ),
+    }));
+  };
+
+  const handleAddCustomParty = () => {
+    const newId = `party_${Date.now()}`;
+    const newParty: CoalitionParty = {
+      id: newId,
+      name: 'Allied Party',
+      symbolTag: '⭐',
+      bgColor: 'bg-indigo-600',
+      textColor: 'text-white',
+      enabled: true,
+    };
+    setCoalitionConfig((prev) => ({
+      ...prev,
+      parties: [...(prev.parties || DEFAULT_PARTIES), newParty],
+    }));
+  };
+
+  const handleRemoveParty = (id: string) => {
+    setCoalitionConfig((prev) => ({
+      ...prev,
+      parties: (prev.parties || DEFAULT_PARTIES).filter((p) => p.id !== id),
+    }));
+  };
 
   // Multi-Language State
   const [lang, setLang] = useState<IndianLanguage>('en');
@@ -334,353 +460,400 @@ export default function SettingsAndQRPage({
         </div>
       )}
 
-      {/* Tab 0: Political PR Poster & Coalition Leadership Settings */}
+      {/* Tab 0: Political PR Poster & Coalition Leadership Settings (Simplified & Collapsible) */}
       {activeTab === 'pr_poster' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Column: Coalition & Leader Configuration Controls (7 cols) */}
-          <div className="lg:col-span-7 space-y-4">
-            <form onSubmit={handleSaveCoalitionConfig} className="space-y-4">
-              {/* Card 1: Coalition Identity & Symbols */}
-              <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <div className="flex items-center gap-2 text-blue-600">
-                    <Award className="w-5 h-5 text-amber-500" />
-                    <h3 className="text-sm font-bold text-slate-900">
-                      Coalition Government & Party Emblems
-                    </h3>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setCoalitionConfig(DEFAULT_COALITION_CONFIG)}
-                    className="text-[11px] text-blue-600 font-bold hover:underline"
-                  >
-                    Reset AP NDA Alliance Defaults
-                  </button>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                    Coalition Title / ప్రభుత్వం పేరు
-                  </label>
-                  <input
-                    type="text"
-                    value={coalitionConfig.coalitionName}
-                    onChange={(e) => setCoalitionConfig({ ...coalitionConfig, coalitionName: e.target.value })}
-                    className="w-full h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g. కూటమి ప్రజా ప్రభుత్వం"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                    Active Coalition Emblems (Visible on Poster Header)
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    {/* TDP */}
-                    <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer hover:bg-slate-100/60">
-                      <input
-                        type="checkbox"
-                        checked={coalitionConfig.showTdpLogo}
-                        onChange={(e) => setCoalitionConfig({ ...coalitionConfig, showTdpLogo: e.target.checked })}
-                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-xs font-bold text-slate-800">🚲 TDP (Cycle)</span>
-                    </label>
-
-                    {/* JSP */}
-                    <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer hover:bg-slate-100/60">
-                      <input
-                        type="checkbox"
-                        checked={coalitionConfig.showJspLogo}
-                        onChange={(e) => setCoalitionConfig({ ...coalitionConfig, showJspLogo: e.target.checked })}
-                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-xs font-bold text-slate-800">🥛 JSP (Glass)</span>
-                    </label>
-
-                    {/* BJP */}
-                    <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer hover:bg-slate-100/60">
-                      <input
-                        type="checkbox"
-                        checked={coalitionConfig.showBjpLogo}
-                        onChange={(e) => setCoalitionConfig({ ...coalitionConfig, showBjpLogo: e.target.checked })}
-                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-xs font-bold text-slate-800">🪷 BJP (Lotus)</span>
-                    </label>
-
-                    {/* AP Govt */}
-                    <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer hover:bg-slate-100/60">
-                      <input
-                        type="checkbox"
-                        checked={coalitionConfig.showApGovtLogo}
-                        onChange={(e) => setCoalitionConfig({ ...coalitionConfig, showApGovtLogo: e.target.checked })}
-                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-xs font-bold text-slate-800">🏛️ AP Govt</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 2: The 4 Leadership Slots (PM, CM, Dy CM, MLA) */}
-              <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs space-y-4">
-                <div className="flex items-center gap-2 text-blue-600 border-b border-slate-100 pb-3">
-                  <Users className="w-5 h-5 text-blue-600" />
-                  <h3 className="text-sm font-bold text-slate-900">
-                    4-Tier Leadership Hierarchy Strip
-                  </h3>
-                </div>
-
-                {/* 1. Prime Minister Slot */}
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                      🇮🇳 1. Prime Minister Slot
-                    </span>
-                    <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-slate-600">
-                      <input
-                        type="checkbox"
-                        checked={coalitionConfig.pm.enabled}
-                        onChange={(e) => setCoalitionConfig({
-                          ...coalitionConfig,
-                          pm: { ...coalitionConfig.pm, enabled: e.target.checked }
-                        })}
-                        className="w-4 h-4 rounded text-blue-600"
-                      />
-                      Enable Slot
-                    </label>
-                  </div>
-                  {coalitionConfig.pm.enabled && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase">Leader Name</label>
-                        <input
-                          type="text"
-                          value={coalitionConfig.pm.name}
-                          onChange={(e) => setCoalitionConfig({
-                            ...coalitionConfig,
-                            pm: { ...coalitionConfig.pm, name: e.target.value }
-                          })}
-                          className="w-full h-9 px-2.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-800"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase">Designation</label>
-                        <input
-                          type="text"
-                          value={coalitionConfig.pm.role}
-                          onChange={(e) => setCoalitionConfig({
-                            ...coalitionConfig,
-                            pm: { ...coalitionConfig.pm, role: e.target.value }
-                          })}
-                          className="w-full h-9 px-2.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-800"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 2. Chief Minister Slot */}
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                      🏛️ 2. Chief Minister Slot
-                    </span>
-                    <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-slate-600">
-                      <input
-                        type="checkbox"
-                        checked={coalitionConfig.cm.enabled}
-                        onChange={(e) => setCoalitionConfig({
-                          ...coalitionConfig,
-                          cm: { ...coalitionConfig.cm, enabled: e.target.checked }
-                        })}
-                        className="w-4 h-4 rounded text-blue-600"
-                      />
-                      Enable Slot
-                    </label>
-                  </div>
-                  {coalitionConfig.cm.enabled && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase">Leader Name</label>
-                        <input
-                          type="text"
-                          value={coalitionConfig.cm.name}
-                          onChange={(e) => setCoalitionConfig({
-                            ...coalitionConfig,
-                            cm: { ...coalitionConfig.cm, name: e.target.value }
-                          })}
-                          className="w-full h-9 px-2.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-800"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase">Designation</label>
-                        <input
-                          type="text"
-                          value={coalitionConfig.cm.role}
-                          onChange={(e) => setCoalitionConfig({
-                            ...coalitionConfig,
-                            cm: { ...coalitionConfig.cm, role: e.target.value }
-                          })}
-                          className="w-full h-9 px-2.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-800"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 3. Deputy Chief Minister Slot */}
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                      ⭐ 3. Deputy Chief Minister / Coalition Partner Slot
-                    </span>
-                    <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-slate-600">
-                      <input
-                        type="checkbox"
-                        checked={coalitionConfig.dyCm.enabled}
-                        onChange={(e) => setCoalitionConfig({
-                          ...coalitionConfig,
-                          dyCm: { ...coalitionConfig.dyCm, enabled: e.target.checked }
-                        })}
-                        className="w-4 h-4 rounded text-blue-600"
-                      />
-                      Enable Slot
-                    </label>
-                  </div>
-                  {coalitionConfig.dyCm.enabled && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase">Leader Name</label>
-                        <input
-                          type="text"
-                          value={coalitionConfig.dyCm.name}
-                          onChange={(e) => setCoalitionConfig({
-                            ...coalitionConfig,
-                            dyCm: { ...coalitionConfig.dyCm, name: e.target.value }
-                          })}
-                          className="w-full h-9 px-2.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-800"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase">Designation</label>
-                        <input
-                          type="text"
-                          value={coalitionConfig.dyCm.role}
-                          onChange={(e) => setCoalitionConfig({
-                            ...coalitionConfig,
-                            dyCm: { ...coalitionConfig.dyCm, role: e.target.value }
-                          })}
-                          className="w-full h-9 px-2.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-800"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 4. Local MLA / Representative Slot */}
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                      📍 4. Local MLA / Representative Slot
-                    </span>
-                    <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-slate-600">
-                      <input
-                        type="checkbox"
-                        checked={coalitionConfig.mla.enabled}
-                        onChange={(e) => setCoalitionConfig({
-                          ...coalitionConfig,
-                          mla: { ...coalitionConfig.mla, enabled: e.target.checked }
-                        })}
-                        className="w-4 h-4 rounded text-blue-600"
-                      />
-                      Enable Slot
-                    </label>
-                  </div>
-                  {coalitionConfig.mla.enabled && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase">MLA Name</label>
-                        <input
-                          type="text"
-                          value={coalitionConfig.mla.name}
-                          onChange={(e) => setCoalitionConfig({
-                            ...coalitionConfig,
-                            mla: { ...coalitionConfig.mla, name: e.target.value }
-                          })}
-                          className="w-full h-9 px-2.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-800"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase">Designation</label>
-                        <input
-                          type="text"
-                          value={coalitionConfig.mla.role}
-                          onChange={(e) => setCoalitionConfig({
-                            ...coalitionConfig,
-                            mla: { ...coalitionConfig.mla, role: e.target.value }
-                          })}
-                          className="w-full h-9 px-2.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-800"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Save Button */}
-              <button
-                type="submit"
-                className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition active:scale-98 cursor-pointer"
-              >
-                <Save className="w-4 h-4" />
-                <span>Save Coalition Branding & Poster Layout</span>
-              </button>
-            </form>
+        <>
+          {/* Mobile Tab Switcher between Settings & Live Preview */}
+          <div className="lg:hidden flex bg-slate-100 p-1 rounded-xl border border-slate-200 mb-3">
+            <button
+              type="button"
+              onClick={() => setMobilePrView('settings')}
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
+                mobilePrView === 'settings' ? 'bg-white text-blue-600 shadow-2xs' : 'text-slate-600'
+              }`}
+            >
+              ⚙️ Coalition & Leaders
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobilePrView('preview')}
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 ${
+                mobilePrView === 'preview' ? 'bg-white text-blue-600 shadow-2xs' : 'text-slate-600'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>Live 4:5 Poster Preview</span>
+            </button>
           </div>
 
-          {/* Right Column: Live Sample 4:5 Poster Preview (5 cols) */}
-          <div className="lg:col-span-5 space-y-4">
-            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-2xs space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-amber-500" />
-                  Live 4:5 JPEG Preview (WhatsApp/Instagram)
-                </span>
-                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                  4:5 High-Res JPEG
-                </span>
-              </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left Column: Clean Setup Cards (7 cols on desktop) */}
+            <div className={`lg:col-span-7 space-y-4 ${mobilePrView === 'preview' ? 'hidden lg:block' : 'block'}`}>
+              <form onSubmit={handleSaveCoalitionConfig} className="space-y-4">
+                {/* 1. Coalition Identity & Editable Party Badges */}
+                <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-2xs space-y-3.5">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                    <div className="flex items-center gap-2 text-blue-600">
+                      <Award className="w-4 h-4 text-amber-500" />
+                      <h3 className="text-xs sm:text-sm font-bold text-slate-900">
+                        Coalition Title & Editable Party Symbols
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCoalitionConfig(DEFAULT_COALITION_CONFIG)}
+                      className="text-[11px] text-blue-600 font-bold hover:underline cursor-pointer"
+                    >
+                      Reset Defaults
+                    </button>
+                  </div>
 
-              <VictoryPRPoster
-                ticket={{
-                  id: 'sample-001',
-                  organization_id: orgParam,
-                  ticket_number: 'CMP-1005',
-                  citizen_name: 'రమేష్ దరిసి (Citizen)',
-                  citizen_phone: '9206651295',
-                  category: 'Drainage & Sewage',
-                  location_address: 'Kaggadasapura To Ring Road, Ward 01',
-                  latitude: 16.4419,
-                  longitude: 80.5658,
-                  is_phone_verified: true,
-                  description: 'Underground drainage overflow rectified with municipal jetting team.',
-                  status: 'RESOLVED',
-                  created_at: new Date(Date.now() - 3.5 * 3600 * 1000).toISOString(),
-                  submitted_for_approval_at: new Date().toISOString(),
-                  before_photo_url: 'https://images.unsplash.com/photo-1541888946425-d0fbb186156f?w=600&auto=format&fit=crop&q=80',
-                  after_photo_url: 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
-                  proximity_meters: 18,
-                  is_proximity_verified: true,
-                } as unknown as Complaint}
-                org={org}
-                config={coalitionConfig}
-              />
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                      Coalition Title / ప్రభుత్వం పేరు
+                    </label>
+                    <input
+                      type="text"
+                      value={coalitionConfig.coalitionName}
+                      onChange={(e) => setCoalitionConfig({ ...coalitionConfig, coalitionName: e.target.value })}
+                      className="w-full h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="e.g. కూటమి ప్రజా ప్రభుత్వం"
+                    />
+                  </div>
+
+                  {/* Dynamic Party Chips List */}
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                        Party Symbols & Names (Editable)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleAddCustomParty}
+                        className="text-[11px] text-blue-600 font-bold hover:underline flex items-center gap-1"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add Party</span>
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {currentParties.map((party) => (
+                        <div
+                          key={party.id}
+                          className={`p-2.5 rounded-xl border transition flex items-center justify-between gap-2 ${
+                            party.enabled
+                              ? 'bg-white border-slate-200 shadow-2xs'
+                              : 'bg-slate-50 border-slate-200/60 opacity-60'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            {/* Party Logo / Upload Button with Crop */}
+                            <button
+                              type="button"
+                              onClick={() => triggerPhotoUpload({ type: 'party', id: party.id }, `Crop ${party.name} Logo`, 'circle')}
+                              className="relative w-8 h-8 rounded-full overflow-hidden bg-slate-100 border border-slate-300 flex items-center justify-center shrink-0 group hover:border-blue-500"
+                              title="Click to change/crop party logo"
+                            >
+                              {party.logoUrl ? (
+                                <img src={party.logoUrl} alt={party.name} className="w-full h-full object-contain" />
+                              ) : (
+                                <span className="text-xs font-bold">{party.symbolTag || '🏛️'}</span>
+                              )}
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition">
+                                <Camera className="w-3 h-3" />
+                              </div>
+                            </button>
+
+                            {/* Editable Name */}
+                            <input
+                              type="text"
+                              value={party.name}
+                              onChange={(e) => handleUpdatePartyName(party.id, e.target.value)}
+                              className="w-full h-8 px-2 rounded-lg bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 focus:bg-white"
+                              placeholder="Party Name"
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <input
+                              type="checkbox"
+                              checked={party.enabled}
+                              onChange={() => handleToggleParty(party.id)}
+                              className="w-4 h-4 rounded text-blue-600 cursor-pointer"
+                              title="Toggle on poster"
+                            />
+                            {currentParties.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveParty(party.id)}
+                                className="p-1 text-slate-300 hover:text-red-500 rounded"
+                                title="Remove"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Collapsible 4-Tier Leadership Cards (Zero Clutter) */}
+                <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                    <div className="flex items-center gap-2 text-blue-600">
+                      <Users className="w-4 h-4" />
+                      <h3 className="text-xs sm:text-sm font-bold text-slate-900">
+                        Leadership Hierarchy (Tap to Edit & Crop Photos)
+                      </h3>
+                    </div>
+                    <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+                      Click leader to expand
+                    </span>
+                  </div>
+
+                  {/* The 4 Leader Slots */}
+                  <div className="space-y-2">
+                    {[
+                      { key: 'pm' as const, label: 'Prime Minister Slot', icon: '🇮🇳', data: coalitionConfig.pm },
+                      { key: 'cm' as const, label: 'Chief Minister Slot', icon: '🏛️', data: coalitionConfig.cm },
+                      { key: 'dyCm' as const, label: 'Deputy Chief Minister / Partner', icon: '⭐', data: coalitionConfig.dyCm },
+                      { key: 'mla' as const, label: 'Local MLA / Representative', icon: '📍', data: coalitionConfig.mla },
+                    ].map((slot) => {
+                      const isExpanded = expandedLeader === slot.key;
+                      const leader = slot.data;
+
+                      return (
+                        <div
+                          key={slot.key}
+                          className={`rounded-2xl border transition-all ${
+                            isExpanded
+                              ? 'bg-blue-50/40 border-blue-300 shadow-2xs'
+                              : 'bg-white border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          {/* Collapsed Header Row (Always clean & compact) */}
+                          <div
+                            className="p-3 sm:p-3.5 flex items-center justify-between gap-3 cursor-pointer select-none"
+                            onClick={() => setExpandedLeader(isExpanded ? null : slot.key)}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              {/* Avatar preview */}
+                              <div className="relative w-10 h-10 rounded-full p-0.5 bg-gradient-to-tr from-amber-500 to-yellow-300 shrink-0">
+                                <div className="w-full h-full rounded-full overflow-hidden bg-slate-800 flex items-center justify-center text-xs font-bold text-amber-300">
+                                  {leader.photoUrl ? (
+                                    <img
+                                      src={leader.photoUrl}
+                                      alt={leader.name}
+                                      className="w-full h-full object-cover object-top"
+                                    />
+                                  ) : (
+                                    leader.initials
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="min-w-0">
+                                <div className="text-xs font-bold text-slate-900 truncate flex items-center gap-1.5">
+                                  <span>{slot.icon}</span>
+                                  <span className="truncate">{leader.name}</span>
+                                </div>
+                                <div className="text-[10px] text-slate-500 truncate">
+                                  {leader.role} • <span className="font-semibold text-slate-700">{slot.label}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                              {/* Toggle Slot Switch */}
+                              <label className="flex items-center gap-1 text-[11px] font-semibold text-slate-600 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={leader.enabled}
+                                  onChange={(e) =>
+                                    setCoalitionConfig({
+                                      ...coalitionConfig,
+                                      [slot.key]: { ...leader, enabled: e.target.checked },
+                                    })
+                                  }
+                                  className="w-4 h-4 rounded text-blue-600 cursor-pointer"
+                                />
+                                <span className="hidden sm:inline">{leader.enabled ? 'Enabled' : 'Hidden'}</span>
+                              </label>
+
+                              {/* Expand/Collapse Chevron */}
+                              <button
+                                type="button"
+                                onClick={() => setExpandedLeader(isExpanded ? null : slot.key)}
+                                className="p-1 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-700"
+                              >
+                                {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Expanded Editor Area */}
+                          {isExpanded && (
+                            <div className="px-3.5 pb-4 pt-1 border-t border-blue-100 bg-white/70 rounded-b-2xl space-y-3">
+                              {/* Photo Uploader with Resizable Crop Action */}
+                              <div className="flex items-center gap-3 pt-2">
+                                <div className="relative w-16 h-16 rounded-full p-0.5 bg-gradient-to-tr from-amber-500 via-yellow-300 to-amber-600 shrink-0 shadow-md">
+                                  <div className="w-full h-full rounded-full overflow-hidden bg-slate-900 flex items-center justify-center">
+                                    {leader.photoUrl ? (
+                                      <img
+                                        src={leader.photoUrl}
+                                        alt={leader.name}
+                                        className="w-full h-full object-cover object-top"
+                                      />
+                                    ) : (
+                                      <span className="font-bold text-amber-300 text-sm">{leader.initials}</span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="space-y-1">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      triggerPhotoUpload(
+                                        { type: 'leader', key: slot.key },
+                                        `Crop ${leader.name} Portrait`,
+                                        'circle'
+                                      )
+                                    }
+                                    className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-xs cursor-pointer active:scale-95"
+                                  >
+                                    <Camera className="w-3.5 h-3.5" />
+                                    <span>Upload & Crop Photo</span>
+                                  </button>
+                                  <p className="text-[10px] text-slate-400">
+                                    Select and pan/zoom the face in the circle mask.
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Leader Name & Role Inputs */}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                <div>
+                                  <label className="text-[10px] font-bold text-slate-500 uppercase">
+                                    Leader Name
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={leader.name}
+                                    onChange={(e) =>
+                                      setCoalitionConfig({
+                                        ...coalitionConfig,
+                                        [slot.key]: { ...leader, name: e.target.value },
+                                      })
+                                    }
+                                    className="w-full h-9 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="text-[10px] font-bold text-slate-500 uppercase">
+                                    Official Title / Designation
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={leader.role}
+                                    onChange={(e) =>
+                                      setCoalitionConfig({
+                                        ...coalitionConfig,
+                                        [slot.key]: { ...leader, role: e.target.value },
+                                      })
+                                    }
+                                    className="w-full h-9 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Save Button */}
+                <button
+                  type="submit"
+                  className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition active:scale-98 cursor-pointer"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Save All Changes to Poster</span>
+                </button>
+              </form>
+            </div>
+
+            {/* Right Column: Live Sample 4:5 Poster Preview (5 cols on desktop) */}
+            <div className={`lg:col-span-5 space-y-4 ${mobilePrView === 'settings' ? 'hidden lg:block' : 'block'}`}>
+              <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-2xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                    Live 4:5 JPEG Preview (WhatsApp/Instagram)
+                  </span>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    High-Res JPEG
+                  </span>
+                </div>
+
+                <VictoryPRPoster
+                  ticket={{
+                    id: 'sample-001',
+                    organization_id: orgParam,
+                    ticket_number: 'CMP-1005',
+                    citizen_name: 'రమేష్ దరిసి (Citizen)',
+                    citizen_phone: '9206651295',
+                    category: 'Drainage & Sewage',
+                    location_address: 'Kaggadasapura To Ring Road, Ward 01',
+                    latitude: 16.4419,
+                    longitude: 80.5658,
+                    is_phone_verified: true,
+                    description: 'Underground drainage overflow rectified with municipal jetting team.',
+                    status: 'RESOLVED',
+                    created_at: new Date(Date.now() - 3.5 * 3600 * 1000).toISOString(),
+                    submitted_for_approval_at: new Date().toISOString(),
+                    before_photo_url: 'https://images.unsplash.com/photo-1541888946425-d0fbb186156f?w=600&auto=format&fit=crop&q=80',
+                    after_photo_url: 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
+                    proximity_meters: 18,
+                    is_proximity_verified: true,
+                  } as unknown as Complaint}
+                  org={org}
+                  config={coalitionConfig}
+                />
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
+
+      {/* Hidden File Picker for Photo & Logo Uploads */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/*"
+        className="hidden"
+      />
+
+      {/* Interactive Image Crop & Zoom Modal (Gait Physio Style) */}
+      <ImageCropModal
+        isOpen={cropModalOpen}
+        imageSrc={cropImageSrc}
+        aspectRatio={cropAspectRatio}
+        title={cropTitle}
+        onCrop={handleCropComplete}
+        onClose={() => {
+          setCropModalOpen(false);
+          setCropImageSrc(null);
+          setCropTarget(null);
+        }}
+      />
       {activeTab === 'poster' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Controls & Direct Link (4 cols) */}

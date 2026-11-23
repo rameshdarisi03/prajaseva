@@ -15,20 +15,67 @@ export interface LeaderProfile {
   initials: string;
 }
 
+export interface CoalitionParty {
+  id: string;
+  name: string;
+  symbolTag?: string;
+  logoUrl?: string;
+  bgColor?: string;
+  textColor?: string;
+  enabled: boolean;
+}
+
 export interface CoalitionBrandingConfig {
   coalitionName: string;
+  parties?: CoalitionParty[];
   pm: LeaderProfile;
   cm: LeaderProfile;
   dyCm: LeaderProfile;
   mla: LeaderProfile;
-  showTdpLogo: boolean;
-  showJspLogo: boolean;
-  showBjpLogo: boolean;
-  showApGovtLogo: boolean;
+  showTdpLogo?: boolean;
+  showJspLogo?: boolean;
+  showBjpLogo?: boolean;
+  showApGovtLogo?: boolean;
 }
+
+export const DEFAULT_PARTIES: CoalitionParty[] = [
+  {
+    id: 'tdp',
+    name: 'TDP',
+    symbolTag: '🚲',
+    bgColor: 'bg-yellow-400',
+    textColor: 'text-black',
+    enabled: true,
+  },
+  {
+    id: 'jsp',
+    name: 'JSP',
+    symbolTag: '🥛',
+    bgColor: 'bg-red-600',
+    textColor: 'text-white',
+    enabled: true,
+  },
+  {
+    id: 'bjp',
+    name: 'BJP',
+    symbolTag: '🪷',
+    bgColor: 'bg-orange-500',
+    textColor: 'text-white',
+    enabled: true,
+  },
+  {
+    id: 'ap_govt',
+    name: 'AP Govt',
+    symbolTag: '🏛️',
+    bgColor: 'bg-white/10',
+    textColor: 'text-amber-300',
+    enabled: true,
+  },
+];
 
 export const DEFAULT_COALITION_CONFIG: CoalitionBrandingConfig = {
   coalitionName: 'కూటమి ప్రజా ప్రభుత్వం',
+  parties: DEFAULT_PARTIES,
   pm: {
     enabled: true,
     name: 'Sri Narendra Modi',
@@ -180,6 +227,16 @@ export default function VictoryPRPoster({
     { ...activeConfig.mla, name: org?.mlaName || activeConfig.mla.name, key: 'mla' },
   ].filter((l) => l.enabled);
 
+  const activeParties = (activeConfig.parties && activeConfig.parties.length > 0)
+    ? activeConfig.parties.filter((p) => p.enabled)
+    : DEFAULT_PARTIES.filter((p) => {
+        if (p.id === 'tdp') return activeConfig.showTdpLogo !== false;
+        if (p.id === 'jsp') return activeConfig.showJspLogo !== false;
+        if (p.id === 'bjp') return activeConfig.showBjpLogo !== false;
+        if (p.id === 'ap_govt') return activeConfig.showApGovtLogo !== false;
+        return p.enabled;
+      });
+
   return (
     <div className="space-y-3 w-full">
       {/* Action Buttons Toolbar */}
@@ -231,25 +288,34 @@ export default function VictoryPRPoster({
           {/* 1. TOP COALITION EMBLEMS & GOVT BANNER */}
           <div className="relative z-10 flex items-center justify-between border-b border-amber-400/20 pb-2.5">
             {/* Coalition Party Symbols */}
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              {/* TDP Cycle Emblem */}
-              {activeConfig.showTdpLogo && (
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-yellow-400 border border-amber-500 flex items-center justify-center p-0.5 shadow-sm" title="Telugu Desam Party">
-                  <span className="text-[10px] font-black text-black">🚲 TDP</span>
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              {activeParties.map((party) => (
+                <div key={party.id}>
+                  {party.logoUrl ? (
+                    <div
+                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden border border-amber-400/80 bg-white shadow-xs shrink-0 flex items-center justify-center p-0.5"
+                      title={party.name}
+                    >
+                      <img
+                        src={party.logoUrl}
+                        alt={party.name}
+                        className="w-full h-full object-contain"
+                        crossOrigin="anonymous"
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      className={`h-6 sm:h-7 px-2 rounded-full ${party.bgColor || 'bg-blue-600'} border border-white/20 flex items-center justify-center gap-1 shadow-xs shrink-0`}
+                      title={party.name}
+                    >
+                      {party.symbolTag && <span className="text-[10px]">{party.symbolTag}</span>}
+                      <span className={`text-[9px] sm:text-[10px] font-black ${party.textColor || 'text-white'}`}>
+                        {party.name}
+                      </span>
+                    </div>
+                  )}
                 </div>
-              )}
-              {/* Jana Sena Glass Emblem */}
-              {activeConfig.showJspLogo && (
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-red-600 border border-red-400 flex items-center justify-center p-0.5 shadow-sm" title="Jana Sena Party">
-                  <span className="text-[10px] font-black text-white">🥛 JSP</span>
-                </div>
-              )}
-              {/* BJP Lotus Emblem */}
-              {activeConfig.showBjpLogo && (
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-orange-500 border border-green-600 flex items-center justify-center p-0.5 shadow-sm" title="Bharatiya Janata Party">
-                  <span className="text-[10px] font-black text-white">🪷 BJP</span>
-                </div>
-              )}
+              ))}
             </div>
 
             {/* Central Coalition Motto */}
@@ -261,13 +327,6 @@ export default function VictoryPRPoster({
                 ఆంధ్రప్రదేశ్ ప్రభుత్వం
               </span>
             </div>
-
-            {/* AP Govt Official Emblem */}
-            {activeConfig.showApGovtLogo && (
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/10 border border-amber-400/50 flex items-center justify-center text-amber-400 font-bold text-[10px] shrink-0">
-                🏛️ AP
-              </div>
-            )}
           </div>
 
           {/* 2. THE 4-PILLAR LEADERSHIP HIERARCHY STRIP */}
