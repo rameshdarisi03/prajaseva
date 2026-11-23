@@ -305,7 +305,7 @@ export default function OperationsBoardPage({
                   {resolvingTicket.ticket_number}
                 </span>
                 <h3 className="text-base font-bold text-slate-900">
-                  {t.submitProofBtn}
+                  {t.submitProofModalTitle || 'Submit Resolution Proof'}
                 </h3>
               </div>
               <button
@@ -346,16 +346,16 @@ export default function OperationsBoardPage({
                 className="w-full py-8 border-2 border-dashed border-emerald-300 rounded-2xl bg-emerald-50/50 hover:bg-emerald-50 text-emerald-700 flex flex-col items-center justify-center gap-1.5 transition cursor-pointer"
               >
                 <Camera className="w-8 h-8 text-emerald-600" />
-                <span className="text-xs font-bold">{t.submitProofBtn}</span>
+                <span className="text-xs font-bold">Tap to Capture Resolution Photo</span>
                 <span className="text-[11px] text-slate-400">GPS location stamped automatically</span>
               </button>
             )}
 
-            <div className="flex gap-2 pt-2">
+            <div className="flex items-center gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setResolvingTicket(null)}
-                className="flex-1 py-3 rounded-xl border border-slate-200 font-bold text-xs text-slate-600 hover:bg-slate-50"
+                className="h-10 px-4 rounded-xl border border-slate-200 font-bold text-xs text-slate-600 hover:bg-slate-50 transition cursor-pointer shrink-0"
               >
                 {t.closeBtn}
               </button>
@@ -363,9 +363,9 @@ export default function OperationsBoardPage({
                 type="button"
                 onClick={handleSubmitProof}
                 disabled={isSubmittingProof || !afterPhotoBase64}
-                className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5"
+                className="flex-1 h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs disabled:opacity-50 flex items-center justify-center gap-1.5 transition cursor-pointer whitespace-nowrap"
               >
-                {isSubmittingProof ? 'Sending...' : t.submitProofBtn}
+                {isSubmittingProof ? 'Sending...' : (t.submitProofBtn || 'Send for Approval')}
               </button>
             </div>
           </div>

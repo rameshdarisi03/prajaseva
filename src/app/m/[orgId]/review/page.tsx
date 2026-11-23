@@ -1155,19 +1155,10 @@ export default function ReviewQAPage({
                   {/* Side-by-Side Photographic Evidence */}
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                         <Camera className="w-4 h-4 text-blue-600" />
                         Photographic Proof Audit
                       </span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
-                          AI Cleanliness Score: 98% ✓
-                        </span>
-                        <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full border border-blue-300 flex items-center gap-1">
-                          <FolderCheck className="w-3 h-3 text-blue-600" />
-                          Zoho WorkDrive ✓
-                        </span>
-                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1303,22 +1294,6 @@ export default function ReviewQAPage({
                     </div>
                   </div>
 
-                  {/* Zoho WorkDrive Permanent Archive Proof Card */}
-                  <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-200 flex items-start gap-3 text-xs">
-                    <FolderCheck className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                    <div className="space-y-1">
-                      <span className="font-bold text-blue-900 block">
-                        Zoho WorkDrive Storage Verification
-                      </span>
-                      <p className="text-slate-600 text-[11px] leading-relaxed">
-                        Raw photographs and resolution certificates are permanently stored according to constituency compliance hierarchy:
-                        <code className="block mt-1 p-1.5 rounded-lg bg-white border border-blue-200 font-mono text-[10px] text-blue-800 break-all">
-                          {`/${org?.name?.toUpperCase() || 'MANGALAGIRI'}/WARD_${selectedTicket.ward?.ward_number || '01'}/${formatDateTime(selectedTicket.created_at).split(' ')[0]}/${selectedTicket.ticket_number}/`}
-                        </code>
-                      </p>
-                    </div>
-                  </div>
-
                   {/* Voice Note Audio Playback */}
                   {selectedTicket.voice_note_url && (
                     <div className="p-3.5 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-between">
@@ -1351,24 +1326,6 @@ export default function ReviewQAPage({
                       ticket={selectedTicket}
                       org={org}
                     />
-                  </div>
-
-                  {/* Citizen WhatsApp Message Preview */}
-                  <div className="bg-emerald-50/70 rounded-2xl p-4 border border-emerald-200 space-y-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1">
-                      <Smartphone className="w-3.5 h-3.5" /> Outgoing WhatsApp Notification Preview
-                    </span>
-                    <div className="p-3.5 rounded-xl bg-white border border-emerald-200 text-[11px] text-slate-700 space-y-1.5 font-sans shadow-2xs">
-                      <p className="font-semibold text-slate-900">
-                        నమస్కారం {selectedTicket.citizen_name} గారు,
-                      </p>
-                      <p>
-                        మీరు నమోదు చేసిన ఫిర్యాదు <strong>#{selectedTicket.ticket_number}</strong> విజయవంతంగా పరిష్కరించబడింది. మా వాలంటీర్లు పూర్తి చేసిన పనులను ఎమ్మెల్యే కార్యాలయం ఆమోదించింది.
-                      </p>
-                      <p className="text-emerald-700 font-semibold pt-1">
-                        Turnaround: {turnaroundTime} • Praja Seva OS
-                      </p>
-                    </div>
                   </div>
                 </div>
               </div>
