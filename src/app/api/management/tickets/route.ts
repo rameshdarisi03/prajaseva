@@ -215,11 +215,13 @@ export async function PATCH(req: NextRequest) {
       try {
         await broadcastResolutionPoster({
           citizenPhone: complaint.citizen_phone,
+          citizenName: complaint.citizen_name,
           ticketNumber: complaint.ticket_number,
           category: complaint.category,
           wardName: complaint.ward?.name || 'Mangalagiri',
           mlaName: complaint.organization?.mla_name || 'Ramesh Darisi',
           posterUrl: posterUrl,
+          turnaroundTime: turnaroundStr,
           mlaGroupId: complaint.organization?.whatsapp_group_mla,
           townGroupId: complaint.ward?.whatsapp_group_jid || complaint.organization?.whatsapp_group_town,
         });

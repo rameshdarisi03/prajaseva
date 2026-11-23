@@ -130,11 +130,13 @@ export async function sendTicketConfirmation(params: {
  */
 export async function broadcastResolutionPoster(params: {
   citizenPhone: string;
+  citizenName?: string;
   ticketNumber: string;
   category: string;
   wardName: string;
   mlaName: string;
   posterUrl: string;
+  turnaroundTime?: string;
   mlaGroupId?: string | null;
   townGroupId?: string | null;
 }): Promise<void> {
@@ -142,26 +144,82 @@ export async function broadcastResolutionPoster(params: {
   const phoneId = process.env.META_WHATSAPP_PHONE_NUMBER_ID;
   if (!token || !phoneId) return;
 
+  const cleanPhone = sanitizePhone(params.citizenPhone);
   const caption = `✅ *ISSUE RESOLVED! / పరిష్కారం లభించింది*\n\n📋 *Ticket Ref:* ${params.ticketNumber}\n📍 *Location:* ${params.wardName}\n🏷️ *Category:* ${params.category}\n\nProblem inspected and fixed on the ground by Team ${params.mlaName}. Thank you for your active participation!`;
 
-  // 1. Send direct to Complainant Citizen
+  // 1. Send to Citizen: Try dedicated Image Header Template first, fallback to standard image message
   try {
-    await fetch(`${WHATSAPP_API_URL}/${phoneId}/messages`, {
+    const templatePayload = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: cleanPhone,
+      type: 'template',
+      template: {
+        name: 'praja_resolution_poster_v1',
+        language: { code: 'en_US' },
+        components: [
+          {
+            type: 'header',
+            parameters: [
+              {
+                type: 'image',
+                image: { link: params.posterUrl },
+              },
+            ],
+          },
+          {
+            type: 'body',
+            parameters: [
+              { type: 'text', text: params.citizenName || 'Citizen' },
+              { type: 'text', text: params.ticketNumber },
+              { type: 'text', text: params.category },
+              { type: 'text', text: params.wardName },
+              { type: 'text', text: params.mlaName },
+              { type: 'text', text: params.turnaroundTime || 'Promptly' },
+            ],
+          },
+          {
+            type: 'button',
+            sub_type: 'url',
+            index: '0',
+            parameters: [
+              { type: 'text', text: params.ticketNumber },
+            ],
+          },
+        ],
+      },
+    };
+
+    const templateRes = await fetch(`${WHATSAPP_API_URL}/${phoneId}/messages`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        to: sanitizePhone(params.citizenPhone),
-        type: 'image',
-        image: {
-          link: params.posterUrl,
-          caption: caption,
-        },
-      }),
+      body: JSON.stringify(templatePayload),
     });
+
+    const templateData = await templateRes.json();
+    if (!templateRes.ok || templateData.error) {
+      console.warn('[WhatsApp Template Fallback to Session Image]:', templateData.error?.message || 'Template not ready');
+      // Fallback to direct image message with caption
+      await fetch(`${WHATSAPP_API_URL}/${phoneId}/messages`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          to: cleanPhone,
+          type: 'image',
+          image: {
+            link: params.posterUrl,
+            caption: caption,
+          },
+        }),
+      });
+    }
   } catch (e) {
     console.error('[WhatsApp Broadcast Citizen Error]:', e);
   }
