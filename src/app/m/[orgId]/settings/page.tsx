@@ -508,17 +508,35 @@ export default function SettingsAndQRPage({
                     </button>
                   </div>
 
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
-                      Coalition Title / ప్రభుత్వం పేరు
-                    </label>
-                    <input
-                      type="text"
-                      value={coalitionConfig.coalitionName}
-                      onChange={(e) => setCoalitionConfig({ ...coalitionConfig, coalitionName: e.target.value })}
-                      className="w-full h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="e.g. కూటమి ప్రజా ప్రభుత్వం"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                        Coalition Title / ప్రభుత్వం పేరు
+                      </label>
+                      <input
+                        type="text"
+                        value={coalitionConfig.coalitionName}
+                        onChange={(e) => setCoalitionConfig({ ...coalitionConfig, coalitionName: e.target.value })}
+                        className="w-full h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g. కూటమి ప్రజా ప్రభుత్వం"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                        Poster Language / పోస్టర్ భాష
+                      </label>
+                      <select
+                        value={coalitionConfig.posterLang || 'te'}
+                        onChange={(e) => setCoalitionConfig({ ...coalitionConfig, posterLang: e.target.value as any })}
+                        className="w-full h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                      >
+                        <option value="te">తెలుగు (Telugu - Recommended)</option>
+                        <option value="en">English (Official)</option>
+                        <option value="hi">हिन्दी (Hindi)</option>
+                        <option value="ta">தமிழ் (Tamil)</option>
+                        <option value="kn">ಕನ್ನಡ (Kannada)</option>
+                      </select>
+                    </div>
                   </div>
 
                   {/* Dynamic Party Chips List */}
