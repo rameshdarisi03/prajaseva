@@ -18,6 +18,7 @@ import {
   Globe2,
   Sparkles
 } from 'lucide-react';
+import { IndianLanguage, MGMT_TRANSLATIONS } from '@/lib/mgmtI18n';
 
 interface Ward {
   id: string;
@@ -59,6 +60,28 @@ export default function SettingsAndQRPage({
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<'poster' | 'wards' | 'profile'>('poster');
+
+  // Multi-Language State
+  const [lang, setLang] = useState<IndianLanguage>('en');
+
+  useEffect(() => {
+    const saved = localStorage.getItem('praja_seva_lang') as IndianLanguage;
+    if (saved && MGMT_TRANSLATIONS[saved]) {
+      setLang(saved);
+    }
+
+    const handleLangChange = (e: any) => {
+      const newLang = e.detail?.lang as IndianLanguage;
+      if (newLang && MGMT_TRANSLATIONS[newLang]) {
+        setLang(newLang);
+      }
+    };
+
+    window.addEventListener('praja_lang_change', handleLangChange);
+    return () => window.removeEventListener('praja_lang_change', handleLangChange);
+  }, []);
+
+  const t = MGMT_TRANSLATIONS[lang] || MGMT_TRANSLATIONS.en;
 
   // Load Data
   const loadData = async () => {
@@ -237,10 +260,10 @@ export default function SettingsAndQRPage({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold uppercase tracking-wider border border-blue-200">
-            CONSTITUENCY CONFIGURATION & ASSETS
+            {t.navSettings}
           </span>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight mt-1">
-            Constituency Settings & Printable QR Poster
+            {t.navSettings}
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Configure constituency wards, download ready-to-print universal QR posters, and manage office branding

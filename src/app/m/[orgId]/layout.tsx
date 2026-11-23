@@ -738,7 +738,7 @@ export default function ManagementLayout({
           }`}
         >
           <ClipboardList className="w-5 h-5" />
-          <span className="text-[10px] mt-0.5 leading-tight">{t.navBoard}</span>
+          <span className="text-[10px] mt-0.5 leading-tight">{t.navBoardShort || t.navBoard}</span>
         </Link>
 
         {/* Approvals (Review Desk) with red badge */}
@@ -771,7 +771,7 @@ export default function ManagementLayout({
           }`}
         >
           <Users className="w-5 h-5" />
-          <span className="text-[10px] mt-0.5 leading-tight">{t.navStaff}</span>
+          <span className="text-[10px] mt-0.5 leading-tight">{t.navStaffShort || t.navStaff}</span>
         </Link>
 
         {/* Analytics */}
@@ -784,7 +784,7 @@ export default function ManagementLayout({
           }`}
         >
           <BarChart3 className="w-5 h-5" />
-          <span className="text-[10px] mt-0.5 leading-tight">{t.navAnalytics}</span>
+          <span className="text-[10px] mt-0.5 leading-tight">{t.navAnalyticsShort || t.navAnalytics}</span>
         </Link>
 
         {/* More Drawer Trigger */}

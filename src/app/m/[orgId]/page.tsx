@@ -423,7 +423,7 @@ export default function OperationsBoardPage({
             </div>
 
             {/* Content Body */}
-            <div className="p-6 overflow-y-auto space-y-4">
+            <div className="p-4 sm:p-6 overflow-y-auto space-y-4 pb-8 flex-1">
               {/* Citizen Details */}
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -573,23 +573,28 @@ export default function OperationsBoardPage({
                     <span className="text-xs font-bold text-slate-700 block">
                       {t.assignVolunteerTitle}
                     </span>
-                    <div className="flex gap-2">
-                      <select
-                        value={selectedVolunteerMap[detailTicket.id] || volunteers[0]?.id || ''}
-                        onChange={(e) =>
-                          setSelectedVolunteerMap({
-                            ...selectedVolunteerMap,
-                            [detailTicket.id]: e.target.value,
-                          })
-                        }
-                        className="flex-1 h-11 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800"
-                      >
-                        {volunteers.map((vol) => (
-                          <option key={vol.id} value={vol.id}>
-                            {vol.full_name} ({vol.role})
-                          </option>
-                        ))}
-                      </select>
+                    <div className="flex flex-col sm:flex-row gap-2.5">
+                      <div className="relative w-full sm:flex-1 min-w-0">
+                        <select
+                          value={selectedVolunteerMap[detailTicket.id] || volunteers[0]?.id || ''}
+                          onChange={(e) =>
+                            setSelectedVolunteerMap({
+                              ...selectedVolunteerMap,
+                              [detailTicket.id]: e.target.value,
+                            })
+                          }
+                          className="w-full h-11 pl-3 pr-8 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 appearance-none truncate"
+                        >
+                          {volunteers.map((vol) => (
+                            <option key={vol.id} value={vol.id}>
+                              {vol.full_name} ({vol.role})
+                            </option>
+                          ))}
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
+                          ▼
+                        </div>
+                      </div>
                       <button
                         type="button"
                         onClick={() => {
@@ -597,9 +602,9 @@ export default function OperationsBoardPage({
                           setDetailTicket(null);
                         }}
                         disabled={assigningId === detailTicket.id}
-                        className="h-11 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+                        className="w-full sm:w-auto h-11 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm cursor-pointer shrink-0 active:scale-95"
                       >
-                        <UserCheck className="w-4 h-4" />
+                        <UserCheck className="w-4 h-4 shrink-0" />
                         <span>{assigningId === detailTicket.id ? t.assigningBtn : t.assignBtn}</span>
                       </button>
                     </div>
