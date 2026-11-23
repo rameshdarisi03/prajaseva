@@ -37,6 +37,7 @@ import { Complaint, Ward } from '@/types';
 import { formatDateTime, calculateTurnaround } from '@/lib/dateUtils';
 import { IndianLanguage, MGMT_TRANSLATIONS } from '@/lib/mgmtI18n';
 import VictoryPRPoster from '@/components/VictoryPRPoster';
+import { toJpeg } from 'html-to-image';
 
 interface Organization {
   id: string;
@@ -202,18 +203,35 @@ export default function ReviewQAPage({
     if (!selectedTicket) return;
     try {
       setIsProcessing(true);
+
+      // 1. Capture the live rendered 4:5 Victory PR Poster DOM as high-res JPEG
+      let posterBase64: string | null = null;
+      const posterElem = document.getElementById('victory-pr-poster');
+      if (posterElem) {
+        try {
+          posterBase64 = await toJpeg(posterElem as HTMLElement, {
+            quality: 0.95,
+            pixelRatio: 2,
+            cacheBust: true,
+          });
+        } catch (captureErr) {
+          console.warn('[Poster Capture Warning]:', captureErr);
+        }
+      }
+
       const res = await fetch('/api/management/tickets', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'approve_resolution',
           ticketId: selectedTicket.id,
+          posterBase64: posterBase64,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      setActionSuccessMsg(`Ticket ${selectedTicket.ticket_number} approved! WhatsApp PR dispatch triggered to citizen & groups.`);
+      setActionSuccessMsg(`Ticket ${selectedTicket.ticket_number} approved! 4:5 Victory Poster dispatched to citizen & groups on WhatsApp.`);
       setTimeout(() => setActionSuccessMsg(null), 5000);
 
       // Move to next ticket if available
@@ -1355,6 +1373,16 @@ export default function ReviewQAPage({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Off-screen Poster Container (ensures VictoryPRPoster DOM element is ready for capture even if chamber modal is closed) */}
+      {!isChamberOpen && selectedTicket && (
+        <div className="fixed -left-[9999px] -top-[9999px] opacity-0 pointer-events-none w-[480px]" aria-hidden="true">
+          <VictoryPRPoster
+            ticket={selectedTicket}
+            org={org}
+          />
         </div>
       )}
     </div>

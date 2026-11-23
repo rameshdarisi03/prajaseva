@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
-    const { action, ticketId, volunteerId, afterPhotoBase64, volunteerLat, volunteerLng, rejectionReason } = body;
+    const { action, ticketId, volunteerId, afterPhotoBase64, volunteerLat, volunteerLng, rejectionReason, posterBase64 } = body;
 
     if (!ticketId) {
       return NextResponse.json({ error: 'Ticket ID required' }, { status: 400 });
@@ -195,8 +195,45 @@ export async function PATCH(req: NextRequest) {
       const resolvedAt = new Date().toISOString();
       const turnaroundStr = calculateTurnaround(complaint.created_at, resolvedAt);
 
-      // Generate Poster URL (using after photo or composition)
-      const posterUrl = complaint.after_photo_url || complaint.before_photo_url;
+      // Default fallback if no poster image was supplied
+      let posterUrl = complaint.poster_url || complaint.after_photo_url || complaint.before_photo_url;
+
+      // If high-resolution 4:5 Victory Poster JPEG was captured from frontend, upload to Supabase Storage CDN & Zoho WorkDrive
+      if (posterBase64 && typeof posterBase64 === 'string' && posterBase64.startsWith('data:image')) {
+        try {
+          const raw = posterBase64.includes(';base64,') ? posterBase64.split(';base64,')[1] : posterBase64;
+          const buffer = Buffer.from(raw, 'base64');
+          const posterStoragePath = `posters/${complaint.ticket_number}_victory_poster_${Date.now()}.jpg`;
+
+          const { error: uploadErr } = await supabaseAdmin.storage
+            .from('complaints')
+            .upload(posterStoragePath, buffer, { contentType: 'image/jpeg', upsert: true });
+
+          if (!uploadErr) {
+            const { data: pubData } = supabaseAdmin.storage
+              .from('complaints')
+              .getPublicUrl(posterStoragePath);
+            posterUrl = pubData.publicUrl;
+          } else {
+            console.error('[Supabase Poster Upload Error]:', uploadErr);
+          }
+
+          // Archive official victory poster to Zoho WorkDrive
+          const folderId = await resolveComplaintFolder({
+            constituencyName: complaint.organization?.name || 'Mangalagiri',
+            wardNumber: complaint.ward?.ward_number || '01',
+            ticketNumber: complaint.ticket_number,
+          });
+          uploadToZohoWorkDrive(
+            folderId,
+            `victory_poster_${complaint.ticket_number}.jpg`,
+            buffer,
+            'image/jpeg'
+          ).catch((zErr) => console.warn('[Zoho Poster Upload Error]:', zErr));
+        } catch (postErr) {
+          console.error('[Poster Processing Error]:', postErr);
+        }
+      }
 
       const { data: approved, error } = await supabaseAdmin
         .from('complaints')
@@ -211,7 +248,7 @@ export async function PATCH(req: NextRequest) {
 
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-      // Trigger Automated WhatsApp Broadcast (Citizen + Town Group + MLA Group)
+      // Trigger Automated WhatsApp Broadcast (Citizen + Town Group + MLA Group) with the REAL Victory Poster!
       try {
         await broadcastResolutionPoster({
           citizenPhone: complaint.citizen_phone,
