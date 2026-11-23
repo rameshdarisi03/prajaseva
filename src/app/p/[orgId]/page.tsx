@@ -160,9 +160,31 @@ export default function ScopedCitizenPortal({
     loadOrgData();
   }, [orgParam]);
 
-  // 2. Auto-detect GPS on component mount
+  // 2. Auto-detect GPS on component mount & handle incoming ?track= URL param
   useEffect(() => {
     requestGpsLocation();
+
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const trackParam = urlParams.get('track') || urlParams.get('t') || urlParams.get('query');
+      if (trackParam) {
+        setTrackQuery(trackParam);
+        setActiveTab('track');
+        (async () => {
+          try {
+            setTrackLoading(true);
+            setHasSearched(true);
+            const res = await fetch(`/api/complaints/track?query=${encodeURIComponent(trackParam.trim())}&q=${encodeURIComponent(trackParam.trim())}`);
+            const data = await res.json();
+            setTrackedComplaints(data.complaints || []);
+          } catch {
+            setTrackedComplaints([]);
+          } finally {
+            setTrackLoading(false);
+          }
+        })();
+      }
+    }
   }, []);
 
   const resolveExactAddress = async (lat: number, lng: number): Promise<string> => {
@@ -368,7 +390,7 @@ export default function ScopedCitizenPortal({
     try {
       setTrackLoading(true);
       setHasSearched(true);
-      const res = await fetch(`/api/complaints/track?query=${encodeURIComponent(trackQuery.trim())}`);
+      const res = await fetch(`/api/complaints/track?query=${encodeURIComponent(trackQuery.trim())}&q=${encodeURIComponent(trackQuery.trim())}`);
       const data = await res.json();
       setTrackedComplaints(data.complaints || []);
     } catch {

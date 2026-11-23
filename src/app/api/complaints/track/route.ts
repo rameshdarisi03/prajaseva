@@ -4,15 +4,16 @@ import { supabaseAdmin } from '@/lib/supabase';
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const query = searchParams.get('q')?.trim();
+    const query = (searchParams.get('query') || searchParams.get('q'))?.trim();
 
     if (!query) {
       return NextResponse.json({ error: 'Search query required' }, { status: 400 });
     }
 
     // Clean query
-    const isTicket = query.toUpperCase().startsWith('CMP-');
-    const cleanPhone = query.replace(/\D/g, '');
+    const raw = query.trim();
+    const cleanDigits = raw.replace(/\D/g, '');
+    const isTicketPrefix = raw.toUpperCase().startsWith('CMP-') || raw.toUpperCase().startsWith('CMP');
 
     let dbQuery = supabaseAdmin
       .from('complaints')
@@ -23,12 +24,22 @@ export async function GET(req: NextRequest) {
       `)
       .order('created_at', { ascending: false });
 
-    if (isTicket) {
-      dbQuery = dbQuery.eq('ticket_number', query.toUpperCase());
-    } else {
-      // Search by phone (match last 10 digits)
-      const last10 = cleanPhone.slice(-10);
+    if (isTicketPrefix) {
+      // User entered full ticket like "CMP-1007" or "cmp1007"
+      const normalizedTicket = raw.toUpperCase().startsWith('CMP-')
+        ? raw.toUpperCase()
+        : `CMP-${raw.toUpperCase().replace('CMP', '').replace('-', '')}`;
+      dbQuery = dbQuery.or(`ticket_number.eq.${normalizedTicket},ticket_number.ilike.${raw.toUpperCase()}`);
+    } else if (cleanDigits.length >= 10) {
+      // User entered 10 or 12 digit phone number
+      const last10 = cleanDigits.slice(-10);
       dbQuery = dbQuery.ilike('citizen_phone', `%${last10}%`);
+    } else if (/^\d{3,6}$/.test(raw)) {
+      // User entered short number like "1007"
+      dbQuery = dbQuery.or(`ticket_number.eq.CMP-${raw},ticket_number.eq.${raw},citizen_phone.ilike.%${raw}%`);
+    } else {
+      // General search fallback
+      dbQuery = dbQuery.or(`ticket_number.ilike.%${raw}%,citizen_phone.ilike.%${raw}%,citizen_name.ilike.%${raw}%`);
     }
 
     const { data: complaints, error } = await dbQuery.limit(10);
