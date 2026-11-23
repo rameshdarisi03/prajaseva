@@ -16,9 +16,13 @@ import {
   Smartphone,
   Save,
   Globe2,
-  Sparkles
+  Sparkles,
+  Award,
+  Users
 } from 'lucide-react';
 import { IndianLanguage, MGMT_TRANSLATIONS } from '@/lib/mgmtI18n';
+import VictoryPRPoster, { CoalitionBrandingConfig, DEFAULT_COALITION_CONFIG } from '@/components/VictoryPRPoster';
+import { Complaint } from '@/types';
 
 interface Ward {
   id: string;
@@ -59,7 +63,11 @@ export default function SettingsAndQRPage({
   const [isSubmittingWard, setIsSubmittingWard] = useState(false);
 
   // Active Tab
-  const [activeTab, setActiveTab] = useState<'poster' | 'wards' | 'profile'>('poster');
+  const [activeTab, setActiveTab] = useState<'poster' | 'pr_poster' | 'wards' | 'profile'>('pr_poster');
+
+  // Coalition & PR Poster Branding State
+  const [coalitionConfig, setCoalitionConfig] = useState<CoalitionBrandingConfig>(DEFAULT_COALITION_CONFIG);
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
   // Multi-Language State
   const [lang, setLang] = useState<IndianLanguage>('en');
@@ -69,6 +77,13 @@ export default function SettingsAndQRPage({
     if (saved && MGMT_TRANSLATIONS[saved]) {
       setLang(saved);
     }
+
+    try {
+      const savedCoalition = localStorage.getItem('praja_coalition_branding');
+      if (savedCoalition) {
+        setCoalitionConfig(JSON.parse(savedCoalition));
+      }
+    } catch {}
 
     const handleLangChange = (e: any) => {
       const newLang = e.detail?.lang as IndianLanguage;
@@ -80,6 +95,17 @@ export default function SettingsAndQRPage({
     window.addEventListener('praja_lang_change', handleLangChange);
     return () => window.removeEventListener('praja_lang_change', handleLangChange);
   }, []);
+
+  const handleSaveCoalitionConfig = (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      localStorage.setItem('praja_coalition_branding', JSON.stringify(coalitionConfig));
+      setSaveSuccessMsg('✓ Coalition leadership & poster branding settings saved!');
+      setTimeout(() => setSaveSuccessMsg(null), 4000);
+    } catch (e) {
+      alert('Failed to save settings to browser storage');
+    }
+  };
 
   const t = MGMT_TRANSLATIONS[lang] || MGMT_TRANSLATIONS.en;
 
@@ -271,19 +297,28 @@ export default function SettingsAndQRPage({
         </div>
 
         {/* Tab switch */}
-        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <div className="flex flex-wrap bg-slate-100 p-1 rounded-xl border border-slate-200 gap-1">
           <button
-            onClick={() => setActiveTab('poster')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition ${
-              activeTab === 'poster' ? 'bg-white text-blue-600 shadow-2xs' : 'text-slate-600'
+            onClick={() => setActiveTab('pr_poster')}
+            className={`px-3.5 py-2 text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'pr_poster' ? 'bg-white text-blue-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Universal QR Poster
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <span>PR Poster & Coalition</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('poster')}
+            className={`px-3.5 py-2 text-xs font-bold rounded-lg transition cursor-pointer ${
+              activeTab === 'poster' ? 'bg-white text-blue-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Universal Citizen QR
           </button>
           <button
             onClick={() => setActiveTab('wards')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition ${
-              activeTab === 'wards' ? 'bg-white text-blue-600 shadow-2xs' : 'text-slate-600'
+            className={`px-3.5 py-2 text-xs font-bold rounded-lg transition cursor-pointer ${
+              activeTab === 'wards' ? 'bg-white text-blue-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             Ward Management ({wards.length})
@@ -291,7 +326,361 @@ export default function SettingsAndQRPage({
         </div>
       </div>
 
-      {/* Tab 1: Universal QR Poster Generator */}
+      {/* Save Success Alert */}
+      {saveSuccessMsg && (
+        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>{saveSuccessMsg}</span>
+        </div>
+      )}
+
+      {/* Tab 0: Political PR Poster & Coalition Leadership Settings */}
+      {activeTab === 'pr_poster' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left Column: Coalition & Leader Configuration Controls (7 cols) */}
+          <div className="lg:col-span-7 space-y-4">
+            <form onSubmit={handleSaveCoalitionConfig} className="space-y-4">
+              {/* Card 1: Coalition Identity & Symbols */}
+              <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2 text-blue-600">
+                    <Award className="w-5 h-5 text-amber-500" />
+                    <h3 className="text-sm font-bold text-slate-900">
+                      Coalition Government & Party Emblems
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCoalitionConfig(DEFAULT_COALITION_CONFIG)}
+                    className="text-[11px] text-blue-600 font-bold hover:underline"
+                  >
+                    Reset AP NDA Alliance Defaults
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                    Coalition Title / ప్రభుత్వం పేరు
+                  </label>
+                  <input
+                    type="text"
+                    value={coalitionConfig.coalitionName}
+                    onChange={(e) => setCoalitionConfig({ ...coalitionConfig, coalitionName: e.target.value })}
+                    className="w-full h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g. కూటమి ప్రజా ప్రభుత్వం"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                    Active Coalition Emblems (Visible on Poster Header)
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    {/* TDP */}
+                    <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer hover:bg-slate-100/60">
+                      <input
+                        type="checkbox"
+                        checked={coalitionConfig.showTdpLogo}
+                        onChange={(e) => setCoalitionConfig({ ...coalitionConfig, showTdpLogo: e.target.checked })}
+                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-xs font-bold text-slate-800">🚲 TDP (Cycle)</span>
+                    </label>
+
+                    {/* JSP */}
+                    <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer hover:bg-slate-100/60">
+                      <input
+                        type="checkbox"
+                        checked={coalitionConfig.showJspLogo}
+                        onChange={(e) => setCoalitionConfig({ ...coalitionConfig, showJspLogo: e.target.checked })}
+                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-xs font-bold text-slate-800">🥛 JSP (Glass)</span>
+                    </label>
+
+                    {/* BJP */}
+                    <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer hover:bg-slate-100/60">
+                      <input
+                        type="checkbox"
+                        checked={coalitionConfig.showBjpLogo}
+                        onChange={(e) => setCoalitionConfig({ ...coalitionConfig, showBjpLogo: e.target.checked })}
+                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-xs font-bold text-slate-800">🪷 BJP (Lotus)</span>
+                    </label>
+
+                    {/* AP Govt */}
+                    <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer hover:bg-slate-100/60">
+                      <input
+                        type="checkbox"
+                        checked={coalitionConfig.showApGovtLogo}
+                        onChange={(e) => setCoalitionConfig({ ...coalitionConfig, showApGovtLogo: e.target.checked })}
+                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-xs font-bold text-slate-800">🏛️ AP Govt</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: The 4 Leadership Slots (PM, CM, Dy CM, MLA) */}
+              <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs space-y-4">
+                <div className="flex items-center gap-2 text-blue-600 border-b border-slate-100 pb-3">
+                  <Users className="w-5 h-5 text-blue-600" />
+                  <h3 className="text-sm font-bold text-slate-900">
+                    4-Tier Leadership Hierarchy Strip
+                  </h3>
+                </div>
+
+                {/* 1. Prime Minister Slot */}
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                      🇮🇳 1. Prime Minister Slot
+                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-slate-600">
+                      <input
+                        type="checkbox"
+                        checked={coalitionConfig.pm.enabled}
+                        onChange={(e) => setCoalitionConfig({
+                          ...coalitionConfig,
+                          pm: { ...coalitionConfig.pm, enabled: e.target.checked }
+                        })}
+                        className="w-4 h-4 rounded text-blue-600"
+                      />
+                      Enable Slot
+                    </label>
+                  </div>
+                  {coalitionConfig.pm.enabled && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Leader Name</label>
+                        <input
+                          type="text"
+                          value={coalitionConfig.pm.name}
+                          onChange={(e) => setCoalitionConfig({
+                            ...coalitionConfig,
+                            pm: { ...coalitionConfig.pm, name: e.target.value }
+                          })}
+                          className="w-full h-9 px-2.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-800"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Designation</label>
+                        <input
+                          type="text"
+                          value={coalitionConfig.pm.role}
+                          onChange={(e) => setCoalitionConfig({
+                            ...coalitionConfig,
+                            pm: { ...coalitionConfig.pm, role: e.target.value }
+                          })}
+                          className="w-full h-9 px-2.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-800"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Chief Minister Slot */}
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                      🏛️ 2. Chief Minister Slot
+                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-slate-600">
+                      <input
+                        type="checkbox"
+                        checked={coalitionConfig.cm.enabled}
+                        onChange={(e) => setCoalitionConfig({
+                          ...coalitionConfig,
+                          cm: { ...coalitionConfig.cm, enabled: e.target.checked }
+                        })}
+                        className="w-4 h-4 rounded text-blue-600"
+                      />
+                      Enable Slot
+                    </label>
+                  </div>
+                  {coalitionConfig.cm.enabled && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Leader Name</label>
+                        <input
+                          type="text"
+                          value={coalitionConfig.cm.name}
+                          onChange={(e) => setCoalitionConfig({
+                            ...coalitionConfig,
+                            cm: { ...coalitionConfig.cm, name: e.target.value }
+                          })}
+                          className="w-full h-9 px-2.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-800"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Designation</label>
+                        <input
+                          type="text"
+                          value={coalitionConfig.cm.role}
+                          onChange={(e) => setCoalitionConfig({
+                            ...coalitionConfig,
+                            cm: { ...coalitionConfig.cm, role: e.target.value }
+                          })}
+                          className="w-full h-9 px-2.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-800"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. Deputy Chief Minister Slot */}
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                      ⭐ 3. Deputy Chief Minister / Coalition Partner Slot
+                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-slate-600">
+                      <input
+                        type="checkbox"
+                        checked={coalitionConfig.dyCm.enabled}
+                        onChange={(e) => setCoalitionConfig({
+                          ...coalitionConfig,
+                          dyCm: { ...coalitionConfig.dyCm, enabled: e.target.checked }
+                        })}
+                        className="w-4 h-4 rounded text-blue-600"
+                      />
+                      Enable Slot
+                    </label>
+                  </div>
+                  {coalitionConfig.dyCm.enabled && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Leader Name</label>
+                        <input
+                          type="text"
+                          value={coalitionConfig.dyCm.name}
+                          onChange={(e) => setCoalitionConfig({
+                            ...coalitionConfig,
+                            dyCm: { ...coalitionConfig.dyCm, name: e.target.value }
+                          })}
+                          className="w-full h-9 px-2.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-800"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Designation</label>
+                        <input
+                          type="text"
+                          value={coalitionConfig.dyCm.role}
+                          onChange={(e) => setCoalitionConfig({
+                            ...coalitionConfig,
+                            dyCm: { ...coalitionConfig.dyCm, role: e.target.value }
+                          })}
+                          className="w-full h-9 px-2.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-800"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. Local MLA / Representative Slot */}
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                      📍 4. Local MLA / Representative Slot
+                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-slate-600">
+                      <input
+                        type="checkbox"
+                        checked={coalitionConfig.mla.enabled}
+                        onChange={(e) => setCoalitionConfig({
+                          ...coalitionConfig,
+                          mla: { ...coalitionConfig.mla, enabled: e.target.checked }
+                        })}
+                        className="w-4 h-4 rounded text-blue-600"
+                      />
+                      Enable Slot
+                    </label>
+                  </div>
+                  {coalitionConfig.mla.enabled && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">MLA Name</label>
+                        <input
+                          type="text"
+                          value={coalitionConfig.mla.name}
+                          onChange={(e) => setCoalitionConfig({
+                            ...coalitionConfig,
+                            mla: { ...coalitionConfig.mla, name: e.target.value }
+                          })}
+                          className="w-full h-9 px-2.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-800"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Designation</label>
+                        <input
+                          type="text"
+                          value={coalitionConfig.mla.role}
+                          onChange={(e) => setCoalitionConfig({
+                            ...coalitionConfig,
+                            mla: { ...coalitionConfig.mla, role: e.target.value }
+                          })}
+                          className="w-full h-9 px-2.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-800"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Save Button */}
+              <button
+                type="submit"
+                className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition active:scale-98 cursor-pointer"
+              >
+                <Save className="w-4 h-4" />
+                <span>Save Coalition Branding & Poster Layout</span>
+              </button>
+            </form>
+          </div>
+
+          {/* Right Column: Live Sample 4:5 Poster Preview (5 cols) */}
+          <div className="lg:col-span-5 space-y-4">
+            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-2xs space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  Live 4:5 JPEG Preview (WhatsApp/Instagram)
+                </span>
+                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                  4:5 High-Res JPEG
+                </span>
+              </div>
+
+              <VictoryPRPoster
+                ticket={{
+                  id: 'sample-001',
+                  organization_id: orgParam,
+                  ticket_number: 'CMP-1005',
+                  citizen_name: 'రమేష్ దరిసి (Citizen)',
+                  citizen_phone: '9206651295',
+                  category: 'Drainage & Sewage',
+                  location_address: 'Kaggadasapura To Ring Road, Ward 01',
+                  latitude: 16.4419,
+                  longitude: 80.5658,
+                  is_phone_verified: true,
+                  description: 'Underground drainage overflow rectified with municipal jetting team.',
+                  status: 'RESOLVED',
+                  created_at: new Date(Date.now() - 3.5 * 3600 * 1000).toISOString(),
+                  submitted_for_approval_at: new Date().toISOString(),
+                  before_photo_url: 'https://images.unsplash.com/photo-1541888946425-d0fbb186156f?w=600&auto=format&fit=crop&q=80',
+                  after_photo_url: 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
+                  proximity_meters: 18,
+                  is_proximity_verified: true,
+                } as unknown as Complaint}
+                org={org}
+                config={coalitionConfig}
+              />
+            </div>
+          </div>
+        </div>
+      )}
       {activeTab === 'poster' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Controls & Direct Link (4 cols) */}

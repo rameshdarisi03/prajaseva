@@ -36,6 +36,7 @@ import {
 import { Complaint, Ward } from '@/types';
 import { formatDateTime, calculateTurnaround } from '@/lib/dateUtils';
 import { IndianLanguage, MGMT_TRANSLATIONS } from '@/lib/mgmtI18n';
+import VictoryPRPoster from '@/components/VictoryPRPoster';
 
 interface Organization {
   id: string;
@@ -1334,102 +1335,22 @@ export default function ReviewQAPage({
                 {/* RIGHT COLUMN: 4:5 PR Poster & Decisions (5 cols)          */}
                 {/* ========================================================= */}
                 <div className="lg:col-span-5 space-y-5">
-                  {/* 4:5 Political PR Victory Poster Preview */}
+                  {/* 4:5 Political PR Victory Poster (Coalition & Leadership Strip) */}
                   <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                         <Sparkles className="w-4 h-4 text-amber-500" />
-                        1-Tap 4:5 Victory PR Poster
+                        1-Tap 4:5 Victory PR Poster (JPEG)
                       </span>
-                      <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                        Instagram & WhatsApp 4:5
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        WhatsApp & Instagram 4:5 Ready
                       </span>
                     </div>
 
-                    {/* Rendered 4:5 Victory Card Graphic */}
-                    <div className="rounded-2xl overflow-hidden border border-slate-300 shadow-md bg-gradient-to-br from-slate-900 via-slate-800 to-blue-950 text-white p-4 space-y-3">
-                      {/* Poster Header */}
-                      <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-lg bg-blue-500 text-white font-bold flex items-center justify-center text-xs">
-                            AP
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-[10px] font-black uppercase tracking-wider text-amber-400">
-                              {org?.name || 'Mangalagiri Assembly'}
-                            </span>
-                            <span className="text-[9px] text-white/70">
-                              Office of {org?.mlaName || 'Sri Ramesh Darisi'}
-                            </span>
-                          </div>
-                        </div>
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black border border-emerald-400/30">
-                          RESOLVED IN {turnaroundTime}
-                        </span>
-                      </div>
-
-                      {/* Before vs After Split */}
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="space-y-1">
-                          <div className="relative rounded-lg overflow-hidden h-24 border border-white/10 bg-black/40">
-                            {selectedTicket.before_photo_url && !imgErrors[`post_b_${selectedTicket.id}`] ? (
-                              <img
-                                src={selectedTicket.before_photo_url}
-                                alt="Before"
-                                className="w-full h-full object-cover"
-                                onError={() => setImgErrors(p => ({ ...p, [`post_b_${selectedTicket.id}`]: true }))}
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-slate-400">
-                                <Camera className="w-4 h-4" />
-                              </div>
-                            )}
-                            <span className="absolute bottom-1 left-1 bg-red-600 text-white text-[8px] font-bold px-1.5 py-0.2 rounded">
-                              BEFORE
-                            </span>
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="relative rounded-lg overflow-hidden h-24 border border-emerald-400/50 bg-black/40">
-                            {selectedTicket.after_photo_url && !imgErrors[`post_a_${selectedTicket.id}`] ? (
-                              <img
-                                src={selectedTicket.after_photo_url}
-                                alt="After"
-                                className="w-full h-full object-cover"
-                                onError={() => setImgErrors(p => ({ ...p, [`post_a_${selectedTicket.id}`]: true }))}
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-slate-400">
-                                <Clock className="w-4 h-4" />
-                              </div>
-                            )}
-                            <span className="absolute bottom-1 left-1 bg-emerald-600 text-white text-[8px] font-bold px-1.5 py-0.2 rounded">
-                              AFTER (CLEAN)
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Slogan & Quote */}
-                      <div className="pt-1">
-                        <p className="text-xs font-bold text-white text-center leading-snug">
-                          "{org?.constituencySlogan || 'ప్రజల కోసం... ప్రజా సేవలో...'}"
-                        </p>
-                        <p className="text-[10px] text-white/60 text-center mt-0.5">
-                          Prompt civic resolution in {selectedTicket.location_address || 'Constituency'}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Poster Action */}
-                    <button
-                      type="button"
-                      onClick={() => handleDownloadPoster(selectedTicket)}
-                      className="w-full py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-2xs"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Download 4:5 Poster for WhatsApp & Twitter Status</span>
-                    </button>
+                    <VictoryPRPoster
+                      ticket={selectedTicket}
+                      org={org}
+                    />
                   </div>
 
                   {/* Citizen WhatsApp Message Preview */}
