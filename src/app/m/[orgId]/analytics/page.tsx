@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Complaint } from '@/types';
 import { calculateTurnaround } from '@/lib/dateUtils';
+import { IndianLanguage, MGMT_TRANSLATIONS } from '@/lib/mgmtI18n';
 
 interface Ward {
   id: string;
@@ -38,6 +39,25 @@ export default function AnalyticsPage({
   const [wards, setWards] = useState<Ward[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState<'TODAY' | 'WEEK' | 'MONTH' | 'ALL'>('ALL');
+
+  // Multi-Language State
+  const [lang, setLang] = useState<IndianLanguage>('en');
+
+  useEffect(() => {
+    const saved = localStorage.getItem('praja_seva_lang') as IndianLanguage;
+    if (saved && MGMT_TRANSLATIONS[saved]) {
+      setLang(saved);
+    }
+    const handleLangChange = (e: any) => {
+      if (e.detail && MGMT_TRANSLATIONS[e.detail as IndianLanguage]) {
+        setLang(e.detail as IndianLanguage);
+      }
+    };
+    window.addEventListener('praja_lang_change', handleLangChange);
+    return () => window.removeEventListener('praja_lang_change', handleLangChange);
+  }, []);
+
+  const t = MGMT_TRANSLATIONS[lang] || MGMT_TRANSLATIONS.en;
 
   useEffect(() => {
     async function loadData() {
@@ -89,16 +109,16 @@ export default function AnalyticsPage({
   return (
     <div className="space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold uppercase tracking-wider border border-blue-200">
-            CONSTITUENCY TELEMETRY & AUDIT
+            {t.navAnalytics}
           </span>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight mt-1">
-            Ward Performance & Grievance Analytics
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-1">
+            {t.analyticsTitle}
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Real-time resolution velocity, category hotspots, and ward compliance for executive review
+            {t.analyticsSubtitle}
           </p>
         </div>
 
@@ -106,61 +126,61 @@ export default function AnalyticsPage({
           <button
             type="button"
             onClick={() => window.print()}
-            className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm flex items-center gap-2 transition"
+            className="h-9 px-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs flex items-center gap-1.5 transition active:scale-95"
           >
-            <Printer className="w-4 h-4" />
-            <span>Export Executive PDF</span>
+            <Printer className="w-3.5 h-3.5" />
+            <span>PDF</span>
           </button>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+      {/* KPI Cards (2x2 on Mobile, 4 cols on Desktop) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Resolution Rate
+            {t.resolutionRateCard}
           </span>
-          <div className="text-3xl font-black text-emerald-600 mt-1">
+          <div className="text-2xl sm:text-3xl font-black text-emerald-600 mt-1">
             {resolutionRate}%
           </div>
-          <span className="text-[11px] text-slate-500 mt-1 block">
-            {resolvedCount} of {totalCount} resolved
+          <span className="text-[10px] sm:text-[11px] text-slate-500 mt-1 block">
+            {resolvedCount} / {totalCount} {t.statusResolved}
           </span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Average Turnaround
+            {t.avgTurnaroundCard}
           </span>
-          <div className="text-3xl font-black text-blue-600 mt-1">
+          <div className="text-2xl sm:text-3xl font-black text-blue-600 mt-1">
             3.8 hrs
           </div>
-          <span className="text-[11px] text-slate-500 mt-1 block">
-            Target SLA: &lt; 24 hours
+          <span className="text-[10px] sm:text-[11px] text-slate-500 mt-1 block">
+            SLA: &lt; 24 hrs
           </span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Active Ground Cases
+            {t.activeGroundCasesCard}
           </span>
-          <div className="text-3xl font-black text-amber-600 mt-1">
+          <div className="text-2xl sm:text-3xl font-black text-amber-600 mt-1">
             {inProgressCount}
           </div>
-          <span className="text-[11px] text-slate-500 mt-1 block">
-            Currently deployed in field
+          <span className="text-[10px] sm:text-[11px] text-slate-500 mt-1 block">
+            {t.statusInProgress}
           </span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Constituency Wards
+            {t.constituencyWardsCard}
           </span>
-          <div className="text-3xl font-black text-purple-600 mt-1">
+          <div className="text-2xl sm:text-3xl font-black text-purple-600 mt-1">
             {wards.length}
           </div>
-          <span className="text-[11px] text-slate-500 mt-1 block">
-            100% telemetry coverage
+          <span className="text-[10px] sm:text-[11px] text-slate-500 mt-1 block">
+            100% telemetry
           </span>
         </div>
       </div>
@@ -168,9 +188,9 @@ export default function AnalyticsPage({
       {/* Category Breakdown & Ward Performance */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Category Hotspots (5 cols) */}
-        <div className="lg:col-span-5 bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs space-y-4">
+        <div className="lg:col-span-5 bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-2xs space-y-4">
           <h3 className="text-sm font-bold text-slate-900">
-            Grievances by Category
+            {t.byCategoryHeading}
           </h3>
 
           <div className="space-y-3">

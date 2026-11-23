@@ -826,36 +826,37 @@ export default function OperationsBoardPage({
       </div>
 
       {/* ===================================================================== */}
-      {/* SEARCH & FILTERS BAR (CLEAN NATURAL SPACING, STRIKED-OUT OPTION GONE) */}
+      {/* SEARCH & SIDE-BY-SIDE DROPDOWNS (WARDS & CATEGORY SIDE-BY-SIDE)      */}
       {/* ===================================================================== */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-3">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          {/* Universal Search (Expands naturally across full width) */}
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t.searchPlaceholder}
-              className="w-full h-11 pl-10 pr-10 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
-              >
-                ✕
-              </button>
-            )}
-          </div>
+      <div className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200 shadow-2xs space-y-2.5 sm:space-y-3">
+        {/* Row 1: Universal Search (Full Width) */}
+        <div className="relative w-full">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t.searchPlaceholder}
+            className="w-full h-10 sm:h-11 pl-10 pr-9 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+            >
+              ✕
+            </button>
+          )}
+        </div>
 
-          {/* Ward Dropdown (Fixed width, perfectly aligned) */}
-          <div className="relative w-full sm:w-72">
+        {/* Row 2: Wards Dropdown & Category Dropdown Side-by-Side (50% / 50%) */}
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+          {/* Left: Ward Selector */}
+          <div className="relative">
             <select
               value={selectedWardId}
               onChange={(e) => setSelectedWardId(e.target.value)}
-              className="w-full h-11 pl-3.5 pr-8 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 appearance-none cursor-pointer focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full h-10 sm:h-11 pl-2.5 sm:pl-3.5 pr-7 rounded-xl bg-slate-50 border border-slate-200 text-[11px] sm:text-xs font-bold text-slate-800 appearance-none cursor-pointer focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 truncate"
             >
               <option value="ALL">{t.allWardsOption}</option>
               {wards.map((w) => (
@@ -864,33 +865,49 @@ export default function OperationsBoardPage({
                 </option>
               ))}
             </select>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs">
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[10px] sm:text-xs">
+              ▼
+            </div>
+          </div>
+
+          {/* Right: Category / Issue Filter Dropdown (Default: All) */}
+          <div className="relative">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full h-10 sm:h-11 pl-2.5 sm:pl-3.5 pr-7 rounded-xl bg-slate-50 border border-slate-200 text-[11px] sm:text-xs font-bold text-slate-800 appearance-none cursor-pointer focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 truncate"
+            >
+              <option value="ALL">{t.allIssues}</option>
+              <option value="ROADS">{t.roads}</option>
+              <option value="WATER">{t.water}</option>
+              <option value="DRAINAGE">{t.drainage}</option>
+              <option value="LIGHTS">{t.lights}</option>
+              <option value="GARBAGE">{t.garbage}</option>
+              <option value="OTHER">{t.other}</option>
+            </select>
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[10px] sm:text-xs">
               ▼
             </div>
           </div>
         </div>
 
-        {/* Category Filter Horizon */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none pt-1">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1 shrink-0">
-            {t.categoryLabel}
+        {/* Counter & Active Filter Reset */}
+        <div className="flex items-center justify-between text-[11px] text-slate-400 px-0.5 pt-0.5">
+          <span>
+            {t.showingCount} <strong className="text-slate-800 font-bold">{displayedTickets.length}</strong>
           </span>
-          {['ALL', 'ROADS', 'WATER', 'DRAINAGE', 'LIGHTS', 'GARBAGE', 'OTHER'].map((cat) => (
+          {(searchQuery || selectedWardId !== 'ALL' || selectedCategory !== 'ALL') && (
             <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition cursor-pointer ${
-                selectedCategory === cat
-                  ? 'bg-blue-600 text-white shadow-2xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedWardId('ALL');
+                setSelectedCategory('ALL');
+              }}
+              className="text-blue-600 font-bold hover:underline"
             >
-              {cat === 'ALL' ? t.allIssues : getCategoryLabel(cat)}
+              Reset Filters
             </button>
-          ))}
-          <div className="ml-auto text-[11px] text-slate-400 shrink-0 pl-2">
-            {t.showingCount} <strong className="text-slate-800">{displayedTickets.length}</strong>
-          </div>
+          )}
         </div>
       </div>
 

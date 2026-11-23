@@ -238,36 +238,36 @@ export default function ManagementLayout({
   // Navigation Links
   const navItems = [
     {
-      label: 'Operations Board',
+      label: t.navBoard,
       href: `/m/${orgParam}`,
       exact: true,
       icon: ClipboardList,
       badge: null,
     },
     {
-      label: 'Review & QA Gate',
+      label: t.navApprove,
       href: `/m/${orgParam}/review`,
       exact: false,
       icon: ShieldCheck,
-      badge: pendingReviewCount > 0 ? `${pendingReviewCount} Pending` : null,
+      badge: pendingReviewCount > 0 ? `${pendingReviewCount}` : null,
       badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
     },
     {
-      label: 'Staff & Volunteers',
+      label: t.navStaff,
       href: `/m/${orgParam}/staff`,
       exact: false,
       icon: Users,
       badge: null,
     },
     {
-      label: 'Ward Analytics',
+      label: t.navAnalytics,
       href: `/m/${orgParam}/analytics`,
       exact: false,
       icon: BarChart3,
       badge: null,
     },
     {
-      label: 'Settings & QR Poster',
+      label: t.navSettings,
       href: `/m/${orgParam}/settings`,
       exact: false,
       icon: Settings,
@@ -507,7 +507,7 @@ export default function ManagementLayout({
             <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
             <div className="flex flex-col min-w-0">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Constituency
+                {t.constituencySeat}
               </span>
               <span className="text-xs font-bold text-slate-900 truncate">
                 {org?.mlaName || 'Secretariat Office'}
@@ -567,8 +567,8 @@ export default function ManagementLayout({
           <div className="flex items-center gap-2">
             <QrCode className="w-4 h-4 text-blue-600" />
             <div className="flex flex-col">
-              <span className="text-xs font-bold text-blue-900">Citizen QR Portal</span>
-              <span className="text-[10px] text-blue-600">Open live public form</span>
+              <span className="text-xs font-bold text-blue-900">{t.navCitizenPortal}</span>
+              <span className="text-[10px] text-blue-600">{t.navOpenPublicForm}</span>
             </div>
           </div>
           <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
@@ -576,14 +576,14 @@ export default function ManagementLayout({
 
         <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
           <div className="flex flex-col min-w-0">
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Logged in as</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase">{t.navLoggedInAs}</span>
             <span className="text-xs font-bold text-slate-900 truncate">{session.name}</span>
             <span className="text-[10px] text-blue-600 font-semibold">{session.role}</span>
           </div>
           <button
             onClick={handleLogout}
             className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
-            title="Logout"
+            title={t.navLogout}
           >
             <LogOut className="w-4 h-4" />
           </button>
@@ -738,7 +738,7 @@ export default function ManagementLayout({
           }`}
         >
           <ClipboardList className="w-5 h-5" />
-          <span className="text-[10px] mt-0.5 leading-tight">Board</span>
+          <span className="text-[10px] mt-0.5 leading-tight">{t.navBoard}</span>
         </Link>
 
         {/* Approvals (Review Desk) with red badge */}
@@ -758,7 +758,7 @@ export default function ManagementLayout({
               </span>
             )}
           </div>
-          <span className="text-[10px] mt-0.5 leading-tight">Approve</span>
+          <span className="text-[10px] mt-0.5 leading-tight">{t.navApprove}</span>
         </Link>
 
         {/* Volunteers / Staff */}
@@ -771,7 +771,7 @@ export default function ManagementLayout({
           }`}
         >
           <Users className="w-5 h-5" />
-          <span className="text-[10px] mt-0.5 leading-tight">Staff</span>
+          <span className="text-[10px] mt-0.5 leading-tight">{t.navStaff}</span>
         </Link>
 
         {/* Analytics */}
@@ -784,7 +784,7 @@ export default function ManagementLayout({
           }`}
         >
           <BarChart3 className="w-5 h-5" />
-          <span className="text-[10px] mt-0.5 leading-tight">Insights</span>
+          <span className="text-[10px] mt-0.5 leading-tight">{t.navAnalytics}</span>
         </Link>
 
         {/* More Drawer Trigger */}
@@ -794,7 +794,7 @@ export default function ManagementLayout({
           className="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-slate-500 hover:text-slate-800 transition min-w-[56px]"
         >
           <Menu className="w-5 h-5" />
-          <span className="text-[10px] mt-0.5 leading-tight">More</span>
+          <span className="text-[10px] mt-0.5 leading-tight">{t.navMore}</span>
         </button>
       </nav>
     </div>

@@ -425,15 +425,15 @@ export default function ReviewQAPage({
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[10px] font-black uppercase tracking-wider border border-purple-200">
-              Review & Approvals
+              {t.reviewDeskBadge}
             </span>
             <span className="text-slate-300">•</span>
             <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5" /> GPS Verified
+              <ShieldCheck className="w-3.5 h-3.5" /> {t.gpsVerifiedBadge}
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-1">
-            Review & Approval Desk
+            {t.reviewDeskTitle}
           </h1>
         </div>
 
@@ -462,17 +462,17 @@ export default function ReviewQAPage({
           <button
             onClick={() => fetchTickets()}
             className="h-9 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition active:scale-95"
-            title="Refresh Queue"
+            title={t.refreshBtn}
           >
             <RotateCcw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
+            <span>{t.refreshBtn}</span>
           </button>
 
           <Link
             href={`/m/${orgParam}`}
             className="h-9 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1 transition active:scale-95"
           >
-            ← Board
+            {t.boardBackBtn}
           </Link>
         </div>
       </div>
@@ -486,118 +486,138 @@ export default function ReviewQAPage({
       )}
 
       {/* High-Performance Filter & Search Command Ribbon */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-3">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-          {/* Status Tabs */}
-          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 w-full md:w-auto">
-            <button
-              onClick={() => setStatusFilter('PENDING_APPROVAL')}
-              className={`flex-1 md:flex-initial px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                statusFilter === 'PENDING_APPROVAL'
-                  ? 'bg-purple-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-              <span>Awaiting Audit</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                statusFilter === 'PENDING_APPROVAL' ? 'bg-purple-700 text-white' : 'bg-slate-200 text-slate-700'
-              }`}>
-                {tickets.filter(t => t.status === 'PENDING_APPROVAL').length}
-              </span>
-            </button>
+      <div className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200 shadow-2xs space-y-2.5 sm:space-y-3">
+        {/* Status Tabs (Never Overflows on Mobile) */}
+        <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 w-full">
+          <button
+            onClick={() => setStatusFilter('PENDING_APPROVAL')}
+            className={`py-2 px-1 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer truncate ${
+              statusFilter === 'PENDING_APPROVAL'
+                ? 'bg-purple-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+            <span className="truncate">{t.awaitingAuditTab}</span>
+            <span className={`px-1 rounded-full text-[9px] sm:text-[10px] shrink-0 ${
+              statusFilter === 'PENDING_APPROVAL' ? 'bg-purple-700 text-white' : 'bg-slate-200 text-slate-700'
+            }`}>
+              {tickets.filter(t => t.status === 'PENDING_APPROVAL').length}
+            </span>
+          </button>
 
-            <button
-              onClick={() => setStatusFilter('RESOLVED')}
-              className={`flex-1 md:flex-initial px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                statusFilter === 'RESOLVED'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Check className="w-3.5 h-3.5" />
-              <span>Approved & Dispatched</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                statusFilter === 'RESOLVED' ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700'
-              }`}>
-                {tickets.filter(t => t.status === 'RESOLVED').length}
-              </span>
-            </button>
+          <button
+            onClick={() => setStatusFilter('RESOLVED')}
+            className={`py-2 px-1 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer truncate ${
+              statusFilter === 'RESOLVED'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span className="truncate">{t.approvedDispatchedTab}</span>
+            <span className={`px-1 rounded-full text-[9px] sm:text-[10px] shrink-0 ${
+              statusFilter === 'RESOLVED' ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700'
+            }`}>
+              {tickets.filter(t => t.status === 'RESOLVED').length}
+            </span>
+          </button>
 
+          <button
+            onClick={() => setStatusFilter('ALL')}
+            className={`py-2 px-1 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer truncate ${
+              statusFilter === 'ALL'
+                ? 'bg-slate-800 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span className="truncate">{t.allTicketsTab}</span>
+            <span className={`px-1 rounded-full text-[9px] sm:text-[10px] shrink-0 ${
+              statusFilter === 'ALL' ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-700'
+            }`}>
+              {tickets.length}
+            </span>
+          </button>
+        </div>
+
+        {/* Row 1: Universal Search */}
+        <div className="relative w-full">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t.searchReviewPlaceholder}
+            className="w-full pl-9 pr-8 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+          />
+          {searchQuery && (
             <button
-              onClick={() => setStatusFilter('ALL')}
-              className={`flex-1 md:flex-initial px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                statusFilter === 'ALL'
-                  ? 'bg-slate-800 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
             >
-              <Layers className="w-3.5 h-3.5" />
-              <span>All Tickets</span>
+              ✕
             </button>
+          )}
+        </div>
+
+        {/* Row 2: Wards & Category Dropdowns Side-by-Side (50% / 50%) */}
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+          {/* Left: Ward Selector */}
+          <div className="relative">
+            <select
+              value={selectedWard}
+              onChange={(e) => setSelectedWard(e.target.value)}
+              className="w-full h-10 pl-2.5 sm:pl-3 pr-7 rounded-xl bg-slate-50 border border-slate-200 font-semibold text-slate-800 text-[11px] sm:text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer truncate"
+            >
+              <option value="ALL">{t.allWardsFilter} ({wards.length})</option>
+              {wards.map((w) => (
+                <option key={w.id} value={w.id}>
+                  Ward {w.ward_number} - {w.name}
+                </option>
+              ))}
+            </select>
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[10px]">
+              ▼
+            </div>
           </div>
 
-          {/* Search Box */}
-          <div className="relative w-full md:w-80">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search Ticket, Citizen, Phone, Landmark..."
-              className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
-              >
-                ✕
-              </button>
-            )}
+          {/* Right: Category Dropdown */}
+          <div className="relative">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full h-10 pl-2.5 sm:pl-3 pr-7 rounded-xl bg-slate-50 border border-slate-200 font-semibold text-slate-800 text-[11px] sm:text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer truncate"
+            >
+              <option value="ALL">{t.allCategoriesFilter}</option>
+              <option value="ROADS">{t.roads}</option>
+              <option value="WATER">{t.water}</option>
+              <option value="DRAINAGE">{t.drainage}</option>
+              <option value="LIGHTS">{t.lights}</option>
+              <option value="GARBAGE">{t.garbage}</option>
+              <option value="OTHER">{t.other}</option>
+            </select>
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[10px]">
+              ▼
+            </div>
           </div>
         </div>
 
-        {/* Secondary Filter Dropdowns & Pills */}
-        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100 text-xs">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-            Filter:
+        {/* Counter */}
+        <div className="flex items-center justify-between text-[11px] text-slate-400 px-0.5">
+          <span>
+            {t.showingCount} <strong className="text-slate-700">{filteredTickets.length}</strong>
           </span>
-
-          {/* Ward Selector */}
-          <select
-            value={selectedWard}
-            onChange={(e) => setSelectedWard(e.target.value)}
-            className="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 font-semibold text-slate-700 text-xs focus:outline-none"
-          >
-            <option value="ALL">All Wards ({wards.length})</option>
-            {wards.map((w) => (
-              <option key={w.id} value={w.id}>
-                Ward {w.ward_number} - {w.name}
-              </option>
-            ))}
-          </select>
-
-          {/* Category Pills */}
-          <div className="flex flex-wrap items-center gap-1">
-            {['ALL', 'ROADS', 'WATER', 'DRAINAGE', 'LIGHTS', 'GARBAGE'].map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${
-                  selectedCategory === cat
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {cat === 'ALL' ? 'All Issues' : cat}
-              </button>
-            ))}
-          </div>
-
-          <div className="ml-auto text-[11px] text-slate-400">
-            Showing <strong className="text-slate-700">{filteredTickets.length}</strong> records
-          </div>
+          {(searchQuery || selectedWard !== 'ALL' || selectedCategory !== 'ALL') && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedWard('ALL');
+                setSelectedCategory('ALL');
+              }}
+              className="text-blue-600 font-bold hover:underline"
+            >
+              Reset Filters
+            </button>
+          )}
         </div>
       </div>
 
@@ -634,27 +654,27 @@ export default function ReviewQAPage({
             <>
               {/* MOBILE HAND-FRIENDLY CARD VIEW (NO HORIZONTAL SCROLL CUTOFFS) */}
               <div className="md:hidden divide-y divide-slate-100">
-                {filteredTickets.map((t) => (
+                {filteredTickets.map((ticket) => (
                   <div
-                    key={t.id}
-                    onClick={() => openAuditChamber(t)}
+                    key={ticket.id}
+                    onClick={() => openAuditChamber(ticket)}
                     className="p-4 space-y-3 hover:bg-slate-50 transition cursor-pointer"
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-mono font-bold text-blue-700 text-xs px-2 py-0.5 rounded bg-blue-50 border border-blue-200">
-                        {t.ticket_number}
+                        {ticket.ticket_number}
                       </span>
                       <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-extrabold uppercase">
-                        {t.category}
+                        {ticket.category}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-3">
                       {/* Mini Thumbnail */}
                       <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
-                        {t.after_photo_url || t.before_photo_url ? (
+                        {ticket.after_photo_url || ticket.before_photo_url ? (
                           <img
-                            src={t.after_photo_url || t.before_photo_url}
+                            src={ticket.after_photo_url || ticket.before_photo_url}
                             alt="Evidence"
                             className="w-full h-full object-cover"
                           />
@@ -667,13 +687,13 @@ export default function ReviewQAPage({
 
                       <div className="min-w-0 flex-1">
                         <div className="font-bold text-slate-900 text-xs truncate">
-                          {t.citizen_name}
+                          {ticket.citizen_name}
                         </div>
                         <div className="text-[11px] text-slate-500 truncate mt-0.5">
-                          Ward {t.ward?.ward_number || '01'} • {t.location_address || 'Mangalagiri'}
+                          Ward {ticket.ward?.ward_number || '01'} • {ticket.location_address || 'Mangalagiri'}
                         </div>
                         <div className="text-[10px] text-emerald-600 font-semibold mt-0.5">
-                          ✓ GPS Verified ({t.proximity_meters || 22}m)
+                          ✓ GPS Verified ({ticket.proximity_meters || 22}m)
                         </div>
                       </div>
                     </div>
@@ -682,11 +702,11 @@ export default function ReviewQAPage({
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        openAuditChamber(t);
+                        openAuditChamber(ticket);
                       }}
                       className="w-full h-10 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-98"
                     >
-                      <span>Approve</span>
+                      <span>{t.navApprove}</span>
                       <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -710,30 +730,30 @@ export default function ReviewQAPage({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {filteredTickets.map((t) => {
-                      const ticketTurnaround = calculateTurnaround(t.created_at, t.submitted_for_approval_at || new Date().toISOString());
-                      const dist = t.proximity_meters || 22;
-                      const isValidDist = t.is_proximity_verified ?? (dist <= 150);
+                    {filteredTickets.map((ticket) => {
+                      const ticketTurnaround = calculateTurnaround(ticket.created_at, ticket.submitted_for_approval_at || new Date().toISOString());
+                      const dist = ticket.proximity_meters || 22;
+                      const isValidDist = ticket.is_proximity_verified ?? (dist <= 150);
 
                       return (
                         <tr
-                          key={t.id}
+                          key={ticket.id}
                           className="hover:bg-blue-50/40 transition cursor-pointer group"
-                          onClick={() => openAuditChamber(t)}
+                          onClick={() => openAuditChamber(ticket)}
                         >
                           {/* Ticket Ref */}
                           <td className="py-3.5 px-4 font-mono font-bold">
                             <span className="px-2 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                              {t.ticket_number}
+                              {ticket.ticket_number}
                             </span>
                           </td>
 
                           {/* Citizen */}
                           <td className="py-3.5 px-4">
-                            <div className="font-bold text-slate-900">{t.citizen_name}</div>
+                            <div className="font-bold text-slate-900">{ticket.citizen_name}</div>
                             <div className="text-[11px] text-slate-500 flex items-center gap-1 font-mono">
                               <Phone className="w-3 h-3 text-slate-400" />
-                              +91 {t.citizen_phone}
+                              +91 {ticket.citizen_phone}
                             </div>
                           </td>
 
@@ -741,26 +761,26 @@ export default function ReviewQAPage({
                           <td className="py-3.5 px-4 max-w-xs">
                             <div className="flex items-center gap-1.5">
                               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 uppercase">
-                                {t.category}
+                                {ticket.category}
                               </span>
-                              {t.voice_note_url && (
+                              {ticket.voice_note_url && (
                                 <span className="px-1.5 py-0.2 rounded bg-purple-50 text-purple-700 text-[9px] font-bold flex items-center gap-0.5">
                                   <Volume2 className="w-2.5 h-2.5" /> Audio
                                 </span>
                               )}
                             </div>
-                            <div className="text-[11px] text-slate-600 truncate mt-0.5" title={t.location_address || ''}>
-                              {t.location_address || 'Mangalagiri Assembly'}
+                            <div className="text-[11px] text-slate-600 truncate mt-0.5" title={ticket.location_address || ''}>
+                              {ticket.location_address || 'Mangalagiri Assembly'}
                             </div>
                           </td>
 
                           {/* Ward */}
                           <td className="py-3.5 px-4 whitespace-nowrap">
                             <span className="font-semibold text-slate-700">
-                              Ward {t.ward?.ward_number || '01'}
+                              Ward {ticket.ward?.ward_number || '01'}
                             </span>
                             <div className="text-[10px] text-slate-400">
-                              {t.ward?.name || 'Central'}
+                              {ticket.ward?.name || 'Central'}
                             </div>
                           </td>
 
@@ -793,17 +813,17 @@ export default function ReviewQAPage({
                                 className="relative w-11 h-11 rounded-lg overflow-hidden border border-slate-200 bg-slate-100 shrink-0"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (t.before_photo_url) {
-                                    setLightboxImage({ url: t.before_photo_url, title: `${t.ticket_number} - Citizen Before Evidence` });
+                                  if (ticket.before_photo_url) {
+                                    setLightboxImage({ url: ticket.before_photo_url, title: `${ticket.ticket_number} - Citizen Before Evidence` });
                                   }
                                 }}
                               >
-                                {t.before_photo_url && !imgErrors[`b_${t.id}`] ? (
+                                {ticket.before_photo_url && !imgErrors[`b_${ticket.id}`] ? (
                                   <img
-                                    src={t.before_photo_url}
+                                    src={ticket.before_photo_url}
                                     alt="Before"
                                     className="w-full h-full object-cover group-hover:scale-105 transition"
-                                    onError={() => setImgErrors(p => ({ ...p, [`b_${t.id}`]: true }))}
+                                    onError={() => setImgErrors(p => ({ ...p, [`b_${ticket.id}`]: true }))}
                                   />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center text-slate-400">
@@ -820,17 +840,17 @@ export default function ReviewQAPage({
                                 className="relative w-11 h-11 rounded-lg overflow-hidden border-2 border-emerald-500 bg-emerald-50 shrink-0"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (t.after_photo_url) {
-                                    setLightboxImage({ url: t.after_photo_url, title: `${t.ticket_number} - Resolution After Proof` });
+                                  if (ticket.after_photo_url) {
+                                    setLightboxImage({ url: ticket.after_photo_url, title: `${ticket.ticket_number} - Resolution After Proof` });
                                   }
                                 }}
                               >
-                                {t.after_photo_url && !imgErrors[`a_${t.id}`] ? (
+                                {ticket.after_photo_url && !imgErrors[`a_${ticket.id}`] ? (
                                   <img
-                                    src={t.after_photo_url}
+                                    src={ticket.after_photo_url}
                                     alt="After"
                                     className="w-full h-full object-cover group-hover:scale-105 transition"
-                                    onError={() => setImgErrors(p => ({ ...p, [`a_${t.id}`]: true }))}
+                                    onError={() => setImgErrors(p => ({ ...p, [`a_${ticket.id}`]: true }))}
                                   />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center text-slate-400">
@@ -858,11 +878,11 @@ export default function ReviewQAPage({
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                openAuditChamber(t);
+                                openAuditChamber(ticket);
                               }}
                               className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1 ml-auto shadow-xs transition"
                             >
-                              <span>Approve</span>
+                              <span>{t.navApprove}</span>
                               <ChevronRight className="w-3.5 h-3.5" />
                             </button>
                           </td>

@@ -18,6 +18,7 @@ import {
   Check,
   Plus
 } from 'lucide-react';
+import { IndianLanguage, MGMT_TRANSLATIONS } from '@/lib/mgmtI18n';
 
 interface AssignedWardSummary {
   id: string;
@@ -60,6 +61,25 @@ export default function StaffManagementPage({
   const [wards, setWards] = useState<Ward[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Multi-Language State
+  const [lang, setLang] = useState<IndianLanguage>('en');
+
+  useEffect(() => {
+    const saved = localStorage.getItem('praja_seva_lang') as IndianLanguage;
+    if (saved && MGMT_TRANSLATIONS[saved]) {
+      setLang(saved);
+    }
+    const handleLangChange = (e: any) => {
+      if (e.detail && MGMT_TRANSLATIONS[e.detail as IndianLanguage]) {
+        setLang(e.detail as IndianLanguage);
+      }
+    };
+    window.addEventListener('praja_lang_change', handleLangChange);
+    return () => window.removeEventListener('praja_lang_change', handleLangChange);
+  }, []);
+
+  const t = MGMT_TRANSLATIONS[lang] || MGMT_TRANSLATIONS.en;
 
   // Add Member Modal State
   const [showAddModal, setShowAddModal] = useState(false);
@@ -382,13 +402,13 @@ export default function StaffManagementPage({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold uppercase tracking-wider border border-blue-200">
-            Team Directory
+            {t.teamDirectoryBadge}
           </span>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-1">
-            Staff & Field Volunteers
+            {t.staffPageTitle}
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Manage volunteers and assigned constituency wards
+            {t.staffPageSubtitle}
           </p>
         </div>
 
@@ -397,7 +417,7 @@ export default function StaffManagementPage({
           className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition shrink-0 active:scale-95"
         >
           <UserPlus className="w-4 h-4" />
-          <span>Add Volunteer / Staff</span>
+          <span>{t.addStaffBtn}</span>
         </button>
       </div>
 
@@ -409,12 +429,12 @@ export default function StaffManagementPage({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search staff by name or phone..."
+            placeholder={t.searchStaffPlaceholder}
             className="w-full h-10 pl-9 pr-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
           />
         </div>
         <div className="text-xs font-semibold text-slate-500 pr-2 shrink-0">
-          {filteredStaff.length} Member{filteredStaff.length === 1 ? '' : 's'}
+          {filteredStaff.length} {t.membersCountLabel}
         </div>
       </div>
 
@@ -424,11 +444,11 @@ export default function StaffManagementPage({
         <div className="md:hidden divide-y divide-slate-100">
           {loading ? (
             <div className="p-8 text-center text-slate-400 text-xs">
-              Loading team directory...
+              Loading...
             </div>
           ) : filteredStaff.length === 0 ? (
             <div className="p-8 text-center text-slate-400 text-xs">
-              No staff members found matching search.
+              {t.noComplaintsSub}
             </div>
           ) : (
             filteredStaff.map((member) => {
@@ -454,14 +474,14 @@ export default function StaffManagementPage({
                       <a
                         href={`tel:${member.phone}`}
                         className="p-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition active:scale-95"
-                        title="Call Volunteer"
+                        title="Call"
                       >
                         <Phone className="w-4 h-4" />
                       </a>
                       <button
                         onClick={() => handleDeleteMember(member.id, member.full_name)}
                         className="p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
-                        title="Delete Member"
+                        title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -476,7 +496,7 @@ export default function StaffManagementPage({
                           : 'bg-blue-100 text-blue-800 border border-blue-200'
                       }`}
                     >
-                      {member.role === 'ADMIN' ? 'Chief Admin' : 'Field Volunteer'}
+                      {member.role === 'ADMIN' ? t.chiefAdminRole : t.fieldVolunteerRole}
                     </span>
 
                     {assignedWards.length > 0 ? (
@@ -491,7 +511,7 @@ export default function StaffManagementPage({
                       ))
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-semibold">
-                        All Wards
+                        {t.allWardsBadge}
                       </span>
                     )}
                   </div>
@@ -506,25 +526,25 @@ export default function StaffManagementPage({
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                <th className="px-5 py-3.5">Staff Name</th>
-                <th className="px-5 py-3.5">Mobile (Login)</th>
-                <th className="px-5 py-3.5">Role</th>
-                <th className="px-5 py-3.5">Assigned Wards</th>
-                <th className="px-5 py-3.5">Status</th>
-                <th className="px-5 py-3.5 text-right">Actions</th>
+                <th className="px-5 py-3.5">{t.staffNameCol}</th>
+                <th className="px-5 py-3.5">{t.mobileCol}</th>
+                <th className="px-5 py-3.5">{t.roleCol}</th>
+                <th className="px-5 py-3.5">{t.assignedWardsCol}</th>
+                <th className="px-5 py-3.5">{t.statusCol}</th>
+                <th className="px-5 py-3.5 text-right">{t.actionsCol}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
                   <td colSpan={6} className="px-5 py-10 text-center text-slate-400">
-                    Loading staff directory...
+                    Loading...
                   </td>
                 </tr>
               ) : filteredStaff.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-5 py-10 text-center text-slate-400">
-                    No staff members found matching your search.
+                    {t.noComplaintsSub}
                   </td>
                 </tr>
               ) : (
@@ -551,7 +571,7 @@ export default function StaffManagementPage({
                               : 'bg-blue-100 text-blue-800 border border-blue-200'
                           }`}
                         >
-                          {member.role === 'ADMIN' ? 'Chief Admin' : 'Field Volunteer'}
+                          {member.role === 'ADMIN' ? t.chiefAdminRole : t.fieldVolunteerRole}
                         </span>
                       </td>
                       <td className="px-5 py-4">
@@ -569,21 +589,21 @@ export default function StaffManagementPage({
                           </div>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-semibold">
-                            All Wards (Constituency-wide)
+                            {t.allWardsBadge}
                           </span>
                         )}
                       </td>
                       <td className="px-5 py-4">
                         <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          Active & PIN Verified
+                          {t.activeVerifiedBadge}
                         </span>
                       </td>
                       <td className="px-5 py-4 text-right">
                         <button
                           onClick={() => handleDeleteMember(member.id, member.full_name)}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
-                          title="Revoke Whitelist Access"
+                          title="Revoke Access"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
