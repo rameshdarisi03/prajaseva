@@ -373,29 +373,38 @@ export default function OperationsBoardPage({
       )}
 
       {/* ===================================================================== */}
-      {/* FULL TICKET DETAILS MODAL (OPENS ON "MORE DETAILS →")                 */}
+      {/* FULL TICKET DETAILS MODAL (NATIVE BOTTOM SHEET ON MOBILE)             */}
       {/* ===================================================================== */}
       {detailTicket && (
-        <div className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 lg:p-6 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] shadow-2xl border border-slate-200 flex flex-col overflow-hidden my-auto animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+          <div
+            className="fixed inset-0"
+            onClick={() => setDetailTicket(null)}
+          />
+          <div className="relative bg-white rounded-t-3xl sm:rounded-3xl max-w-2xl w-full max-h-[90vh] sm:max-h-[85vh] shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 z-10">
+            {/* Mobile Drag Indicator */}
+            <div className="pt-2.5 pb-1 flex justify-center sm:hidden">
+              <div className="w-12 h-1.5 rounded-full bg-slate-300" />
+            </div>
+
             {/* Header */}
-            <div className="p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="font-mono font-bold text-blue-700 text-sm px-2.5 py-1 rounded-lg bg-blue-100 border border-blue-200">
+            <div className="px-4 py-3 sm:p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="font-mono font-bold text-blue-700 text-xs sm:text-sm px-2.5 py-1 rounded-lg bg-blue-100 border border-blue-200 shrink-0">
                   {detailTicket.ticket_number}
                 </span>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">
-                    {getCategoryLabel(detailTicket.category)} • {t.dossierTitle}
+                <div className="min-w-0">
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 truncate">
+                    {getCategoryLabel(detailTicket.category)}
                   </h3>
-                  <span className="text-xs text-slate-500">
-                    {t.lodgedDate}: {formatDateTime(detailTicket.created_at)}
+                  <span className="text-[10px] sm:text-xs text-slate-500 block truncate">
+                    {formatDateTime(detailTicket.created_at)}
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
+              <div className="flex items-center gap-2 shrink-0">
+                <span className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold border ${
                   detailTicket.status === 'NEW'
                     ? 'bg-blue-100 text-blue-800 border-blue-200'
                     : detailTicket.status === 'IN_PROGRESS'
@@ -631,7 +640,7 @@ export default function OperationsBoardPage({
       {/* ===================================================================== */}
       {/* TOP HEADER & TITLE ZONE                                               */}
       {/* ===================================================================== */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-black uppercase tracking-wider border border-blue-200">
@@ -639,21 +648,19 @@ export default function OperationsBoardPage({
             </span>
             <span className="text-slate-300">•</span>
             <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" /> {t.liveFeedsActive}
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+              {t.liveFeedsActive}
             </span>
           </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight mt-1">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-1">
             {t.pageTitle}
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            {t.pageSubtitle}
-          </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
           <Link
             href={`/m/${orgParam}/review`}
-            className="h-10 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-sm flex items-center gap-2 transition"
+            className="h-9 sm:h-10 px-3.5 sm:px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-xs flex items-center gap-1.5 transition shrink-0 active:scale-95"
           >
             <ShieldAlert className="w-4 h-4" />
             <span>{t.openApprovalDesk} ({pendingReviewCount})</span>
@@ -661,18 +668,63 @@ export default function OperationsBoardPage({
           <Link
             href={`/p/${orgParam}`}
             target="_blank"
-            className="h-10 px-4 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-2xs flex items-center gap-1.5 transition"
+            className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-2xs flex items-center gap-1.5 transition shrink-0 active:scale-95"
           >
-            <ExternalLink className="w-4 h-4 text-blue-600" />
-            <span>{t.citizenQrPortal}</span>
+            <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
+            <span className="hidden sm:inline">{t.citizenQrPortal}</span>
+            <span className="sm:hidden">Portal</span>
           </Link>
         </div>
       </div>
 
       {/* ===================================================================== */}
-      {/* TOP 3 INTERACTIVE STATUS CARDS (NEW, IN PROGRESS, RESOLVED)           */}
+      {/* 1. MOBILE THUMB-FRIENDLY SEGMENTED STATUS SWITCHER (ONE-HAND ACCESS)   */}
       {/* ===================================================================== */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="md:hidden grid grid-cols-3 gap-1.5 p-1 bg-slate-200/70 rounded-2xl">
+        <button
+          type="button"
+          onClick={() => setActiveTab('NEW')}
+          className={`py-2 px-1 rounded-xl text-xs font-bold transition flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95 ${
+            activeTab === 'NEW'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <span className="text-[10px] uppercase tracking-wider font-extrabold opacity-85">{t.statusNew}</span>
+          <span className="text-base font-black leading-none">{newCount}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('IN_PROGRESS')}
+          className={`py-2 px-1 rounded-xl text-xs font-bold transition flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95 ${
+            activeTab === 'IN_PROGRESS'
+              ? 'bg-amber-500 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <span className="text-[10px] uppercase tracking-wider font-extrabold opacity-85">{t.statusInProgress}</span>
+          <span className="text-base font-black leading-none">{inProgressCount}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('RESOLVED')}
+          className={`py-2 px-1 rounded-xl text-xs font-bold transition flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95 ${
+            activeTab === 'RESOLVED'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <span className="text-[10px] uppercase tracking-wider font-extrabold opacity-85">{t.statusResolved}</span>
+          <span className="text-base font-black leading-none">{resolvedCount}</span>
+        </button>
+      </div>
+
+      {/* ===================================================================== */}
+      {/* 2. DESKTOP 3 INTERACTIVE STATUS CARDS (NEW, IN PROGRESS, RESOLVED)    */}
+      {/* ===================================================================== */}
+      <div className="hidden md:grid md:grid-cols-3 gap-4">
         {/* CARD 1: NEW / UNASSIGNED */}
         <button
           type="button"
@@ -885,13 +937,13 @@ export default function OperationsBoardPage({
                 <div
                   key={ticket.id}
                   onClick={() => setDetailTicket(ticket)}
-                  className="bg-white rounded-2xl p-4 border border-slate-200 hover:border-blue-400 shadow-2xs hover:shadow-md transition cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 group"
+                  className="bg-white rounded-2xl p-3 sm:p-4 border border-slate-200 hover:border-blue-400 shadow-2xs hover:shadow-md transition cursor-pointer flex items-center justify-between gap-3 group active:scale-[0.99]"
                 >
                   {/* Left: Thumbnail Image + Details */}
-                  <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     {/* Attached Photo Thumbnail */}
                     <div
-                      className="relative w-14 h-14 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0 flex items-center justify-center"
+                      className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0 flex items-center justify-center"
                       onClick={(e) => {
                         if (ticket.before_photo_url) {
                           e.stopPropagation();
@@ -906,26 +958,26 @@ export default function OperationsBoardPage({
                           className="w-full h-full object-cover group-hover:scale-105 transition"
                         />
                       ) : (
-                        <ImageIcon className="w-6 h-6 text-slate-300" />
+                        <ImageIcon className="w-5 h-5 text-slate-300" />
                       )}
                     </div>
 
                     {/* Middle: ID, Type, Status & Basic Citizen Info */}
                     <div className="min-w-0 space-y-1">
                       {/* Pill Row */}
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                         {/* 1. Complaint ID */}
-                        <span className="font-mono font-bold text-blue-700 text-xs px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200">
+                        <span className="font-mono font-bold text-blue-700 text-[11px] sm:text-xs px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200">
                           {ticket.ticket_number}
                         </span>
 
                         {/* 2. Type of Complaint */}
-                        <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-extrabold uppercase tracking-wider">
+                        <span className="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-extrabold uppercase tracking-wider">
                           {getCategoryLabel(ticket.category)}
                         </span>
 
                         {/* 3. Status Badge (Strict colors: Blue / Orange / Green) */}
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider border ${
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider border ${
                           ticket.status === 'NEW'
                             ? 'bg-blue-100 text-blue-800 border-blue-300'
                             : ticket.status === 'IN_PROGRESS'
@@ -937,7 +989,7 @@ export default function OperationsBoardPage({
                       </div>
 
                       {/* Citizen & Location Snippet */}
-                      <div className="flex items-center gap-2 text-xs text-slate-600 truncate">
+                      <div className="flex items-center gap-1.5 text-xs text-slate-600 truncate">
                         <span className="font-bold text-slate-900 truncate">
                           {ticket.citizen_name}
                         </span>
@@ -950,18 +1002,21 @@ export default function OperationsBoardPage({
                     </div>
                   </div>
 
-                  {/* Right: Only "More Details →" Button (Clean, Thumb-Friendly) */}
-                  <div className="self-end sm:self-center shrink-0 w-full sm:w-auto">
+                  {/* Right: Desktop "More Details →" / Mobile Chevron */}
+                  <div className="shrink-0 flex items-center gap-1">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         setDetailTicket(ticket);
                       }}
-                      className="w-full sm:w-auto h-11 px-4 rounded-xl bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer border border-slate-200 hover:border-blue-600 active:scale-98"
+                      className="hidden sm:flex h-10 px-4 rounded-xl bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 font-bold text-xs items-center justify-center gap-1.5 transition cursor-pointer border border-slate-200 hover:border-blue-600"
                     >
                       <span>{t.moreDetailsBtn}</span>
                     </button>
+                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 sm:hidden">
+                      <ChevronRight className="w-4 h-4 text-slate-500" />
+                    </div>
                   </div>
                 </div>
               );

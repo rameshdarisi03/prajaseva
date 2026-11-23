@@ -420,41 +420,34 @@ export default function ReviewQAPage({
         </div>
       )}
 
-      {/* Top Header & Metrics Ribbon */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
+      {/* Top Clean Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs">
         <div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[10px] font-black uppercase tracking-wider border border-purple-200">
-              EXECUTIVE AUDIT CHAMBER • MLA DISCRETIONARY QA GATE
+              Review & Approvals
             </span>
             <span className="text-slate-300">•</span>
             <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5" /> 99.4% Geofence Accuracy
-            </span>
-            <span className="text-slate-300">•</span>
-            <span className="text-xs font-semibold text-blue-600 flex items-center gap-1">
-              <FolderCheck className="w-3.5 h-3.5" /> Zoho WorkDrive Synced
+              <ShieldCheck className="w-3.5 h-3.5" /> GPS Verified
             </span>
           </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight mt-1">
-            Executive Review & PR Approval Desk
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-1">
+            Review & Approval Desk
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            High-density quality audit, GPS proximity validation, and 1-tap social PR publishing for <strong className="text-slate-700">{org?.name || 'Mangalagiri Assembly'}</strong>
-          </p>
         </div>
 
         {/* Action Buttons & Navigation */}
-        <div className="flex items-center gap-2.5">
-          {/* View Mode Switcher */}
-          <div className="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-bold">
+        <div className="flex items-center gap-2">
+          {/* Desktop View Mode Switcher */}
+          <div className="hidden md:flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-bold">
             <button
               onClick={() => setViewMode('table')}
               className={`px-3 py-1.5 rounded-lg transition ${
                 viewMode === 'table' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              Table View (1,000+ Scale)
+              Table View
             </button>
             <button
               onClick={() => setViewMode('split')}
@@ -468,7 +461,7 @@ export default function ReviewQAPage({
 
           <button
             onClick={() => fetchTickets()}
-            className="h-9 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition"
+            className="h-9 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition active:scale-95"
             title="Refresh Queue"
           >
             <RotateCcw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -477,9 +470,9 @@ export default function ReviewQAPage({
 
           <Link
             href={`/m/${orgParam}`}
-            className="h-9 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1 transition"
+            className="h-9 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1 transition active:scale-95"
           >
-            ← Operations Board
+            ← Board
           </Link>
         </div>
       </div>
@@ -1066,26 +1059,35 @@ export default function ReviewQAPage({
       {/* DEDICATED FULL-SCREEN EXECUTIVE AUDIT CHAMBER MODAL                       */}
       {/* ========================================================================= */}
       {isChamberOpen && selectedTicket && (
-        <div className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 lg:p-6 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-6xl w-full max-h-[95vh] shadow-2xl border border-slate-200 flex flex-col overflow-hidden my-auto animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+          <div
+            className="fixed inset-0"
+            onClick={() => setIsChamberOpen(false)}
+          />
+          <div className="relative bg-white rounded-t-3xl sm:rounded-3xl max-w-5xl w-full max-h-[92vh] sm:max-h-[90vh] shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 z-10">
+            {/* Mobile Drag Indicator */}
+            <div className="pt-2.5 pb-1 flex justify-center sm:hidden">
+              <div className="w-12 h-1.5 rounded-full bg-slate-300" />
+            </div>
+
             {/* Modal Header & Navigation */}
-            <div className="p-5 border-b border-slate-200 bg-slate-50/70 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <span className="font-mono font-bold text-blue-700 text-sm px-2.5 py-1 rounded-lg bg-blue-100 border border-blue-200">
+            <div className="px-4 py-3 sm:p-5 border-b border-slate-200 bg-slate-50/80 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <span className="font-mono font-bold text-blue-700 text-xs sm:text-sm px-2.5 py-1 rounded-lg bg-blue-100 border border-blue-200 shrink-0">
                   {selectedTicket.ticket_number}
                 </span>
-                <div>
-                  <h2 className="text-base font-black text-slate-900 leading-tight">
-                    {selectedTicket.category} Issue Redressal Audit
+                <div className="min-w-0">
+                  <h2 className="text-sm sm:text-base font-black text-slate-900 leading-tight truncate">
+                    {selectedTicket.category} Issue Redressal
                   </h2>
-                  <span className="text-xs text-slate-500">
-                    Complainant: <strong className="text-slate-800">{selectedTicket.citizen_name}</strong> (+91 {selectedTicket.citizen_phone})
+                  <span className="text-[10px] sm:text-xs text-slate-500 block truncate">
+                    {selectedTicket.citizen_name} (+91 {selectedTicket.citizen_phone})
                   </span>
                 </div>
               </div>
 
-              {/* Prev / Next Keyboard Navigation */}
-              <div className="flex items-center gap-2">
+              {/* Prev / Next & Close */}
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                 <div className="flex items-center bg-white rounded-xl border border-slate-200 p-0.5 text-xs font-bold text-slate-600 shadow-2xs">
                   <button
                     onClick={() => {
@@ -1093,13 +1095,12 @@ export default function ReviewQAPage({
                     }}
                     disabled={currentIdx <= 0}
                     className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 transition flex items-center gap-1"
-                    title="Previous Ticket (K)"
+                    title="Previous"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Prev</span>
                   </button>
-                  <span className="px-2 text-[11px] text-slate-400 font-mono">
-                    {currentIdx + 1} / {filteredTickets.length}
+                  <span className="px-1.5 text-[10px] sm:text-[11px] text-slate-400 font-mono">
+                    {`${currentIdx + 1} / ${filteredTickets.length}`}
                   </span>
                   <button
                     onClick={() => {
@@ -1107,19 +1108,18 @@ export default function ReviewQAPage({
                     }}
                     disabled={currentIdx >= filteredTickets.length - 1}
                     className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 transition flex items-center gap-1"
-                    title="Next Ticket (J)"
+                    title="Next"
                   >
-                    <span className="hidden sm:inline">Next</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
                 <button
                   onClick={() => setIsChamberOpen(false)}
-                  className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition"
-                  title="Close (Esc)"
+                  className="p-1.5 sm:p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition"
+                  title="Close"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </div>
             </div>
@@ -1291,8 +1291,8 @@ export default function ReviewQAPage({
                       </span>
                       <p className="text-slate-600 text-[11px] leading-relaxed">
                         Raw photographs and resolution certificates are permanently stored according to constituency compliance hierarchy:
-                        <code className="block mt-1 p-1.5 rounded-lg bg-white border border-blue-200 font-mono text-[10px] text-blue-800">
-                          /{org?.name?.toUpperCase() || 'MANGALAGIRI'}/WARD_{selectedTicket.ward?.ward_number || '01'}/{formatDateTime(selectedTicket.created_at).split(' ')[0]}/{selectedTicket.ticket_number}/
+                        <code className="block mt-1 p-1.5 rounded-lg bg-white border border-blue-200 font-mono text-[10px] text-blue-800 break-all">
+                          {`/${org?.name?.toUpperCase() || 'MANGALAGIRI'}/WARD_${selectedTicket.ward?.ward_number || '01'}/${formatDateTime(selectedTicket.created_at).split(' ')[0]}/${selectedTicket.ticket_number}/`}
                         </code>
                       </p>
                     </div>
@@ -1429,31 +1429,32 @@ export default function ReviewQAPage({
                       </p>
                     </div>
                   </div>
-
-                  {/* Decisive Executive Actions */}
-                  <div className="space-y-2.5 pt-1">
-                    <button
-                      type="button"
-                      onClick={handleApprove}
-                      disabled={isProcessing}
-                      className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer"
-                    >
-                      <CheckCircle2 className="w-5 h-5" />
-                      <span>{isProcessing ? 'Broadcasting...' : '✓ Approve & Send WhatsApp Broadcast'}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setRejectionModalOpen(true)}
-                      disabled={isProcessing}
-                      className="w-full py-2.5 rounded-2xl border border-red-200 hover:bg-red-50 text-red-600 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                      <span>⟳ Reject & Return to Field Crew for Rework</span>
-                    </button>
-                  </div>
                 </div>
               </div>
+            </div>
+
+            {/* Sticky Bottom Actions Bar (Direct Thumb Reach for One-Hand Use) */}
+            <div className="sticky bottom-0 bg-white/95 backdrop-blur-md p-3 sm:p-4 border-t border-slate-200 flex items-center gap-2.5 z-20 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
+              <button
+                type="button"
+                onClick={() => setRejectionModalOpen(true)}
+                disabled={isProcessing}
+                className="py-3 px-3.5 sm:px-4 rounded-xl border border-red-200 hover:bg-red-50 text-red-600 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-95 shrink-0"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span className="hidden sm:inline">Reject & Return</span>
+                <span className="sm:hidden">Reject</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleApprove}
+                disabled={isProcessing}
+                className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer active:scale-98"
+              >
+                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                <span>{isProcessing ? 'Broadcasting...' : '✓ Approve & Send WhatsApp'}</span>
+              </button>
             </div>
           </div>
         </div>
