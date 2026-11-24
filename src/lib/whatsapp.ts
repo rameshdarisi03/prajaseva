@@ -126,7 +126,7 @@ export async function sendTicketConfirmation(params: {
 }
 
 /**
- * Sends Official Onboarding Welcome Message to newly enrolled Admin or Field Volunteer
+ * Sends Official Onboarding Welcome Message to newly enrolled Admin or Field Volunteer (100% English)
  */
 export async function sendStaffOnboardingMessage(params: {
   phone: string;
@@ -144,20 +144,64 @@ export async function sendStaffOnboardingMessage(params: {
 
   const cleanPhone = sanitizePhone(params.phone);
   const isVolunteer = params.role === 'VOLUNTEER';
-  const roleTitle = isVolunteer ? 'Field Volunteer (క్షేత్ర వాలంటీర్)' : 'Secretariat Admin (సెక్రటేరియట్ అడ్మిన్)';
+  const roleTitle = isVolunteer ? 'Field Volunteer' : 'Secretariat Admin';
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://prajaseva-one.vercel.app';
   const loginUrl = `${appUrl}/login`;
+  const cleanMobile = params.phone.replace(/\D/g, '').slice(-10);
 
-  const message =
-    `Namaskaram *${params.fullName}* garu 🙏\n\n` +
+  // 1. Try sending via Meta Approved UTILITY template (praja_staff_welcome_v1)
+  try {
+    const templatePayload = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: cleanPhone,
+      type: 'template',
+      template: {
+        name: 'praja_staff_welcome_v1',
+        language: { code: 'en_US' },
+        components: [
+          {
+            type: 'body',
+            parameters: [
+              { type: 'text', text: params.fullName },
+              { type: 'text', text: params.orgName },
+              { type: 'text', text: roleTitle },
+              { type: 'text', text: params.assignedWardsText || 'All Wards (Entire Constituency)' },
+              { type: 'text', text: `+91 ${cleanMobile}` },
+            ],
+          },
+        ],
+      },
+    };
+
+    const templateRes = await fetch(`${WHATSAPP_API_URL}/${phoneId}/messages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(templatePayload),
+    });
+
+    const templateData = await templateRes.json();
+    if (templateData.messages?.[0]?.id) {
+      return true;
+    }
+  } catch (templateErr) {
+    console.warn('[WhatsApp Template Fallback]:', templateErr);
+  }
+
+  // 2. Direct English Text Fallback
+  const englishMessage =
+    `Hello *${params.fullName}*,\n\n` +
     `You have been officially enrolled as a *${roleTitle}* for *${params.orgName}* on the Praja Seva Portal.\n\n` +
     (isVolunteer && params.assignedWardsText ? `📍 *Assigned Area:* ${params.assignedWardsText}\n\n` : '') +
-    `🔐 *How to Access Your Dashboard:*\n` +
+    `🔐 *How to Login:*\n` +
     `1. Open: ${loginUrl}\n` +
-    `2. Enter your registered mobile: *+91 ${params.phone.replace(/\\D/g, '').slice(-10)}*\n` +
+    `2. Enter your registered mobile number: *+91 ${cleanMobile}*\n` +
     `3. You will receive a 6-digit WhatsApp OTP to set your private 4-digit security PIN.\n\n` +
-    `Once set, your PIN will work across all your devices (phone, laptop, tablet) for instant 1-tap login.\n\n` +
-    `_— Praja Seva Command Center_`;
+    `Once set, your 4-digit PIN will sync across all your devices (phone, laptop, tablet) for fast 1-tap login.\n\n` +
+    `_— Praja Seva Operations Desk_`;
 
   try {
     const res = await fetch(`${WHATSAPP_API_URL}/${phoneId}/messages`, {
@@ -170,7 +214,7 @@ export async function sendStaffOnboardingMessage(params: {
         messaging_product: 'whatsapp',
         to: cleanPhone,
         type: 'text',
-        text: { body: message },
+        text: { body: englishMessage },
       }),
     });
 

@@ -150,8 +150,9 @@ export async function POST(req: NextRequest) {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://prajaseva-one.vercel.app';
+    const roleTitle = role === 'ADMIN' ? 'Secretariat Admin' : 'Field Volunteer';
     const inviteText = encodeURIComponent(
-      `Namaskaram ${fullName.trim()} garu 🙏\n\nYou have been officially enrolled as a ${role === 'ADMIN' ? 'Secretariat Admin' : 'Field Volunteer'} for ${orgName}.\n\nLogin to your dashboard here:\n${appUrl}/login\n\nEnter your mobile number to set your private 4-digit PIN via WhatsApp OTP.`
+      `Hello ${fullName.trim()},\n\nYou have been officially enrolled as a ${roleTitle} for ${orgName} on the Praja Seva Portal.\n\nLogin to your dashboard here:\n${appUrl}/login\n\nEnter your registered mobile number (+91 ${cleanPhone}) to set your private 4-digit PIN via WhatsApp OTP.`
     );
     const whatsappInviteUrl = `https://wa.me/91${cleanPhone}?text=${inviteText}`;
 
