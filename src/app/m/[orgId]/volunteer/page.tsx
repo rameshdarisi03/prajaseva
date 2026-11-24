@@ -573,22 +573,23 @@ export default function VolunteerDeskPage({
           <button
             type="button"
             onClick={() => setActiveTab('ASSIGNED')}
-            className={`w-full py-2 px-1 rounded-xl text-xs font-bold transition flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95 ${
+            className={`relative w-full py-2 px-1 rounded-xl transition flex flex-col items-center justify-between min-h-[60px] cursor-pointer active:scale-95 ${
               activeTab === 'ASSIGNED'
                 ? 'bg-indigo-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                : 'text-slate-600 hover:text-slate-900 bg-white/40'
             }`}
           >
-            <div className="flex items-center gap-0.5 max-w-full">
-              <span className="text-[10px] uppercase tracking-wider font-extrabold truncate">{t.tabAssigned}</span>
-              <span
-                onClick={(e) => handleShowInfo('ASSIGNED', e)}
-                className="opacity-70 hover:opacity-100 p-0.5 cursor-pointer shrink-0"
-              >
-                <Info className="w-2.5 h-2.5" />
-              </span>
-            </div>
-            <span className="text-base font-black leading-none">{assignedCount}</span>
+            <span
+              onClick={(e) => handleShowInfo('ASSIGNED', e)}
+              className="absolute top-1 right-1 opacity-60 hover:opacity-100 p-0.5 cursor-pointer z-10"
+              title="Help info"
+            >
+              <Info className="w-2.5 h-2.5" />
+            </span>
+            <span className="text-[9px] xs:text-[10px] font-black uppercase text-center leading-[1.15] px-0.5 line-clamp-2 max-w-full">
+              {t.tabAssigned}
+            </span>
+            <span className="text-base font-black leading-none mt-0.5">{assignedCount}</span>
           </button>
           {activeInfoKey === 'ASSIGNED' && (
             <div className="absolute top-full left-0 mt-1.5 z-40 w-44 p-2 bg-slate-900/95 text-white text-[11px] rounded-xl shadow-xl backdrop-blur-xs animate-in fade-in zoom-in-95 leading-snug">
@@ -602,22 +603,23 @@ export default function VolunteerDeskPage({
           <button
             type="button"
             onClick={() => setActiveTab('IN_PROGRESS')}
-            className={`w-full py-2 px-1 rounded-xl text-xs font-bold transition flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95 ${
+            className={`relative w-full py-2 px-1 rounded-xl transition flex flex-col items-center justify-between min-h-[60px] cursor-pointer active:scale-95 ${
               activeTab === 'IN_PROGRESS'
                 ? 'bg-amber-500 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                : 'text-slate-600 hover:text-slate-900 bg-white/40'
             }`}
           >
-            <div className="flex items-center gap-0.5 max-w-full">
-              <span className="text-[10px] uppercase tracking-wider font-extrabold truncate">{t.tabInProgress}</span>
-              <span
-                onClick={(e) => handleShowInfo('IN_PROGRESS', e)}
-                className="opacity-70 hover:opacity-100 p-0.5 cursor-pointer shrink-0"
-              >
-                <Info className="w-2.5 h-2.5" />
-              </span>
-            </div>
-            <span className="text-base font-black leading-none">{inProgressCount}</span>
+            <span
+              onClick={(e) => handleShowInfo('IN_PROGRESS', e)}
+              className="absolute top-1 right-1 opacity-60 hover:opacity-100 p-0.5 cursor-pointer z-10"
+              title="Help info"
+            >
+              <Info className="w-2.5 h-2.5" />
+            </span>
+            <span className="text-[9px] xs:text-[10px] font-black uppercase text-center leading-[1.15] px-0.5 line-clamp-2 max-w-full">
+              {t.tabInProgress}
+            </span>
+            <span className="text-base font-black leading-none mt-0.5">{inProgressCount}</span>
           </button>
           {activeInfoKey === 'IN_PROGRESS' && (
             <div className="absolute top-full -left-6 mt-1.5 z-40 w-48 p-2 bg-slate-900/95 text-white text-[11px] rounded-xl shadow-xl backdrop-blur-xs animate-in fade-in zoom-in-95 leading-snug">
@@ -631,22 +633,23 @@ export default function VolunteerDeskPage({
           <button
             type="button"
             onClick={() => setActiveTab('PENDING_APPROVAL')}
-            className={`w-full py-2 px-1 rounded-xl text-xs font-bold transition flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95 ${
+            className={`relative w-full py-2 px-1 rounded-xl transition flex flex-col items-center justify-between min-h-[60px] cursor-pointer active:scale-95 ${
               activeTab === 'PENDING_APPROVAL'
                 ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                : 'text-slate-600 hover:text-slate-900 bg-white/40'
             }`}
           >
-            <div className="flex items-center gap-0.5 max-w-full">
-              <span className="text-[10px] uppercase tracking-wider font-extrabold truncate">{t.tabSentForApproval}</span>
-              <span
-                onClick={(e) => handleShowInfo('PENDING_APPROVAL', e)}
-                className="opacity-70 hover:opacity-100 p-0.5 cursor-pointer shrink-0"
-              >
-                <Info className="w-2.5 h-2.5" />
-              </span>
-            </div>
-            <span className="text-base font-black leading-none">{sentForApprovalCount}</span>
+            <span
+              onClick={(e) => handleShowInfo('PENDING_APPROVAL', e)}
+              className="absolute top-1 right-1 opacity-60 hover:opacity-100 p-0.5 cursor-pointer z-10"
+              title="Help info"
+            >
+              <Info className="w-2.5 h-2.5" />
+            </span>
+            <span className="text-[9px] xs:text-[10px] font-black uppercase text-center leading-[1.15] px-0.5 line-clamp-2 max-w-full">
+              {t.tabSentForApproval}
+            </span>
+            <span className="text-base font-black leading-none mt-0.5">{sentForApprovalCount}</span>
           </button>
           {activeInfoKey === 'PENDING_APPROVAL' && (
             <div className="absolute top-full -right-6 mt-1.5 z-40 w-48 p-2 bg-slate-900/95 text-white text-[11px] rounded-xl shadow-xl backdrop-blur-xs animate-in fade-in zoom-in-95 leading-snug">
@@ -660,22 +663,23 @@ export default function VolunteerDeskPage({
           <button
             type="button"
             onClick={() => setActiveTab('RESOLVED')}
-            className={`w-full py-2 px-1 rounded-xl text-xs font-bold transition flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95 ${
+            className={`relative w-full py-2 px-1 rounded-xl transition flex flex-col items-center justify-between min-h-[60px] cursor-pointer active:scale-95 ${
               activeTab === 'RESOLVED'
                 ? 'bg-emerald-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                : 'text-slate-600 hover:text-slate-900 bg-white/40'
             }`}
           >
-            <div className="flex items-center gap-0.5 max-w-full">
-              <span className="text-[10px] uppercase tracking-wider font-extrabold truncate">{t.tabCompleted}</span>
-              <span
-                onClick={(e) => handleShowInfo('RESOLVED', e)}
-                className="opacity-70 hover:opacity-100 p-0.5 cursor-pointer shrink-0"
-              >
-                <Info className="w-2.5 h-2.5" />
-              </span>
-            </div>
-            <span className="text-base font-black leading-none">{completedCount}</span>
+            <span
+              onClick={(e) => handleShowInfo('RESOLVED', e)}
+              className="absolute top-1 right-1 opacity-60 hover:opacity-100 p-0.5 cursor-pointer z-10"
+              title="Help info"
+            >
+              <Info className="w-2.5 h-2.5" />
+            </span>
+            <span className="text-[9px] xs:text-[10px] font-black uppercase text-center leading-[1.15] px-0.5 line-clamp-2 max-w-full">
+              {t.tabCompleted}
+            </span>
+            <span className="text-base font-black leading-none mt-0.5">{completedCount}</span>
           </button>
           {activeInfoKey === 'RESOLVED' && (
             <div className="absolute top-full right-0 mt-1.5 z-40 w-44 p-2 bg-slate-900/95 text-white text-[11px] rounded-xl shadow-xl backdrop-blur-xs animate-in fade-in zoom-in-95 leading-snug">

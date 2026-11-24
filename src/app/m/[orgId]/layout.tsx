@@ -261,13 +261,6 @@ export default function ManagementLayout({
       badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
     },
     {
-      label: t.volunteerDeskTitle || 'Volunteer Desk',
-      href: `/m/${orgParam}/volunteer`,
-      exact: false,
-      icon: UserCheck,
-      badge: null,
-    },
-    {
       label: t.navStaff,
       href: `/m/${orgParam}/staff`,
       exact: false,
@@ -796,19 +789,6 @@ export default function ManagementLayout({
             <span className="text-[10px] mt-0.5 leading-tight">{t.navApprove}</span>
           </Link>
 
-          {/* Volunteer Desk */}
-          <Link
-            href={`/m/${orgParam}/volunteer`}
-            className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition min-w-[56px] ${
-              pathname.startsWith(`/m/${orgParam}/volunteer`)
-                ? 'text-blue-600 font-bold'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <UserCheck className="w-5 h-5" />
-            <span className="text-[10px] mt-0.5 leading-tight">Volunteer</span>
-          </Link>
-
           {/* Volunteers / Staff */}
           <Link
             href={`/m/${orgParam}/staff`}
@@ -820,6 +800,19 @@ export default function ManagementLayout({
           >
             <Users className="w-5 h-5" />
             <span className="text-[10px] mt-0.5 leading-tight">{t.navStaffShort || t.navStaff}</span>
+          </Link>
+
+          {/* Analytics */}
+          <Link
+            href={`/m/${orgParam}/analytics`}
+            className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition min-w-[56px] ${
+              pathname.startsWith(`/m/${orgParam}/analytics`)
+                ? 'text-blue-600 font-bold'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <BarChart3 className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5 leading-tight">{t.navAnalyticsShort || t.navAnalytics}</span>
           </Link>
 
           {/* Settings */}
