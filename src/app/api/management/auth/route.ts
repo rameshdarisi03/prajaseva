@@ -12,17 +12,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Phone number required' }, { status: 400 });
     }
 
-    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+    const rawDigits = String(phone || '').replace(/\D/g, '');
+    let cleanPhone = rawDigits;
+    if (rawDigits.startsWith('91') && rawDigits.length > 10) {
+      cleanPhone = rawDigits.slice(2);
+    } else if (rawDigits.startsWith('0') && rawDigits.length > 10) {
+      cleanPhone = rawDigits.slice(1);
+    }
+    cleanPhone = cleanPhone.slice(-10);
 
     // -------------------------------------------------------------------------
     // 1. ACTION: CHECK WHITELIST & SEND WHATSAPP OTP
     // -------------------------------------------------------------------------
     if (action === 'check_whitelist' || action === 'send_otp') {
-      // Check staff_whitelist
+      // Check staff_whitelist (support clean 10-digit, 91-prefix, and +91 prefix)
       const { data: staff } = await supabaseAdmin
         .from('staff_whitelist')
         .select('id, full_name, role, is_active, organization_id, failed_pin_attempts, locked_until')
-        .eq('phone', cleanPhone)
+        .or(`phone.eq.${cleanPhone},phone.eq.91${cleanPhone},phone.eq.+91${cleanPhone}`)
         .eq('is_active', true)
         .maybeSingle();
 
@@ -30,7 +37,7 @@ export async function POST(req: NextRequest) {
       const { data: orgFounder } = await supabaseAdmin
         .from('organizations')
         .select('id, name, slug, founder_phone')
-        .eq('founder_phone', cleanPhone)
+        .or(`founder_phone.eq.${cleanPhone},founder_phone.eq.91${cleanPhone},founder_phone.eq.+91${cleanPhone}`)
         .maybeSingle();
 
       if (!staff && !orgFounder) {
@@ -105,17 +112,17 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: otpResult.reason || 'Invalid verification code' }, { status: 401 });
       }
 
-      // Fetch user profile
+      // Fetch user profile (support clean 10-digit, 91-prefix, and +91 prefix)
       const { data: staff } = await supabaseAdmin
         .from('staff_whitelist')
         .select('*')
-        .eq('phone', cleanPhone)
+        .or(`phone.eq.${cleanPhone},phone.eq.91${cleanPhone},phone.eq.+91${cleanPhone}`)
         .maybeSingle();
 
       const { data: orgFounder } = await supabaseAdmin
         .from('organizations')
         .select('*')
-        .eq('founder_phone', cleanPhone)
+        .or(`founder_phone.eq.${cleanPhone},founder_phone.eq.91${cleanPhone},founder_phone.eq.+91${cleanPhone}`)
         .maybeSingle();
 
       let orgRecord = orgFounder;
@@ -156,13 +163,13 @@ export async function POST(req: NextRequest) {
       const { data: staff } = await supabaseAdmin
         .from('staff_whitelist')
         .select('*')
-        .eq('phone', cleanPhone)
+        .or(`phone.eq.${cleanPhone},phone.eq.91${cleanPhone},phone.eq.+91${cleanPhone}`)
         .maybeSingle();
 
       const { data: orgFounder } = await supabaseAdmin
         .from('organizations')
         .select('*')
-        .eq('founder_phone', cleanPhone)
+        .or(`founder_phone.eq.${cleanPhone},founder_phone.eq.91${cleanPhone},founder_phone.eq.+91${cleanPhone}`)
         .maybeSingle();
 
       if (!staff && !orgFounder) {

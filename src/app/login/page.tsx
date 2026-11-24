@@ -17,6 +17,17 @@ function LoginForm() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
 
+  // Smart Indian Phone Input Sanitizer: Automatically strips +91, 91, or leading 0 if pasted/typed
+  const handlePhoneChange = (val: string) => {
+    let digits = val.replace(/\D/g, '');
+    if (digits.startsWith('91') && digits.length > 10) {
+      digits = digits.slice(2);
+    } else if (digits.startsWith('0') && digits.length > 10) {
+      digits = digits.slice(1);
+    }
+    setInputPhone(digits.slice(0, 10));
+  };
+
   // Timer for OTP resend cooldown
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -37,13 +48,18 @@ function LoginForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'send_otp', phone: inputPhone }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({ error: 'Unable to reach authentication server' }));
       if (!res.ok) throw new Error(data.error || 'Server error');
 
       setAuthStep('OTP');
       setResendCooldown(45);
     } catch (err: any) {
-      setAuthError(err.message || 'Unable to send OTP. Please contact your constituency office.');
+      const msg = err.message || '';
+      if (msg.includes('Load failed') || msg.includes('Failed to fetch')) {
+        setAuthError('Network issue: Unable to connect. Please try 4-digit PIN login or check internet.');
+      } else {
+        setAuthError(msg || 'Unable to send OTP. Please contact your constituency office.');
+      }
     } finally {
       setAuthLoading(false);
     }
@@ -60,23 +76,33 @@ function LoginForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'verify_otp', phone: inputPhone, code: inputOtp }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({ error: 'Unable to reach authentication server' }));
       if (!res.ok) throw new Error(data.error || 'Invalid OTP code');
 
       // Save session
       localStorage.setItem('praja_seva_session', JSON.stringify(data.session));
 
-      // Redirect to user's assigned constituency
-      const destination = redirectTarget || `/m/${data.session.organizationSlug || 'org_mangalagiri'}`;
+      // Redirect to user's assigned constituency or volunteer desk
+      const orgSlug = data.session.organizationSlug || 'org_mangalagiri';
+      const destination = redirectTarget || (
+        data.session.role === 'VOLUNTEER'
+          ? `/m/${orgSlug}/volunteer`
+          : `/m/${orgSlug}`
+      );
       router.push(destination);
     } catch (err: any) {
-      setAuthError(err.message || 'Incorrect verification code. Please check WhatsApp.');
+      const msg = err.message || '';
+      if (msg.includes('Load failed') || msg.includes('Failed to fetch')) {
+        setAuthError('Network issue: Please check connection or try 4-digit PIN.');
+      } else {
+        setAuthError(msg || 'Incorrect verification code. Please check WhatsApp.');
+      }
     } finally {
       setAuthLoading(false);
     }
   };
 
-  // Step 2 Fallback: Verify 4-Digit Security PIN
+  // Step 2 Fallback / Direct: Verify 4-Digit Security PIN
   const handleVerifyPin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
@@ -87,14 +113,24 @@ function LoginForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'verify_pin', phone: inputPhone, pin: inputPin }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({ error: 'Unable to reach authentication server' }));
       if (!res.ok) throw new Error(data.error || 'Incorrect PIN');
 
       localStorage.setItem('praja_seva_session', JSON.stringify(data.session));
-      const destination = redirectTarget || `/m/${data.session.organizationSlug || 'org_mangalagiri'}`;
+      const orgSlug = data.session.organizationSlug || 'org_mangalagiri';
+      const destination = redirectTarget || (
+        data.session.role === 'VOLUNTEER'
+          ? `/m/${orgSlug}/volunteer`
+          : `/m/${orgSlug}`
+      );
       router.push(destination);
     } catch (err: any) {
-      setAuthError(err.message || 'Incorrect 4-digit PIN. Please try again.');
+      const msg = err.message || '';
+      if (msg.includes('Load failed') || msg.includes('Failed to fetch')) {
+        setAuthError('Network issue: Please check connection and try again.');
+      } else {
+        setAuthError(msg || 'Incorrect 4-digit PIN. Please try again.');
+      }
     } finally {
       setAuthLoading(false);
     }
@@ -120,7 +156,39 @@ function LoginForm() {
             </div>
           )}
 
-          {/* STEP 1: PHONE INPUT */}
+          {/* AUTH METHOD SELECTOR TABS */}
+          <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-xl mb-4">
+            <button
+              type="button"
+              onClick={() => {
+                setAuthStep('PHONE');
+                setAuthError(null);
+              }}
+              className={`py-2 text-xs font-bold rounded-lg transition ${
+                authStep === 'PHONE' || authStep === 'OTP'
+                  ? 'bg-white text-blue-700 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              WhatsApp OTP
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAuthStep('PIN');
+                setAuthError(null);
+              }}
+              className={`py-2 text-xs font-bold rounded-lg transition ${
+                authStep === 'PIN'
+                  ? 'bg-white text-blue-700 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              4-Digit PIN
+            </button>
+          </div>
+
+          {/* METHOD 1: PHONE INPUT FOR OTP */}
           {authStep === 'PHONE' && (
             <form onSubmit={handleSendOtp} className="space-y-4">
               <div>
@@ -134,22 +202,25 @@ function LoginForm() {
                   <input
                     type="tel"
                     value={inputPhone}
-                    onChange={(e) => setInputPhone(e.target.value)}
-                    placeholder="Enter mobile number"
-                    maxLength={10}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    placeholder="Enter 10-digit mobile number"
+                    maxLength={16}
                     className="w-full h-11 pl-12 pr-3.5 rounded-xl bg-slate-50 border border-slate-200 font-mono text-slate-900 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                     autoFocus
                   />
                 </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  We will send a 6-digit verification code to your WhatsApp
+                </p>
               </div>
 
               <button
                 type="submit"
-                disabled={authLoading || inputPhone.replace(/\D/g, '').length < 10}
+                disabled={authLoading || inputPhone.length < 10}
                 className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 whitespace-nowrap"
               >
-                {authLoading ? 'Sending WhatsApp OTP...' : 'Login to Portal'}
+                {authLoading ? 'Sending WhatsApp OTP...' : 'Send WhatsApp OTP'}
                 <ChevronRight className="w-4 h-4" />
               </button>
             </form>
@@ -173,7 +244,7 @@ function LoginForm() {
                     }}
                     className="text-xs text-blue-600 hover:underline font-semibold"
                   >
-                    Change
+                    Change Number
                   </button>
                 </div>
 
@@ -231,48 +302,55 @@ function LoginForm() {
             </form>
           )}
 
-          {/* STEP 2 FALLBACK: 4-DIGIT SECURITY PIN */}
+          {/* METHOD 2: DIRECT 4-DIGIT PIN LOGIN */}
           {authStep === 'PIN' && (
             <form onSubmit={handleVerifyPin} className="space-y-4">
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                    Enter 4-Digit Security PIN
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAuthStep('OTP');
-                      setInputPin('');
-                      setAuthError(null);
-                    }}
-                    className="text-xs text-blue-600 hover:underline font-semibold"
-                  >
-                    Use WhatsApp OTP
-                  </button>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Official Mobile Number
+                </label>
+                <div className="relative">
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
+                    +91
+                  </div>
+                  <input
+                    type="tel"
+                    value={inputPhone}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    placeholder="Enter mobile number"
+                    maxLength={16}
+                    className="w-full h-11 pl-12 pr-3.5 rounded-xl bg-slate-50 border border-slate-200 font-mono text-slate-900 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Enter 4-Digit Security PIN
+                </label>
                 <input
                   type="password"
                   inputMode="numeric"
                   maxLength={4}
                   value={inputPin}
-                  onChange={(e) => setInputPin(e.target.value)}
+                  onChange={(e) => setInputPin(e.target.value.replace(/\D/g, ''))}
                   placeholder="••••"
                   className="w-full h-12 px-4 text-center tracking-[1em] font-mono text-2xl font-bold rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   autoFocus
                   required
                 />
                 <p className="text-[11px] text-slate-400 mt-1.5 text-center">
-                  Authorizing +91 {inputPhone}
+                  PIN assigned by your constituency office
                 </p>
               </div>
 
               <button
                 type="submit"
-                disabled={authLoading || inputPin.length < 4}
+                disabled={authLoading || inputPhone.length < 10 || inputPin.length < 4}
                 className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 whitespace-nowrap"
               >
-                {authLoading ? 'Verifying PIN...' : 'Continue with PIN'}
+                {authLoading ? 'Verifying PIN...' : 'Login with PIN'}
                 <ChevronRight className="w-4 h-4" />
               </button>
             </form>

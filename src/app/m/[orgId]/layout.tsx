@@ -126,6 +126,8 @@ export default function ManagementLayout({
   useEffect(() => {
     if (session?.role === 'VOLUNTEER' && pathname !== `/m/${orgParam}/volunteer`) {
       router.replace(`/m/${orgParam}/volunteer`);
+    } else if (session?.role === 'ADMIN' && pathname.endsWith('/volunteer')) {
+      router.replace(`/m/${orgParam}`);
     }
   }, [session?.role, pathname, orgParam, router]);
 
@@ -151,6 +153,17 @@ export default function ManagementLayout({
     }
     fetchOrgInfo();
   }, [orgParam]);
+
+  // Smart Indian Phone Input Sanitizer: Automatically strips +91, 91, or leading 0 if pasted/typed
+  const handlePhoneChange = (val: string) => {
+    let digits = val.replace(/\D/g, '');
+    if (digits.startsWith('91') && digits.length > 10) {
+      digits = digits.slice(2);
+    } else if (digits.startsWith('0') && digits.length > 10) {
+      digits = digits.slice(1);
+    }
+    setInputPhone(digits.slice(0, 10));
+  };
 
   // Handle WhatsApp OTP Flow
   const handleSendOtp = async (e?: React.FormEvent) => {
@@ -374,9 +387,9 @@ export default function ManagementLayout({
                     <input
                       type="tel"
                       value={inputPhone}
-                      onChange={(e) => setInputPhone(e.target.value)}
+                      onChange={(e) => handlePhoneChange(e.target.value)}
                       placeholder="Enter 10-digit mobile number"
-                      maxLength={10}
+                      maxLength={16}
                       className="w-full h-11 pl-12 pr-3.5 rounded-xl bg-slate-50 border border-slate-200 font-mono text-slate-900 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                       required
                       autoFocus
@@ -389,7 +402,7 @@ export default function ManagementLayout({
 
                 <button
                   type="submit"
-                  disabled={authLoading || inputPhone.replace(/\D/g, '').length < 10}
+                  disabled={authLoading || inputPhone.length < 10}
                   className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 whitespace-nowrap"
                 >
                   {authLoading ? 'Sending WhatsApp OTP...' : 'Send WhatsApp OTP'}
@@ -488,9 +501,9 @@ export default function ManagementLayout({
                     <input
                       type="tel"
                       value={inputPhone}
-                      onChange={(e) => setInputPhone(e.target.value)}
+                      onChange={(e) => handlePhoneChange(e.target.value)}
                       placeholder="Enter mobile number"
-                      maxLength={10}
+                      maxLength={16}
                       className="w-full h-11 pl-12 pr-3.5 rounded-xl bg-slate-50 border border-slate-200 font-mono text-slate-900 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                       required
                     />
@@ -519,7 +532,7 @@ export default function ManagementLayout({
 
                 <button
                   type="submit"
-                  disabled={authLoading || inputPhone.replace(/\D/g, '').length < 10 || inputPin.length < 4}
+                  disabled={authLoading || inputPhone.length < 10 || inputPin.length < 4}
                   className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 whitespace-nowrap"
                 >
                   {authLoading ? 'Verifying PIN...' : 'Login with PIN'}
