@@ -26,6 +26,14 @@ import {
   Droplet,
   Lightbulb,
   Trash,
+  UserCheck,
+  FileText,
+  Wrench,
+  Sparkles,
+  ExternalLink,
+  MessageSquare,
+  Maximize2,
+  X,
   LucideIcon
 } from 'lucide-react';
 import { IndianLanguage, MGMT_TRANSLATIONS } from '@/lib/mgmtI18n';
@@ -134,6 +142,7 @@ export default function ScopedCitizenPortal({
   const [trackLoading, setTrackLoading] = useState(false);
   const [trackedComplaints, setTrackedComplaints] = useState<Complaint[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   // 1. Fetch Organization & Wards
   useEffect(() => {
@@ -964,7 +973,7 @@ export default function ScopedCitizenPortal({
 
             {/* Results List */}
             {hasSearched && (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {trackedComplaints.length === 0 ? (
                   <div className="bg-white rounded-2xl p-8 border border-slate-200 text-center text-slate-500 text-sm">
                     {ct.noComplaintsFound}
@@ -982,89 +991,348 @@ export default function ScopedCitizenPortal({
                         ? ct.statusPendingApproval
                         : ct.statusResolved;
 
+                    const isAssigned = ['ASSIGNED', 'IN_PROGRESS', 'PENDING_APPROVAL', 'RESOLVED'].includes(item.status);
+                    const isInProgress = ['IN_PROGRESS', 'PENDING_APPROVAL', 'RESOLVED'].includes(item.status);
+                    const isPendingApproval = ['PENDING_APPROVAL', 'RESOLVED'].includes(item.status);
+                    const isResolved = item.status === 'RESOLVED';
+
+                    // Tenopilot-Style 5-Stage Live Milestones
+                    const milestones = [
+                      {
+                        stepNumber: 1,
+                        title: ct.milestone1Title,
+                        desc: ct.milestone1Desc,
+                        timestamp: item.created_at,
+                        status: 'completed',
+                        icon: FileText,
+                      },
+                      {
+                        stepNumber: 2,
+                        title: ct.milestone2Title,
+                        desc: (item as any).assigned_staff?.full_name
+                          ? `${ct.volunteerAssignedLabel} ${(item as any).assigned_staff.full_name}`
+                          : item.ward?.name
+                          ? `${item.ward.name} ${item.ward.ward_number ? `(#${item.ward.ward_number})` : ''}`
+                          : ct.milestone2Desc,
+                        timestamp: item.assigned_at,
+                        status: isAssigned
+                          ? item.status === 'ASSIGNED'
+                            ? 'active'
+                            : 'completed'
+                          : item.status === 'NEW'
+                          ? 'active'
+                          : 'pending',
+                        icon: UserCheck,
+                      },
+                      {
+                        stepNumber: 3,
+                        title: ct.milestone3Title,
+                        desc: ct.milestone3Desc,
+                        timestamp: item.work_started_at,
+                        status: isInProgress
+                          ? item.status === 'IN_PROGRESS'
+                            ? 'active'
+                            : 'completed'
+                          : 'pending',
+                        icon: Wrench,
+                      },
+                      {
+                        stepNumber: 4,
+                        title: ct.milestone4Title,
+                        desc: ct.milestone4Desc,
+                        timestamp: item.submitted_for_approval_at,
+                        status: isPendingApproval
+                          ? item.status === 'PENDING_APPROVAL'
+                            ? 'active'
+                            : 'completed'
+                          : 'pending',
+                        icon: ShieldCheck,
+                      },
+                      {
+                        stepNumber: 5,
+                        title: ct.milestone5Title,
+                        desc: ct.milestone5Desc,
+                        timestamp: item.resolved_at,
+                        status: isResolved ? 'completed' : 'pending',
+                        icon: CheckCircle2,
+                      },
+                    ];
+
                     return (
                       <div
                         key={item.id}
-                        className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-3"
+                        className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-xs space-y-5"
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="font-mono font-bold text-blue-600 text-base">
-                            {item.ticket_number}
-                          </span>
+                        {/* Header: Ticket ID & Status Badge */}
+                        <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-black text-blue-600 text-lg tracking-tight">
+                                {item.ticket_number}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-extrabold uppercase tracking-wide">
+                                {item.category}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                              {ct.lodgedLabel} {formatDateTime(item.created_at)}
+                            </p>
+                          </div>
+
                           <span
-                            className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
+                            className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1.5 shadow-2xs ${
                               item.status === 'RESOLVED'
-                                ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200 ring-2 ring-emerald-100/70'
                                 : item.status === 'ASSIGNED'
-                                ? 'bg-indigo-100 text-indigo-800 border-indigo-300'
+                                ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
                                 : item.status === 'IN_PROGRESS'
-                                ? 'bg-amber-100 text-amber-800 border-amber-300'
+                                ? 'bg-amber-50 text-amber-800 border-amber-200 ring-2 ring-amber-100/70'
                                 : item.status === 'PENDING_APPROVAL'
-                                ? 'bg-purple-100 text-purple-800 border-purple-300'
-                                : 'bg-blue-100 text-blue-800 border-blue-300'
+                                ? 'bg-purple-50 text-purple-800 border-purple-200'
+                                : 'bg-blue-50 text-blue-800 border-blue-200'
                             }`}
                           >
+                            {item.status === 'RESOLVED' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                            {item.status === 'IN_PROGRESS' && (
+                              <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                              </span>
+                            )}
                             {statusText}
                           </span>
                         </div>
 
-                        <div className="text-xs text-slate-600 space-y-1">
-                          <div className="flex justify-between">
-                            <span className="text-slate-400">{ct.categoryLabel}</span>
-                            <span className="font-semibold text-slate-800">{item.category}</span>
+                        {/* Location Details Pill */}
+                        <div className="p-3 bg-slate-50/90 rounded-2xl border border-slate-100 text-xs text-slate-700 flex items-start gap-2.5">
+                          <div className="w-6 h-6 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                            <MapPin className="w-3.5 h-3.5" />
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-400">{ct.lodgedLabel}</span>
-                            <span className="font-semibold text-slate-800">
-                              {formatDateTime(item.created_at)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-400">{ct.locationLabel}</span>
-                            <span className="font-semibold text-slate-800 truncate max-w-[200px]">
-                              {item.location_address || 'Mangalagiri'}
-                            </span>
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-900 truncate">
+                              {item.location_address || 'Constituency Location'}
+                            </p>
+                            {item.ward?.name && (
+                              <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                                {item.ward.name} {item.ward.ward_number ? `(Ward #${item.ward.ward_number})` : ''}
+                              </p>
+                            )}
+                            {item.description && (
+                              <p className="text-[11px] text-slate-600 mt-1 italic border-t border-slate-200/60 pt-1 line-clamp-2">
+                                &quot;{item.description}&quot;
+                              </p>
+                            )}
                           </div>
                         </div>
 
-                        {/* Before / After Photos if available */}
-                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
-                          {item.before_photo_url && (
-                            <div>
-                              <span className="text-[10px] text-slate-400 font-semibold block mb-1">
-                                {ct.evidenceLabel}
-                              </span>
-                              <img
-                                src={item.before_photo_url}
-                                alt="Before"
-                                className="w-full h-24 object-cover rounded-lg border border-slate-200"
-                              />
-                            </div>
-                          )}
-                          {item.after_photo_url ? (
-                            <div>
-                              <span className="text-[10px] text-emerald-600 font-semibold block mb-1">
-                                {ct.resolutionPhotoLabel}
-                              </span>
-                              <img
-                                src={item.after_photo_url}
-                                alt="After"
-                                className="w-full h-24 object-cover rounded-lg border border-emerald-200"
-                              />
-                            </div>
-                          ) : (
-                            <div className="h-24 rounded-lg bg-slate-50 border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 text-center p-2">
-                              <Clock className="w-4 h-4 mb-1" />
-                              <span className="text-[10px]">{ct.statusInProgress}</span>
-                            </div>
-                          )}
+                        {/* Tenopilot-Style Vertical Milestone Timeline */}
+                        <div className="pt-1">
+                          <div className="flex items-center justify-between mb-4">
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                              {ct.timelineTitle}
+                            </h4>
+                          </div>
+
+                          <div className="relative pl-7 space-y-6 before:absolute before:left-3.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200">
+                            {milestones.map((m, idx) => {
+                              const IconComponent = m.icon;
+                              const isCompleted = m.status === 'completed';
+                              const isActive = m.status === 'active';
+
+                              return (
+                                <div key={m.stepNumber} className="relative flex items-start gap-3.5">
+                                  {/* Milestone Circular Node */}
+                                  <div
+                                    className={`absolute -left-7 w-7 h-7 rounded-full flex items-center justify-center shrink-0 z-10 transition-all ${
+                                      isCompleted
+                                        ? 'bg-emerald-600 text-white ring-4 ring-emerald-50 shadow-xs'
+                                        : isActive
+                                        ? 'bg-blue-600 text-white ring-4 ring-blue-100 shadow-md animate-pulse'
+                                        : 'bg-white border-2 border-slate-300 text-slate-300'
+                                    }`}
+                                  >
+                                    {isCompleted ? (
+                                      <Check className="w-4 h-4 stroke-[3]" />
+                                    ) : (
+                                      <IconComponent className="w-3.5 h-3.5" />
+                                    )}
+                                  </div>
+
+                                  {/* Milestone Content */}
+                                  <div className="flex-1 min-w-0 pt-0.5">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span
+                                        className={`text-xs font-bold ${
+                                          isActive
+                                            ? 'text-blue-900 font-extrabold'
+                                            : isCompleted
+                                            ? 'text-slate-900'
+                                            : 'text-slate-400'
+                                        }`}
+                                      >
+                                        {m.title}
+                                      </span>
+
+                                      {isActive && (
+                                        <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[9px] font-black uppercase tracking-wider animate-pulse shrink-0">
+                                          {ct.stepCurrent}
+                                        </span>
+                                      )}
+                                      {isCompleted && m.timestamp && (
+                                        <span className="text-[10px] font-mono text-slate-400 shrink-0">
+                                          {formatDateTime(m.timestamp)}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <p
+                                      className={`text-[11px] mt-0.5 leading-relaxed ${
+                                        isActive
+                                          ? 'text-slate-700 font-medium'
+                                          : isCompleted
+                                          ? 'text-slate-500'
+                                          : 'text-slate-400'
+                                      }`}
+                                    >
+                                      {m.desc}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
+
+                        {/* Photographic Proof: Before & After Evidence */}
+                        <div className="pt-3 border-t border-slate-100">
+                          <div className="grid grid-cols-2 gap-3">
+                            {/* Citizen Evidence (Before) */}
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block truncate">
+                                {ct.evidenceBeforeTitle}
+                              </span>
+                              {item.before_photo_url ? (
+                                <div
+                                  onClick={() => setPreviewImage(item.before_photo_url)}
+                                  className="relative group rounded-2xl overflow-hidden border border-slate-200 cursor-pointer aspect-4/3 bg-slate-100 shadow-2xs"
+                                >
+                                  <img
+                                    src={item.before_photo_url}
+                                    alt="Citizen Evidence"
+                                    className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                                  />
+                                  <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
+                                    <Maximize2 className="w-5 h-5 drop-shadow" />
+                                  </div>
+                                  <span className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded-md bg-black/60 text-white text-[9px] font-bold backdrop-blur-xs">
+                                    BEFORE
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="rounded-2xl border border-dashed border-slate-200 aspect-4/3 flex items-center justify-center text-slate-400 text-xs">
+                                  No photo
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Volunteer Resolution (After) */}
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block truncate">
+                                {ct.evidenceAfterTitle}
+                              </span>
+                              {item.after_photo_url ? (
+                                <div
+                                  onClick={() => setPreviewImage(item.after_photo_url || null)}
+                                  className="relative group rounded-2xl overflow-hidden border border-emerald-300 ring-2 ring-emerald-100 cursor-pointer aspect-4/3 bg-emerald-50 shadow-2xs"
+                                >
+                                  <img
+                                    src={item.after_photo_url}
+                                    alt="Resolved Work"
+                                    className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                                  />
+                                  <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
+                                    <Maximize2 className="w-5 h-5 drop-shadow" />
+                                  </div>
+                                  <span className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded-md bg-emerald-700 text-white text-[9px] font-bold backdrop-blur-xs">
+                                    VERIFIED AFTER ✓
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="rounded-2xl border border-dashed border-slate-200 aspect-4/3 flex flex-col items-center justify-center text-slate-400 text-center p-2.5 bg-slate-50/70">
+                                  <Clock className="w-4 h-4 mb-1 text-slate-300" />
+                                  <span className="text-[10px] font-medium leading-tight text-slate-400">
+                                    {item.status === 'RESOLVED' ? 'Resolution recorded' : ct.statusInProgress}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Rejection Notice if any */}
+                        {item.rejection_reason && (
+                          <div className="p-3 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-800 space-y-1">
+                            <p className="font-bold">{ct.rejectionNotice}</p>
+                            <p className="text-[11px] text-red-700 leading-relaxed">{item.rejection_reason}</p>
+                          </div>
+                        )}
+
+                        {/* Official Resolution Poster Action (if resolved) */}
+                        {item.poster_url && (
+                          <a
+                            href={item.poster_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-2 transition shadow-xs"
+                          >
+                            <Sparkles className="w-4 h-4 text-emerald-200" />
+                            <span>{ct.viewPosterBtn}</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+
+                        {/* Direct WhatsApp Camp Office Assistance */}
+                        <a
+                          href={`https://wa.me/919206651295?text=${encodeURIComponent(
+                            `Namaskaram, I am tracking my grievance #${item.ticket_number} (${item.category}). Could I please get an update?`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full py-2.5 px-4 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold flex items-center justify-center gap-2 transition text-center"
+                        >
+                          <MessageSquare className="w-4 h-4 text-emerald-600" />
+                          <span>{ct.callHelpdeskBtn}</span>
+                        </a>
                       </div>
                     );
                   })
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Lightbox Modal for Fullscreen Photo View */}
+        {previewImage && (
+          <div
+            className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4"
+            onClick={() => setPreviewImage(null)}
+          >
+            <div className="relative max-w-lg w-full max-h-[85vh] flex flex-col items-center">
+              <button
+                type="button"
+                onClick={() => setPreviewImage(null)}
+                className="absolute -top-11 right-0 text-white hover:text-slate-200 p-1.5 bg-white/10 hover:bg-white/20 rounded-full transition"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <img
+                src={previewImage}
+                alt="Enlarged Evidence"
+                className="max-h-[80vh] w-auto object-contain rounded-2xl shadow-2xl border border-white/10"
+              />
+            </div>
           </div>
         )}
       </main>

@@ -87,6 +87,7 @@ export interface Complaint {
   is_proximity_verified: boolean;
   created_at: string;
   assigned_at?: string | null;
+  work_started_at?: string | null;
   submitted_for_approval_at?: string | null;
   resolved_at?: string | null;
   

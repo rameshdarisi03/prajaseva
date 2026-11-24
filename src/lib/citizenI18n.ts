@@ -80,6 +80,28 @@ export interface CitizenPortalTranslations {
   statusInProgress: string;
   statusPendingApproval: string;
   statusResolved: string;
+
+  // Milestone Tracker (Tenopilot Style)
+  timelineTitle: string;
+  milestone1Title: string;
+  milestone1Desc: string;
+  milestone2Title: string;
+  milestone2Desc: string;
+  milestone3Title: string;
+  milestone3Desc: string;
+  milestone4Title: string;
+  milestone4Desc: string;
+  milestone5Title: string;
+  milestone5Desc: string;
+  stepCurrent: string;
+  stepCompleted: string;
+  stepPending: string;
+  volunteerAssignedLabel: string;
+  evidenceBeforeTitle: string;
+  evidenceAfterTitle: string;
+  viewPosterBtn: string;
+  callHelpdeskBtn: string;
+  rejectionNotice: string;
 }
 
 export const CITIZEN_TRANSLATIONS: Record<IndianLanguage, CitizenPortalTranslations> = {
@@ -147,6 +169,26 @@ export const CITIZEN_TRANSLATIONS: Record<IndianLanguage, CitizenPortalTranslati
     statusInProgress: 'IN PROGRESS',
     statusPendingApproval: 'PENDING APPROVAL',
     statusResolved: 'RESOLVED',
+    timelineTitle: 'Live Resolution Timeline',
+    milestone1Title: 'Grievance Lodged',
+    milestone1Desc: 'Recorded at MLA Camp Office & Reference generated',
+    milestone2Title: 'Assigned to Ward Taskforce',
+    milestone2Desc: 'Assigned to Field Volunteer for ground inspection',
+    milestone3Title: 'Ground Action In Progress',
+    milestone3Desc: 'Volunteer on-site, repair & ground execution underway',
+    milestone4Title: 'Verification & Quality Review',
+    milestone4Desc: 'Work completed with photo proof; under Secretariat review',
+    milestone5Title: 'Officially Resolved & Closed',
+    milestone5Desc: 'Signed off by MLA Camp Office & Official Poster published',
+    stepCurrent: 'ACTIVE',
+    stepCompleted: 'DONE',
+    stepPending: 'PENDING',
+    volunteerAssignedLabel: 'Assigned Volunteer:',
+    evidenceBeforeTitle: 'Citizen Photo Evidence',
+    evidenceAfterTitle: 'Verified Work Proof (After)',
+    viewPosterBtn: 'View Official Resolution Poster',
+    callHelpdeskBtn: 'Need updates? WhatsApp Camp Office',
+    rejectionNotice: 'Review remarks from Camp Office:',
   },
 
   te: {
@@ -213,6 +255,26 @@ export const CITIZEN_TRANSLATIONS: Record<IndianLanguage, CitizenPortalTranslati
     statusInProgress: 'పురోగతిలో ఉంది',
     statusPendingApproval: 'ఆమోదం కోసం వేచి ఉంది',
     statusResolved: 'పరిష్కరించబడింది',
+    timelineTitle: 'ప్రత్యక్ష పరిష్కార మైలురాళ్లు',
+    milestone1Title: 'ఫిర్యాదు దాఖలైంది',
+    milestone1Desc: 'ఎమ్మెల్యే క్యాంప్ కార్యాలయంలో నమోదు చేయబడింది & ఐడీ జారీ అయింది',
+    milestone2Title: 'వార్డు వాలంటీర్‌కు కేటాయించబడింది',
+    milestone2Desc: 'క్షేత్ర పరిశీలన కొరకు వాలంటీర్‌కు కేటాయించబడింది',
+    milestone3Title: 'క్షేత్రస్థాయి పనులు జరుగుతున్నాయి',
+    milestone3Desc: 'వాలంటీర్ ఘటనా స్థలానికి చేరుకుని మరమ్మతు పనులు చేపట్టారు',
+    milestone4Title: 'నాణ్యత పరిశీలన & ఆమోదం',
+    milestone4Desc: 'పని పూర్తి చేసి ఫోటో ఆధారంతో సమర్పించారు; కార్యాలయ పరిశీలనలో ఉంది',
+    milestone5Title: 'పూర్తిగా పరిష్కరించబడింది',
+    milestone5Desc: 'ఎమ్మెల్యే కార్యాలయం ద్వారా ఆమోదించబడింది & అధికారిక పోస్టర్ జారీ అయింది',
+    stepCurrent: 'ప్రస్తుతం',
+    stepCompleted: 'పూర్తయింది',
+    stepPending: 'రాబోయేది',
+    volunteerAssignedLabel: 'కేటాయించిన వాలంటీర్:',
+    evidenceBeforeTitle: 'పౌరుల ఫోటో ఆధారం',
+    evidenceAfterTitle: 'పరిష్కారమైన ఫోటో ఆధారం (తర్వాత)',
+    viewPosterBtn: 'అధికారిక పరిష్కార పోస్టర్ చూడండి',
+    callHelpdeskBtn: 'సహాయం కావాలా? క్యాంప్ ఆఫీస్ వాట్సాప్',
+    rejectionNotice: 'క్యాంప్ కార్యాలయ సమీక్ష గమనిక:',
   },
 
   hi: {
@@ -279,6 +341,26 @@ export const CITIZEN_TRANSLATIONS: Record<IndianLanguage, CitizenPortalTranslati
     statusInProgress: 'प्रगति पर',
     statusPendingApproval: 'स्वीकृति प्रतीक्षित',
     statusResolved: 'हल किया गया',
+    timelineTitle: 'लाइव समाधान माइलस्टोन',
+    milestone1Title: 'शिकायत दर्ज की गई',
+    milestone1Desc: 'विधायक कैंप कार्यालय में दर्ज एवं संदर्भ आईडी जारी',
+    milestone2Title: 'वार्ड वॉलंटियर को सौंपा गया',
+    milestone2Desc: 'जमीनी निरीक्षण हेतु फील्ड वॉलंटियर को आवंटित',
+    milestone3Title: 'जमीनी कार्य प्रगति पर',
+    milestone3Desc: 'वॉलंटियर मौके पर उपस्थित होकर मरम्मत कार्य कर रहे हैं',
+    milestone4Title: 'समीक्षा एवं गुणवत्ता सत्यापन',
+    milestone4Desc: 'फोटो साक्ष्य के साथ कार्य पूर्ण; कार्यालय द्वारा समीक्षा जारी',
+    milestone5Title: 'आधिकारिक रूप से समाधान संपन्न',
+    milestone5Desc: 'विधायक कार्यालय द्वारा स्वीकृत एवं आधिकारिक समाधान पोस्टर जारी',
+    stepCurrent: 'सक्रिय',
+    stepCompleted: 'पूर्ण',
+    stepPending: 'प्रतीक्षारत',
+    volunteerAssignedLabel: 'आवंटित वॉलंटियर:',
+    evidenceBeforeTitle: 'नागरिक फोटो साक्ष्य',
+    evidenceAfterTitle: 'समाधान के बाद का फोटो',
+    viewPosterBtn: 'आधिकारिक समाधान पोस्टर देखें',
+    callHelpdeskBtn: 'मदद चाहिए? कैंप ऑफिस व्हाट्सएप',
+    rejectionNotice: 'कैंप कार्यालय समीक्षा टिप्पणी:',
   },
 
   ta: {
@@ -345,6 +427,26 @@ export const CITIZEN_TRANSLATIONS: Record<IndianLanguage, CitizenPortalTranslati
     statusInProgress: 'நடவடிக்கையில்',
     statusPendingApproval: 'ஒப்புதலுக்கு காத்திருக்கிறது',
     statusResolved: 'தீர்க்கப்பட்டது',
+    timelineTitle: 'நேரலை தீர்வு மைல்கற்கள்',
+    milestone1Title: 'புகார் பதிவு செய்யப்பட்டது',
+    milestone1Desc: 'எம்.எல்.ஏ முகாம் அலுவலகத்தில் பதிவு செய்யப்பட்டது & ஐடி வழங்கப்பட்டது',
+    milestone2Title: 'வார்டு தன்னார்வலருக்கு ஒதுக்கப்பட்டது',
+    milestone2Desc: 'கள ஆய்வுக்காக தன்னார்வலருக்கு ஒதுக்கப்பட்டது',
+    milestone3Title: 'களப்பணி நடைபெறுகிறது',
+    milestone3Desc: 'தன்னார்வலர் சம்பவ இடத்திற்கு வந்து பணிகளைத் தொடங்கினார்',
+    milestone4Title: 'தரம் மற்றும் ஒப்புதல் சரிபார்ப்பு',
+    milestone4Desc: 'பணி நிறைவடைந்து புகைப்பட ஆதாரத்துடன் சமர்ப்பிக்கப்பட்டது; பரிசீலனையில் உள்ளது',
+    milestone5Title: 'அதிகாரப்பூர்வமாக தீர்க்கப்பட்டது',
+    milestone5Desc: 'எம்.எல்.ஏ அலுவலக ஒப்புதல் அளிக்கப்பட்டு அதிகாரப்பூர்வ போஸ்டர் வெளியிடப்பட்டது',
+    stepCurrent: 'செயலில்',
+    stepCompleted: 'முடிந்தது',
+    stepPending: 'நிலுவையில்',
+    volunteerAssignedLabel: 'ஒதுக்கப்பட்ட தன்னார்வலர்:',
+    evidenceBeforeTitle: 'குடிமகன் புகைப்பட ஆதாரம்',
+    evidenceAfterTitle: 'தீர்க்கப்பட்ட புகைப்பட ஆதாரம் (பிறகு)',
+    viewPosterBtn: 'அதிகாரப்பூர்வ தீர்வு போஸ்டரைப் பார்க்கவும்',
+    callHelpdeskBtn: 'உதவி தேவையா? வாட்ஸ்அப் முகாம் அலுவலகம்',
+    rejectionNotice: 'முகாம் அலுவலக மறுஆய்வு குறிப்பு:',
   },
 
   kn: {
@@ -411,6 +513,26 @@ export const CITIZEN_TRANSLATIONS: Record<IndianLanguage, CitizenPortalTranslati
     statusInProgress: 'ಪ್ರಗತಿಯಲ್ಲಿದೆ',
     statusPendingApproval: 'ಅನುಮೋದನೆಗಾಗಿ ಕಾಯುತ್ತಿದೆ',
     statusResolved: 'ಪರಿಹರಿಸಲಾಗಿದೆ',
+    timelineTitle: 'ಲೈವ್ ಪರಿಹಾರ ಮೈಲಿಗಲ್ಲುಗಳು',
+    milestone1Title: 'ದೂರು ದಾಖಲಾಗಿದೆ',
+    milestone1Desc: 'ಶಾಸಕರ ಕಚೇರಿಯಲ್ಲಿ ದಾಖಲಿಸಲಾಗಿದೆ ಮತ್ತು ಐಡಿ ನೀಡಲಾಗಿದೆ',
+    milestone2Title: 'ವಾರ್ಡ್ ಸ್ವಯಂಸೇವಕರಿಗೆ ನಿಯೋಜಿಸಲಾಗಿದೆ',
+    milestone2Desc: 'ಸ್ಥಳ ಪರಿಶೀಲನೆಗಾಗಿ ಕಾರ್ಯಕರ್ತರಿಗೆ ವಹಿಸಲಾಗಿದೆ',
+    milestone3Title: 'ಸ್ಥಳದಲ್ಲಿ ಕಾಮಗಾರಿ ಪ್ರಗತಿಯಲ್ಲಿದೆ',
+    milestone3Desc: 'ಸ್ವಯಂಸೇವಕರು ಸ್ಥಳಕ್ಕೆ ತಲುಪಿ ದುರಸ್ತಿ ಕಾರ್ಯ ಕೈಗೆತ್ತಿಕೊಂಡಿದ್ದಾರೆ',
+    milestone4Title: 'ಗುಣಮಟ್ಟ ಪರಿಶೀಲನೆ ಮತ್ತು ಅನುಮೋದನೆ',
+    milestone4Desc: 'ಕೆಲಸ ಪೂರ್ಣಗೊಂಡು ಫೋಟೋ ಪುರಾವೆಯೊಂದಿಗೆ ಸಲ್ಲಿಸಲಾಗಿದೆ; ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ',
+    milestone5Title: 'ಅಧಿಕೃತವಾಗಿ ಪರಿಹರಿಸಲಾಗಿದೆ',
+    milestone5Desc: 'ಶಾಸಕರ ಕಚೇರಿಯಿಂದ ಅನುಮೋದನೆ ಪಡೆದು ಅಧಿಕೃತ ಪೋಸ್ಟರ್ ಬಿಡುಗಡೆ ಮಾಡಲಾಗಿದೆ',
+    stepCurrent: 'ಸಕ್ರಿಯ',
+    stepCompleted: 'ಪೂರ್ಣಗೊಂಡಿದೆ',
+    stepPending: 'ಬಾಕಿ ಇದೆ',
+    volunteerAssignedLabel: 'ನಿಯೋಜಿತ ಸ್ವಯಂಸೇವಕರು:',
+    evidenceBeforeTitle: 'ನಾಗರಿಕರ ಫೋಟೋ ಸಾಕ್ಷ್ಯ',
+    evidenceAfterTitle: 'ಪರಿಹರಿಸಿದ ನಂತರದ ಫೋಟೋ',
+    viewPosterBtn: 'ಅಧಿಕೃತ ಪರಿಹಾರ ಪೋಸ್ಟರ್ ವೀಕ್ಷಿಸಿ',
+    callHelpdeskBtn: 'ಸಹಾಯ ಬೇಕೇ? ಕ್ಯಾಂಪ್ ಆಫೀಸ್ ವಾಟ್ಸಾಪ್',
+    rejectionNotice: 'ಕ್ಯಾಂಪ್ ಕಚೇರಿಯ ಪರಿಶೀಲನಾ ಟಿಪ್ಪಣಿ:',
   },
 
   ml: {
@@ -477,6 +599,26 @@ export const CITIZEN_TRANSLATIONS: Record<IndianLanguage, CitizenPortalTranslati
     statusInProgress: 'നടപടിയിൽ',
     statusPendingApproval: 'അംഗീകാരത്തിനായി കാത്തിരിക്കുന്നു',
     statusResolved: 'പരിഹരിച്ചു',
+    timelineTitle: 'തത്സമയ പരിഹാര നാഴികക്കല്ലുകൾ',
+    milestone1Title: 'പരാതി രജിസ്റ്റർ ചെയ്തു',
+    milestone1Desc: 'എം.എൽ.എ ക്യാമ്പ് ഓഫീസിൽ രേഖപ്പെടുത്തി ഐഡി നൽകി',
+    milestone2Title: 'വാർഡ് വളണ്ടിയർക്ക് നിയോഗിച്ചു',
+    milestone2Desc: 'സ്ഥല പരിശോധനക്കായി ഫീൽഡ് വളണ്ടിയർക്ക് കൈമാറി',
+    milestone3Title: 'പ്രവർത്തനങ്ങൾ പുരോഗമിക്കുന്നു',
+    milestone3Desc: 'വളണ്ടിയർ സ്ഥലത്തെത്തി പ്രവർത്തനങ്ങൾ ആരംഭിച്ചു',
+    milestone4Title: 'ഗുണനിലവാര പരിശോധനയും അംഗീകാരവും',
+    milestone4Desc: 'പ്രവൃത്തി പൂർത്തിയാക്കി ഫോട്ടോ സഹിതം സമർപ്പിച്ചു; അവലോകനത്തിലാണ്',
+    milestone5Title: 'ഔദ്യോഗികമായി പരിഹരിച്ചു',
+    milestone5Desc: 'എം.എൽ.എ ഓഫീസ് അംഗീകാരം നൽകി ഔദ്യോഗിക പോസ്റ്റർ പ്രസിദ്ധീകരിച്ചു',
+    stepCurrent: 'സജീവം',
+    stepCompleted: 'പൂർത്തിയായി',
+    stepPending: 'ബാക്കിയുള്ളവ',
+    volunteerAssignedLabel: 'നിയോഗിച്ച വളണ്ടിയർ:',
+    evidenceBeforeTitle: 'പൗരന്റെ ഫോട്ടോ തെളിവ്',
+    evidenceAfterTitle: 'പരിഹരിച്ച ശേഷമുള്ള ഫോട്ടോ',
+    viewPosterBtn: 'ഔദ്യോഗിക റെസല്യൂഷൻ പോസ്റ്റർ കാണുക',
+    callHelpdeskBtn: 'സഹായം വേണോ? വാട്ട്‌സ്ആപ്പ് ക്യാമ്പ് ഓഫീസ്',
+    rejectionNotice: 'ക്യാമ്പ് ഓഫീസ് അവലോകന കുറിപ്പ്:',
   },
 
   bn: {
@@ -543,6 +685,26 @@ export const CITIZEN_TRANSLATIONS: Record<IndianLanguage, CitizenPortalTranslati
     statusInProgress: 'প্রক্রিয়াধীন',
     statusPendingApproval: 'অনুমোদন অপেক্ষমাণ',
     statusResolved: 'সমাধানকৃত',
+    timelineTitle: 'লাইভ সমাধান টাইমলাইন',
+    milestone1Title: 'অভিযোগ নথিভুক্ত হয়েছে',
+    milestone1Desc: 'বিধায়কের ক্যাম্প অফিসে নথিভুক্ত ও রেফারেন্স জারি',
+    milestone2Title: 'ওয়ার্ড ভলান্টিয়ারকে নিযুক্ত করা হয়েছে',
+    milestone2Desc: 'মাঠ পরিদর্শনের জন্য ফিল্ড ভলান্টিয়ারকে দায়িত্ব দেওয়া হয়েছে',
+    milestone3Title: 'কাজ চলমান রয়েছে',
+    milestone3Desc: 'ভলান্টিয়ার ঘটনাস্থলে পৌঁছে মেরামতের কাজ শুরু করেছেন',
+    milestone4Title: 'গুণমান পরীক্ষা ও অনুমোদন',
+    milestone4Desc: 'কাজের ছবি প্রমাণ সহ সমাপ্ত; ক্যাম্প অফিসে অনুমোদনাধীন',
+    milestone5Title: 'সরকারিভাবে সমাধান সম্পন্ন',
+    milestone5Desc: 'বিধায়কের অফিস থেকে অনুমোদিত ও অফিসিয়াল পোস্টার প্রকাশিত',
+    stepCurrent: 'চলমান',
+    stepCompleted: 'সম্পূর্ণ',
+    stepPending: 'বাকি আছে',
+    volunteerAssignedLabel: 'নিযুক্ত ভলান্টিয়ার:',
+    evidenceBeforeTitle: 'নাগরিকের ছবির প্রমাণ',
+    evidenceAfterTitle: 'সমাধানের পরের ছবি',
+    viewPosterBtn: 'অফিসিয়াল রেজোলিউশন পোস্টার দেখুন',
+    callHelpdeskBtn: 'সহায়তা প্রয়োজন? ক্যাম্প অফিসে হোয়াটসঅ্যাপ করুন',
+    rejectionNotice: 'ক্যাম্প অফিসের পর্যালোচনা মন্তব্য:',
   },
 
   mr: {
@@ -609,6 +771,26 @@ export const CITIZEN_TRANSLATIONS: Record<IndianLanguage, CitizenPortalTranslati
     statusInProgress: 'प्रगतीपथावर',
     statusPendingApproval: 'मंजुरीची प्रतीक्षा',
     statusResolved: 'सोडवली',
+    timelineTitle: 'थेट निवारण टप्पे',
+    milestone1Title: 'तक्रार नोंदवली गेली',
+    milestone1Desc: 'आमदार कार्यालयात नोंदणीकृत आणि संदर्भ क्रमांक जारी',
+    milestone2Title: 'वॉर्ड स्वयंसेवकाकडे सोपवले',
+    milestone2Desc: 'प्रत्यक्ष पाहणीसाठी स्वयंसेवकाची नियुक्ती केली',
+    milestone3Title: 'प्रत्यक्ष काम प्रगतीपथावर',
+    milestone3Desc: 'स्वयंसेवक घटनास्थळी पोहोचून दुरुस्तीचे काम सुरू केले आहे',
+    milestone4Title: 'गुणवत्ता तपासणी आणि मंजुरी',
+    milestone4Desc: 'कामाच्या फोटो पुराव्यासह पूर्ण; कार्यालयाकडे मंजुरीसाठी सादर',
+    milestone5Title: 'अधिकृतपणे निवारण पूर्ण',
+    milestone5Desc: 'आमदार कार्यालयाद्वारे मंजूर आणि अधिकृत पोस्टर जारी',
+    stepCurrent: 'सक्रिय',
+    stepCompleted: 'पूर्ण झाले',
+    stepPending: 'प्रलंबित',
+    volunteerAssignedLabel: 'नियुक्त स्वयंसेवक:',
+    evidenceBeforeTitle: 'नागरिकांचा फोटो पुरावा',
+    evidenceAfterTitle: 'निवारणानंतरचा फोटो',
+    viewPosterBtn: 'अधिकृत निवारण पोस्टर पहा',
+    callHelpdeskBtn: 'मदत हवी आहे? कॅम्प ऑफिस व्हॉट्सॲप',
+    rejectionNotice: 'कॅम्प कार्यालयाची पुनरावलोकन टिप्पणी:',
   },
 
   gu: {
@@ -675,5 +857,25 @@ export const CITIZEN_TRANSLATIONS: Record<IndianLanguage, CitizenPortalTranslati
     statusInProgress: 'પ્રગતિમાં',
     statusPendingApproval: 'મંજૂરીની રાહમાં',
     statusResolved: 'ઉકેલાયેલ',
+    timelineTitle: 'લાઈવ નિરાકરણ માઈલસ્ટોન',
+    milestone1Title: 'ફરિયાદ નોંધાઈ ગઈ',
+    milestone1Desc: 'ધારાસભ્ય કાર્યાલયમાં નોંધણી અને સંદર્ભ નંબર જનરેટ',
+    milestone2Title: 'વોર્ડ સ્વયંસેવકને સોંપવામાં આવી',
+    milestone2Desc: 'સ્થળ નિરીક્ષણ માટે ફિલ્ડ સ્વયંસેવકને સોંપેલ',
+    milestone3Title: 'સ્થળ પર કામગીરી ચાલુ',
+    milestone3Desc: 'સ્વયંસેવક ઘટનાસ્થળે પહોંચી સમારકામ શરૂ કર્યું છે',
+    milestone4Title: 'ગુણવત્તા ચકાસણી અને મંજૂરી',
+    milestone4Desc: 'ફોટો પુરાવા સાથે કામ પૂર્ણ; કાર્યાલયની મંજૂરી માટે રજૂ',
+    milestone5Title: 'સત્તાવાર રીતે નિરાકરણ પૂર્ણ',
+    milestone5Desc: 'ધારાસભ્ય કાર્યાલય દ્વારા મંજૂર અને સત્તાવાર પોસ્ટર જાહેર',
+    stepCurrent: 'ચાલુ',
+    stepCompleted: 'પૂર્ણ',
+    stepPending: 'બાકી',
+    volunteerAssignedLabel: 'સોંપેલ સ્વયંસેવક:',
+    evidenceBeforeTitle: 'નાગરિકનો ફોટો પુરાવો',
+    evidenceAfterTitle: 'નિરાકરણ પછીનો ફોટો',
+    viewPosterBtn: 'સત્તાવાર નિરાકરણ પોસ્ટર જુઓ',
+    callHelpdeskBtn: 'સહાય જોઈએ છે? કેમ્પ ઑફિસ વ્હોટ્સએપ',
+    rejectionNotice: 'કેમ્પ ઑફિસ સમીક્ષા નોંધ:',
   },
 };

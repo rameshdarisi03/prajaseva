@@ -37,7 +37,8 @@ export async function GET(req: NextRequest) {
         rejection_reason,
         citizen_name,
         citizen_phone,
-        ward:wards(name, ward_number)
+        ward:wards(name, ward_number),
+        assigned_staff:staff_whitelist(id, full_name, phone)
       `)
       .order('created_at', { ascending: false });
 
