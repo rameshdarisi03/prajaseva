@@ -149,7 +149,7 @@ export async function sendStaffOnboardingMessage(params: {
   const loginUrl = `${appUrl}/login`;
   const cleanMobile = params.phone.replace(/\D/g, '').slice(-10);
 
-  // 1. Try sending via Meta Approved UTILITY template (praja_staff_welcome_v1)
+  // 1. Try sending via Meta Approved UTILITY template (praja_staff_welcome_v2)
   try {
     const templatePayload = {
       messaging_product: 'whatsapp',
@@ -157,7 +157,7 @@ export async function sendStaffOnboardingMessage(params: {
       to: cleanPhone,
       type: 'template',
       template: {
-        name: 'praja_staff_welcome_v1',
+        name: 'praja_staff_welcome_v2',
         language: { code: 'en_US' },
         components: [
           {
@@ -166,7 +166,6 @@ export async function sendStaffOnboardingMessage(params: {
               { type: 'text', text: params.fullName },
               { type: 'text', text: params.orgName },
               { type: 'text', text: roleTitle },
-              { type: 'text', text: params.assignedWardsText || 'All Wards (Entire Constituency)' },
               { type: 'text', text: `+91 ${cleanMobile}` },
             ],
           },
@@ -195,7 +194,6 @@ export async function sendStaffOnboardingMessage(params: {
   const englishMessage =
     `Hello *${params.fullName}*,\n\n` +
     `You have been officially enrolled as a *${roleTitle}* for *${params.orgName}* on the Praja Seva Portal.\n\n` +
-    (isVolunteer && params.assignedWardsText ? `📍 *Assigned Area:* ${params.assignedWardsText}\n\n` : '') +
     `🔐 *How to Login:*\n` +
     `1. Open: ${loginUrl}\n` +
     `2. Enter your registered mobile number: *+91 ${cleanMobile}*\n` +
