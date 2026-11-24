@@ -2,18 +2,40 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Lock, AlertCircle, ChevronRight, MessageSquare, RotateCcw } from 'lucide-react';
+import {
+  Lock,
+  AlertCircle,
+  ChevronRight,
+  MessageSquare,
+  RotateCcw,
+  KeyRound,
+  ShieldCheck,
+  CheckCircle2,
+  ArrowLeft,
+  UserCheck
+} from 'lucide-react';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTarget = searchParams.get('redirect');
 
-  const [authStep, setAuthStep] = useState<'PHONE' | 'OTP'>('PHONE');
+  // Step state: PHONE -> PIN (if pin exists) -> OTP (if new or forgot pin or requested) -> SET_PIN
+  const [authStep, setAuthStep] = useState<'PHONE' | 'PIN' | 'OTP' | 'SET_PIN'>('PHONE');
+  const [flowReason, setFlowReason] = useState<'LOGIN' | 'FORGOT_PIN' | 'NEW_USER'>('LOGIN');
+
   const [inputPhone, setInputPhone] = useState('');
+  const [inputPin, setInputPin] = useState('');
   const [inputOtp, setInputOtp] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+
+  const [userName, setUserName] = useState('');
+  const [userRole, setUserRole] = useState('');
+
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [authSuccess, setAuthSuccess] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
 
   // If already logged in, redirect right away
@@ -44,6 +66,7 @@ function LoginForm() {
       digits = digits.slice(1);
     }
     setInputPhone(digits.slice(0, 10));
+    setAuthError(null);
   };
 
   // Timer for OTP resend cooldown
@@ -55,66 +78,206 @@ function LoginForm() {
     return () => clearInterval(timer);
   }, [resendCooldown]);
 
-  // Step 1: Send WhatsApp OTP
-  const handleSendOtp = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  // Complete Login & Redirect
+  const handleSessionLogin = (session: any) => {
+    localStorage.setItem('praja_seva_session', JSON.stringify(session));
+    const orgSlug = session.organizationSlug || 'org_mangalagiri';
+    const destination = redirectTarget || (
+      session.role === 'VOLUNTEER'
+        ? `/m/${orgSlug}/volunteer`
+        : `/m/${orgSlug}`
+    );
+    router.push(destination);
+  };
+
+  // Step 1: Check Phone Whitelist & PIN state
+  const handleCheckPhone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (inputPhone.length < 10) return;
     setAuthError(null);
+    setAuthLoading(true);
+
     try {
-      setAuthLoading(true);
       const res = await fetch('/api/management/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'send_otp', phone: inputPhone }),
+        body: JSON.stringify({ action: 'check_phone', phone: inputPhone }),
       });
-      const data = await res.json().catch(() => ({ error: 'Unable to reach authentication server' }));
-      if (!res.ok) throw new Error(data.error || 'Server error');
+      const data = await res.json().catch(() => ({ error: 'Unable to connect to authentication server' }));
 
-      setAuthStep('OTP');
-      setResendCooldown(45);
-    } catch (err: any) {
-      const msg = err.message || '';
-      if (msg.includes('Load failed') || msg.includes('Failed to fetch')) {
-        setAuthError('Network issue: Unable to connect. Please check internet connection.');
-      } else {
-        setAuthError(msg || 'Unable to send OTP. Please contact your constituency office.');
+      if (!res.ok) {
+        throw new Error(data.error || 'Access restricted. Please contact your administrator.');
       }
+
+      setUserName(data.name || '');
+      setUserRole(data.role || 'ADMIN');
+
+      if (data.locked) {
+        throw new Error('Account temporarily locked due to repeated failed attempts. Use "Forgot PIN?" to reset via WhatsApp OTP.');
+      }
+
+      if (data.hasPin) {
+        // User has already set up their PIN -> Go to fast 1-tap PIN login
+        setAuthStep('PIN');
+        setInputPin('');
+      } else {
+        // New user or has no PIN yet -> Send WhatsApp OTP and transition to OTP setup
+        setFlowReason('NEW_USER');
+        await triggerSendOtp();
+        setAuthStep('OTP');
+      }
+    } catch (err: any) {
+      setAuthError(err.message || 'Unable to verify phone number');
     } finally {
       setAuthLoading(false);
     }
   };
 
-  // Step 2: Verify WhatsApp OTP
+  // Trigger Send WhatsApp OTP helper
+  const triggerSendOtp = async () => {
+    const res = await fetch('/api/management/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'send_otp', phone: inputPhone }),
+    });
+    const data = await res.json().catch(() => ({ error: 'Unable to send OTP' }));
+    if (!res.ok) throw new Error(data.error || 'Failed to dispatch WhatsApp OTP');
+    setResendCooldown(45);
+  };
+
+  // Step 2A: Verify 4-Digit PIN
+  const handleVerifyPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (inputPin.length !== 4) return;
+    setAuthError(null);
+    setAuthLoading(true);
+
+    try {
+      const res = await fetch('/api/management/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verify_pin', phone: inputPhone, pin: inputPin }),
+      });
+      const data = await res.json().catch(() => ({ error: 'Unable to reach authentication server' }));
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Incorrect PIN');
+      }
+
+      handleSessionLogin(data.session);
+    } catch (err: any) {
+      setAuthError(err.message || 'Invalid PIN code');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  // Step 2B: Clicked "Forgot PIN?"
+  const handleForgotPin = async () => {
+    setAuthError(null);
+    setAuthLoading(true);
+    setFlowReason('FORGOT_PIN');
+
+    try {
+      await triggerSendOtp();
+      setAuthStep('OTP');
+      setInputOtp('');
+    } catch (err: any) {
+      setAuthError(err.message || 'Failed to send WhatsApp verification code');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  // Step 2C: Clicked "Login with WhatsApp OTP instead"
+  const handleOtpLoginSwitch = async () => {
+    setAuthError(null);
+    setAuthLoading(true);
+    setFlowReason('LOGIN');
+
+    try {
+      await triggerSendOtp();
+      setAuthStep('OTP');
+      setInputOtp('');
+    } catch (err: any) {
+      setAuthError(err.message || 'Failed to send WhatsApp verification code');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  // Step 3: Verify WhatsApp OTP
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (inputOtp.length < 6) return;
     setAuthError(null);
+    setAuthLoading(true);
+
     try {
-      setAuthLoading(true);
       const res = await fetch('/api/management/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'verify_otp', phone: inputPhone, code: inputOtp }),
       });
       const data = await res.json().catch(() => ({ error: 'Unable to reach authentication server' }));
-      if (!res.ok) throw new Error(data.error || 'Invalid OTP code');
 
-      // Save session
-      localStorage.setItem('praja_seva_session', JSON.stringify(data.session));
-
-      // Redirect to user's assigned constituency or volunteer desk
-      const orgSlug = data.session.organizationSlug || 'org_mangalagiri';
-      const destination = redirectTarget || (
-        data.session.role === 'VOLUNTEER'
-          ? `/m/${orgSlug}/volunteer`
-          : `/m/${orgSlug}`
-      );
-      router.push(destination);
-    } catch (err: any) {
-      const msg = err.message || '';
-      if (msg.includes('Load failed') || msg.includes('Failed to fetch')) {
-        setAuthError('Network issue: Please check connection and try again.');
-      } else {
-        setAuthError(msg || 'Incorrect verification code. Please check WhatsApp.');
+      if (!res.ok) {
+        throw new Error(data.error || 'Invalid OTP code');
       }
+
+      if (flowReason === 'NEW_USER' || flowReason === 'FORGOT_PIN') {
+        // Transition to PIN creation / reset
+        setAuthStep('SET_PIN');
+        setNewPin('');
+        setConfirmPin('');
+      } else {
+        // Direct OTP login
+        handleSessionLogin(data.session);
+      }
+    } catch (err: any) {
+      setAuthError(err.message || 'Incorrect verification code. Please check your WhatsApp.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  // Step 4: Save new PIN to Supabase (cross-device sync)
+  const handleSavePin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
+      setAuthError('PIN must be exactly 4 numeric digits');
+      return;
+    }
+    if (newPin !== confirmPin) {
+      setAuthError('PINs do not match. Please re-enter.');
+      return;
+    }
+
+    setAuthError(null);
+    setAuthLoading(true);
+
+    try {
+      const res = await fetch('/api/management/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'set_pin',
+          phone: inputPhone,
+          newPin,
+        }),
+      });
+      const data = await res.json().catch(() => ({ error: 'Unable to save PIN' }));
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to set PIN');
+      }
+
+      setAuthSuccess('PIN saved successfully! Redirecting...');
+      setTimeout(() => {
+        handleSessionLogin(data.session);
+      }, 700);
+    } catch (err: any) {
+      setAuthError(err.message || 'Failed to save security PIN');
     } finally {
       setAuthLoading(false);
     }
@@ -137,15 +300,24 @@ function LoginForm() {
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-6 shadow-xs border border-slate-200 rounded-2xl sm:px-10">
           {authError && (
-            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+            <div className="mb-5 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{authError}</span>
             </div>
           )}
 
-          {/* STEP 1: PHONE INPUT FOR OTP */}
+          {authSuccess && (
+            <div className="mb-5 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+              <span>{authSuccess}</span>
+            </div>
+          )}
+
+          {/* ============================================================= */}
+          {/* STEP 1: PHONE NUMBER INPUT                                     */}
+          {/* ============================================================= */}
           {authStep === 'PHONE' && (
-            <form onSubmit={handleSendOtp} className="space-y-4">
+            <form onSubmit={handleCheckPhone} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                   Official Mobile Number
@@ -165,23 +337,104 @@ function LoginForm() {
                     autoFocus
                   />
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  We will send a 6-digit verification code to your WhatsApp
+                <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                  Enter your registered constituency mobile number to proceed.
                 </p>
               </div>
 
               <button
                 type="submit"
                 disabled={authLoading || inputPhone.length < 10}
-                className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 whitespace-nowrap"
+                className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 whitespace-nowrap"
               >
-                {authLoading ? 'Sending WhatsApp OTP...' : 'Send WhatsApp OTP'}
+                {authLoading ? 'Verifying Account...' : 'Continue'}
                 <ChevronRight className="w-4 h-4" />
               </button>
             </form>
           )}
 
-          {/* STEP 2: WHATSAPP OTP VERIFICATION */}
+          {/* ============================================================= */}
+          {/* STEP 2: 4-DIGIT PIN ENTRY (DAILY FAST LOGIN)                   */}
+          {/* ============================================================= */}
+          {authStep === 'PIN' && (
+            <form onSubmit={handleVerifyPin} className="space-y-4">
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
+                    {userName ? userName.slice(0, 2).toUpperCase() : 'PS'}
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 truncate max-w-[170px]">
+                      {userName || 'Staff Member'}
+                    </div>
+                    <div className="text-[11px] font-mono text-slate-500">
+                      +91 {inputPhone}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthStep('PHONE');
+                    setInputPin('');
+                    setAuthError(null);
+                  }}
+                  className="text-xs text-blue-600 hover:underline font-semibold"
+                >
+                  Change
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 text-center">
+                  Enter 4-Digit Security PIN
+                </label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={inputPin}
+                  onChange={(e) => setInputPin(e.target.value.replace(/\D/g, ''))}
+                  placeholder="••••"
+                  className="w-full h-12 text-center tracking-[0.8em] font-mono text-2xl font-bold rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={authLoading || inputPin.length !== 4}
+                className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 whitespace-nowrap"
+              >
+                {authLoading ? 'Verifying PIN...' : 'Login with PIN'}
+                <ChevronRight className="w-4 h-4" />
+              </button>
+
+              <div className="pt-2 flex flex-col gap-2.5 text-center border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={handleForgotPin}
+                  disabled={authLoading}
+                  className="text-xs text-amber-700 hover:text-amber-800 font-semibold hover:underline"
+                >
+                  Forgot PIN? Reset via WhatsApp OTP
+                </button>
+                <button
+                  type="button"
+                  onClick={handleOtpLoginSwitch}
+                  disabled={authLoading}
+                  className="text-xs text-slate-500 hover:text-slate-800 font-medium"
+                >
+                  Or login with WhatsApp OTP instead
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* ============================================================= */}
+          {/* STEP 3: WHATSAPP OTP VERIFICATION                             */}
+          {/* ============================================================= */}
           {authStep === 'OTP' && (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div>
@@ -215,29 +468,119 @@ function LoginForm() {
                   required
                 />
 
-                <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+                <div className="mt-2.5 flex items-center justify-between text-xs text-slate-500">
                   <span>Sent to WhatsApp +91 {inputPhone}</span>
                   {resendCooldown > 0 ? (
-                    <span className="text-slate-400 font-mono">{resendCooldown}s</span>
+                    <span className="text-slate-400 font-mono font-medium">{resendCooldown}s</span>
                   ) : (
                     <button
                       type="button"
-                      onClick={() => handleSendOtp()}
+                      onClick={() => triggerSendOtp()}
                       disabled={authLoading}
                       className="text-blue-600 hover:underline font-semibold flex items-center gap-1"
                     >
-                      <RotateCcw className="w-3 h-3" /> Resend
+                      <RotateCcw className="w-3 h-3" /> Resend OTP
                     </button>
                   )}
                 </div>
               </div>
+
+              {flowReason === 'NEW_USER' && (
+                <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 flex items-start gap-2">
+                  <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>First-Time Setup:</strong> After verifying this WhatsApp code, you will create your private 4-digit PIN.
+                  </span>
+                </div>
+              )}
+
+              {flowReason === 'FORGOT_PIN' && (
+                <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-start gap-2">
+                  <KeyRound className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Resetting PIN:</strong> Verify your WhatsApp identity to choose a new 4-digit PIN.
+                  </span>
+                </div>
+              )}
 
               <button
                 type="submit"
                 disabled={authLoading || inputOtp.length < 6}
                 className="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 whitespace-nowrap"
               >
-                {authLoading ? 'Verifying OTP...' : 'Verify OTP & Login'}
+                {authLoading
+                  ? 'Verifying OTP...'
+                  : flowReason === 'LOGIN'
+                  ? 'Verify OTP & Login'
+                  : 'Verify & Create PIN'}
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </form>
+          )}
+
+          {/* ============================================================= */}
+          {/* STEP 4: SET / RESET 4-DIGIT PIN (SYNCED ACROSS ALL DEVICES)   */}
+          {/* ============================================================= */}
+          {authStep === 'SET_PIN' && (
+            <form onSubmit={handleSavePin} className="space-y-4">
+              <div className="text-center pb-1">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-2 border border-blue-100">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-slate-900 text-base">
+                  {flowReason === 'FORGOT_PIN' ? 'Create New Security PIN' : 'Set Your 4-Digit Security PIN'}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Choose a 4-digit PIN for instant 1-tap login across all your devices.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  New 4-Digit PIN
+                </label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={newPin}
+                  onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))}
+                  placeholder="••••"
+                  className="w-full h-11 text-center tracking-[0.8em] font-mono text-xl font-bold rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Confirm 4-Digit PIN
+                </label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={confirmPin}
+                  onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))}
+                  placeholder="••••"
+                  className="w-full h-11 text-center tracking-[0.8em] font-mono text-xl font-bold rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 flex items-start gap-2.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <span className="text-[11px] leading-relaxed">
+                  Your PIN is securely hashed and synced across any phone, tablet, or PC you use for Praja Seva.
+                </span>
+              </div>
+
+              <button
+                type="submit"
+                disabled={authLoading || newPin.length !== 4 || confirmPin.length !== 4}
+                className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 whitespace-nowrap"
+              >
+                {authLoading ? 'Saving Security PIN...' : 'Save PIN & Open Dashboard'}
                 <ChevronRight className="w-4 h-4" />
               </button>
             </form>

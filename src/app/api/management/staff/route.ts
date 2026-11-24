@@ -65,12 +65,12 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { fullName, phone, role, pin, assignedWardIds, assignedWardId, organizationId } = body;
 
-    if (!fullName || !phone || !pin) {
-      return NextResponse.json({ error: 'Full name, phone, and 4-digit PIN required' }, { status: 400 });
+    if (!fullName || !phone) {
+      return NextResponse.json({ error: 'Full name and phone number required' }, { status: 400 });
     }
 
     const cleanPhone = phone.replace(/\D/g, '').slice(-10);
-    const pinHash = await bcrypt.hash(pin.toString(), 10);
+    const pinHash = pin ? await bcrypt.hash(pin.toString(), 10) : null;
 
     // Normalize assigned ward IDs array
     let normalizedWardIds: string[] = [];

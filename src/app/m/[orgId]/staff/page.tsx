@@ -145,11 +145,6 @@ export default function StaffManagementPage({
       return;
     }
 
-    if (pin.length !== 4 || isNaN(Number(pin))) {
-      setFormError('PIN must be exactly 4 digits');
-      return;
-    }
-
     try {
       setIsSubmitting(true);
       const res = await fetch('/api/management/staff', {
@@ -159,7 +154,6 @@ export default function StaffManagementPage({
           fullName: fullName.trim(),
           phone: phone.replace(/\D/g, '').slice(-10),
           role,
-          pin,
           assignedWardIds: role === 'VOLUNTEER' ? selectedWardIds : [],
           organizationId: orgParam,
         }),
@@ -359,22 +353,16 @@ export default function StaffManagementPage({
                 </div>
               )}
 
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                  4-Digit Login PIN
-                </label>
-                <input
-                  type="password"
-                  maxLength={4}
-                  value={pin}
-                  onChange={(e) => setPin(e.target.value)}
-                  placeholder="e.g. 1234"
-                  className="w-full h-10 px-3 font-mono font-bold tracking-widest text-center text-sm rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-                <p className="text-[10px] text-slate-400 mt-0.5">
-                  The staff member will use this PIN to log into their dashboard.
-                </p>
+              <div className="p-3.5 bg-blue-50/80 border border-blue-200/80 rounded-xl text-xs flex items-start gap-3">
+                <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-0.5">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div className="space-y-0.5">
+                  <p className="font-bold text-blue-900 text-xs">Self-Managed 4-Digit Security PIN</p>
+                  <p className="text-[11px] text-blue-700 leading-relaxed">
+                    No need to set a temporary password. The staff member will set their own private 4-digit PIN upon first login via WhatsApp OTP, synced across all their devices.
+                  </p>
+                </div>
               </div>
 
               <div className="flex gap-2 pt-2">
