@@ -88,7 +88,7 @@ export default function ReviewQAPage({
 
   // Layout & Filters
   const [viewMode, setViewMode] = useState<'table' | 'split'>('table');
-  const [statusFilter, setStatusFilter] = useState<'PENDING_APPROVAL' | 'RESOLVED' | 'ALL'>('PENDING_APPROVAL');
+  const [statusFilter, setStatusFilter] = useState<'PENDING_APPROVAL' | 'RESOLVED'>('PENDING_APPROVAL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWard, setSelectedWard] = useState<string>('ALL');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
@@ -100,12 +100,15 @@ export default function ReviewQAPage({
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
   const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
 
-  // Fetch pending approval tickets & organization & wards
-  const fetchTickets = async (statusOverride?: string) => {
+  // Accurate live counts for the 2 cards
+  const pendingCount = useMemo(() => tickets.filter((t) => t.status === 'PENDING_APPROVAL').length, [tickets]);
+  const approvedCount = useMemo(() => tickets.filter((t) => t.status === 'RESOLVED').length, [tickets]);
+
+  // Fetch all review-relevant tickets & organization & wards
+  const fetchTickets = async () => {
     try {
       setLoading(true);
-      const queryStatus = statusOverride !== undefined ? statusOverride : statusFilter;
-      const res = await fetch(`/api/management/tickets?status=${queryStatus}`);
+      const res = await fetch(`/api/management/tickets?status=ALL`);
       const data = await res.json();
       const list = data.tickets || [];
       setTickets(list);
@@ -132,11 +135,16 @@ export default function ReviewQAPage({
 
   useEffect(() => {
     fetchTickets();
-  }, [orgParam, statusFilter]);
+  }, [orgParam]);
 
-  // Filtered Tickets
+  // Filtered Tickets (Strictly scoped to selected card: Review Pending vs Approved)
   const filteredTickets = useMemo(() => {
     return tickets.filter((t) => {
+      // 0. Status Filter (Only show tickets matching the active card)
+      if (t.status !== statusFilter) {
+        return false;
+      }
+
       // Search
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
@@ -162,7 +170,7 @@ export default function ReviewQAPage({
 
       return true;
     });
-  }, [tickets, searchQuery, selectedWard, selectedCategory]);
+  }, [tickets, statusFilter, searchQuery, selectedWard, selectedCategory]);
 
   // Keyboard Navigation: J/K or ArrowUp/ArrowDown to navigate tickets
   useEffect(() => {
@@ -506,54 +514,39 @@ export default function ReviewQAPage({
 
       {/* High-Performance Filter & Search Command Ribbon */}
       <div className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200 shadow-2xs space-y-2.5 sm:space-y-3">
-        {/* Status Tabs (Never Overflows on Mobile) */}
-        <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200 w-full">
+        {/* Simplified 2-Card Tabs: Review Pending & Approved */}
+        <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200 w-full">
           <button
             onClick={() => setStatusFilter('PENDING_APPROVAL')}
-            className={`py-2 px-1 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer truncate ${
+            className={`py-2 px-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer truncate ${
               statusFilter === 'PENDING_APPROVAL'
                 ? 'bg-purple-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
             }`}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
             <span className="truncate">{t.awaitingAuditTab}</span>
-            <span className={`px-1 rounded-full text-[9px] sm:text-[10px] shrink-0 ${
+            <span className={`px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black shrink-0 ${
               statusFilter === 'PENDING_APPROVAL' ? 'bg-purple-700 text-white' : 'bg-slate-200 text-slate-700'
             }`}>
-              {tickets.filter(t => t.status === 'PENDING_APPROVAL').length}
+              {pendingCount}
             </span>
           </button>
 
           <button
             onClick={() => setStatusFilter('RESOLVED')}
-            className={`py-2 px-1 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer truncate ${
+            className={`py-2 px-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer truncate ${
               statusFilter === 'RESOLVED'
                 ? 'bg-emerald-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
             }`}
           >
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span className="truncate">{t.approvedDispatchedTab}</span>
-            <span className={`px-1 rounded-full text-[9px] sm:text-[10px] shrink-0 ${
+            <span className={`px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black shrink-0 ${
               statusFilter === 'RESOLVED' ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700'
             }`}>
-              {tickets.filter(t => t.status === 'RESOLVED').length}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setStatusFilter('ALL')}
-            className={`py-2 px-1 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer truncate ${
-              statusFilter === 'ALL'
-                ? 'bg-slate-800 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <span className="truncate">{t.allTicketsTab}</span>
-            <span className={`px-1 rounded-full text-[9px] sm:text-[10px] shrink-0 ${
-              statusFilter === 'ALL' ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-700'
-            }`}>
-              {tickets.length}
+              {approvedCount}
             </span>
           </button>
         </div>
