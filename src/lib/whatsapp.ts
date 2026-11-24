@@ -126,6 +126,67 @@ export async function sendTicketConfirmation(params: {
 }
 
 /**
+ * Sends Official Onboarding Welcome Message to newly enrolled Admin or Field Volunteer
+ */
+export async function sendStaffOnboardingMessage(params: {
+  phone: string;
+  fullName: string;
+  role: string;
+  orgName: string;
+  assignedWardsText?: string;
+}): Promise<boolean> {
+  const token = process.env.META_WHATSAPP_TOKEN;
+  const phoneId = process.env.META_WHATSAPP_PHONE_NUMBER_ID;
+  if (!token || !phoneId) {
+    console.warn('[WhatsApp] Credentials missing, cannot send onboarding message');
+    return false;
+  }
+
+  const cleanPhone = sanitizePhone(params.phone);
+  const isVolunteer = params.role === 'VOLUNTEER';
+  const roleTitle = isVolunteer ? 'Field Volunteer (క్షేత్ర వాలంటీర్)' : 'Secretariat Admin (సెక్రటేరియట్ అడ్మిన్)';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://prajaseva-one.vercel.app';
+  const loginUrl = `${appUrl}/login`;
+
+  const message =
+    `Namaskaram *${params.fullName}* garu 🙏\n\n` +
+    `You have been officially enrolled as a *${roleTitle}* for *${params.orgName}* on the Praja Seva Portal.\n\n` +
+    (isVolunteer && params.assignedWardsText ? `📍 *Assigned Area:* ${params.assignedWardsText}\n\n` : '') +
+    `🔐 *How to Access Your Dashboard:*\n` +
+    `1. Open: ${loginUrl}\n` +
+    `2. Enter your registered mobile: *+91 ${params.phone.replace(/\\D/g, '').slice(-10)}*\n` +
+    `3. You will receive a 6-digit WhatsApp OTP to set your private 4-digit security PIN.\n\n` +
+    `Once set, your PIN will work across all your devices (phone, laptop, tablet) for instant 1-tap login.\n\n` +
+    `_— Praja Seva Command Center_`;
+
+  try {
+    const res = await fetch(`${WHATSAPP_API_URL}/${phoneId}/messages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: cleanPhone,
+        type: 'text',
+        text: { body: message },
+      }),
+    });
+
+    const data = await res.json();
+    if (data.error) {
+      console.warn('[WhatsApp Onboarding Message Error]:', data.error);
+      return false;
+    }
+    return !!data.messages?.[0]?.id;
+  } catch (error) {
+    console.error('[WhatsApp Onboarding Error]:', error);
+    return false;
+  }
+}
+
+/**
  * Broadcasts Resolved Before/After Poster to Groups and Citizen.
  */
 export async function broadcastResolutionPoster(params: {

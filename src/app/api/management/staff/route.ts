@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import bcrypt from 'bcryptjs';
+import { sendStaffOnboardingMessage } from '@/lib/whatsapp';
+import { otpStore } from '@/lib/otpStore';
 
 // GET: List all staff for the organization with their assigned wards
 export async function GET(req: NextRequest) {
@@ -82,16 +84,34 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Resolve organization ID (supports both UUID and slug e.g. 'org_mangalagiri')
+    // Resolve organization ID & Name (supports both UUID and slug e.g. 'org_mangalagiri')
     let finalOrgId = organizationId;
-    if (!finalOrgId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(finalOrgId)) {
-      const { data: org } = await supabaseAdmin
-        .from('organizations')
-        .select('id')
-        .or(`slug.eq.${organizationId || 'org_mangalagiri'},id.eq.00000000-0000-0000-0000-000000000001`)
-        .limit(1)
-        .maybeSingle();
-      finalOrgId = org?.id || '00000000-0000-0000-0000-000000000001';
+    let orgName = 'Mangalagiri Assembly Constituency';
+
+    const { data: org } = await supabaseAdmin
+      .from('organizations')
+      .select('id, name')
+      .or(`slug.eq.${organizationId || 'org_mangalagiri'},id.eq.${/^[0-9a-f-]{36}$/i.test(organizationId || '') ? organizationId : '00000000-0000-0000-0000-000000000001'}`)
+      .limit(1)
+      .maybeSingle();
+
+    if (org) {
+      finalOrgId = org.id;
+      if (org.name) orgName = org.name;
+    }
+
+    // Resolve assigned ward names for the onboarding message
+    let assignedWardsSummary = 'All Wards (నియోజకవర్గం అంతటా)';
+    if (role === 'VOLUNTEER' && normalizedWardIds.length > 0) {
+      const { data: wardsList } = await supabaseAdmin
+        .from('wards')
+        .select('name, ward_number')
+        .in('id', normalizedWardIds);
+      if (wardsList && wardsList.length > 0) {
+        assignedWardsSummary = wardsList
+          .map((w) => `${w.name} ${w.ward_number ? `(#${w.ward_number})` : ''}`)
+          .join(', ');
+      }
     }
 
     const { data: newStaff, error } = await supabaseAdmin
@@ -116,7 +136,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, staff: newStaff });
+    // Automated WhatsApp Onboarding Message Dispatch
+    try {
+      await sendStaffOnboardingMessage({
+        phone: cleanPhone,
+        fullName: fullName.trim(),
+        role: role || 'VOLUNTEER',
+        orgName,
+        assignedWardsText: assignedWardsSummary,
+      });
+    } catch (msgErr) {
+      console.warn('[Staff Onboarding WhatsApp Dispatch Note]:', msgErr);
+    }
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://prajaseva-one.vercel.app';
+    const inviteText = encodeURIComponent(
+      `Namaskaram ${fullName.trim()} garu 🙏\n\nYou have been officially enrolled as a ${role === 'ADMIN' ? 'Secretariat Admin' : 'Field Volunteer'} for ${orgName}.\n\nLogin to your dashboard here:\n${appUrl}/login\n\nEnter your mobile number to set your private 4-digit PIN via WhatsApp OTP.`
+    );
+    const whatsappInviteUrl = `https://wa.me/91${cleanPhone}?text=${inviteText}`;
+
+    return NextResponse.json({
+      success: true,
+      staff: newStaff,
+      whatsappInviteUrl,
+      orgName,
+    });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
@@ -132,6 +176,20 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Staff ID is required' }, { status: 400 });
     }
 
+    // 1. Fetch staff phone before deleting to clean up any in-memory OTP tokens
+    const { data: member } = await supabaseAdmin
+      .from('staff_whitelist')
+      .select('phone')
+      .eq('id', staffId)
+      .maybeSingle();
+
+    if (member?.phone) {
+      const clean = member.phone.replace(/\D/g, '').slice(-10);
+      otpStore.delete(clean);
+      otpStore.delete(`reset_${clean}`);
+    }
+
+    // 2. Hard delete the staff record
     const { error } = await supabaseAdmin
       .from('staff_whitelist')
       .delete()
