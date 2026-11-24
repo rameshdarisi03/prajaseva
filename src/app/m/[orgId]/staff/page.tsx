@@ -87,7 +87,6 @@ export default function StaffManagementPage({
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState<'ADMIN' | 'VOLUNTEER'>('VOLUNTEER');
   const [selectedWardIds, setSelectedWardIds] = useState<string[]>([]);
-  const [pin, setPin] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -140,8 +139,9 @@ export default function StaffManagementPage({
     e.preventDefault();
     setFormError(null);
 
-    if (!fullName.trim() || !phone.trim() || !pin.trim()) {
-      setFormError('Please fill in all required fields');
+    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+    if (!fullName.trim() || cleanPhone.length !== 10) {
+      setFormError('Please enter full name and a valid 10-digit mobile number');
       return;
     }
 
@@ -152,7 +152,7 @@ export default function StaffManagementPage({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName: fullName.trim(),
-          phone: phone.replace(/\D/g, '').slice(-10),
+          phone: cleanPhone,
           role,
           assignedWardIds: role === 'VOLUNTEER' ? selectedWardIds : [],
           organizationId: orgParam,
@@ -166,7 +166,6 @@ export default function StaffManagementPage({
       setShowAddModal(false);
       setFullName('');
       setPhone('');
-      setPin('');
       setSelectedWardIds([]);
       loadData();
     } catch (err: any) {
