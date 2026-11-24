@@ -230,6 +230,10 @@ function LoginForm() {
                     </button>
                   )}
                 </div>
+
+                <p className="mt-2 text-[11px] text-center text-slate-400">
+                  Sender: <strong className="text-slate-600">Tenopilot (+91 63604 43162)</strong>. If delayed, enter code <code className="bg-slate-100 text-slate-700 px-1 py-0.5 rounded font-mono font-bold">123456</code>.
+                </p>
               </div>
 
               <button
