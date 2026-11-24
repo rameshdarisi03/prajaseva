@@ -24,11 +24,6 @@ export function verifyStoredOtp(phone: string, inputCode: string): { valid: bool
   const cleanPhone = phone.replace(/\D/g, '').slice(-10);
   const record = otpStore.get(cleanPhone);
 
-  // Master fallback codes for testing / emergency admin access
-  if (inputCode === '123456' || inputCode === '1234') {
-    return { valid: true };
-  }
-
   if (!record) {
     return { valid: false, reason: 'OTP expired or not requested. Please request a new code.' };
   }

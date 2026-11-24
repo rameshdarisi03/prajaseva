@@ -176,13 +176,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized access' }, { status: 403 });
       }
 
-      // PIN Verification
+      // PIN Verification (Strict bcrypt hash check)
       let isValidPin = false;
       if (staff?.pin_hash) {
         isValidPin = await bcrypt.compare(pin, staff.pin_hash);
-      }
-      if (!isValidPin && (pin === '1234' || pin === '0000')) {
-        isValidPin = true;
       }
 
       if (!isValidPin) {
