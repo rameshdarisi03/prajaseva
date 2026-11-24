@@ -28,6 +28,8 @@ interface SessionUser {
   phone: string;
   role: UserRole;
   organizationId: string;
+  organizationSlug?: string;
+  pinSignature?: string;
 }
 
 interface Organization {
@@ -84,6 +86,33 @@ export default function ManagementLayout({
 
   const t = MGMT_TRANSLATIONS[lang] || MGMT_TRANSLATIONS.en;
 
+  // Validate active session against Supabase (handles cross-device PIN reset & account revocation)
+  const validateSessionWithServer = async (userSession: SessionUser) => {
+    if (!userSession?.phone) return;
+    try {
+      const res = await fetch('/api/management/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'validate_session',
+          phone: userSession.phone,
+          pinSignature: userSession.pinSignature || null,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+
+      if (data && data.valid === false) {
+        // PIN was changed on another device or account was revoked
+        localStorage.removeItem('praja_seva_session');
+        setSession(null);
+        const reason = data.reason === 'PIN_CHANGED_ELSEWHERE' ? 'pin_changed' : 'revoked';
+        router.replace(`/login?reason=${reason}`);
+      }
+    } catch {
+      // Offline / transient network issue: keep persistent session
+    }
+  };
+
   // Initial load session check & verification
   useEffect(() => {
     const saved = localStorage.getItem('praja_seva_session');
@@ -92,11 +121,31 @@ export default function ManagementLayout({
         const parsed = JSON.parse(saved);
         if (parsed?.organizationId || parsed?.role) {
           setSession(parsed);
+          validateSessionWithServer(parsed);
         }
       } catch {}
     }
     setIsVerifyingSession(false);
   }, []);
+
+  // Real-time cross-device listener: verify on window/tab re-focus and periodic 45s heartbeat
+  useEffect(() => {
+    if (!session?.phone) return;
+
+    const handleFocus = () => {
+      validateSessionWithServer(session);
+    };
+
+    window.addEventListener('focus', handleFocus);
+    const interval = setInterval(() => {
+      validateSessionWithServer(session);
+    }, 45000);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(interval);
+    };
+  }, [session?.phone, session?.pinSignature]);
 
   // If not authenticated after verification, redirect to /login with target
   useEffect(() => {

@@ -6,7 +6,7 @@ import { storeOtp, verifyStoredOtp } from '@/lib/otpStore';
 
 export async function POST(req: NextRequest) {
   try {
-    const { action, phone, pin, newPin, otp, code } = await req.json();
+    const { action, phone, pin, newPin, otp, code, pinSignature } = await req.json();
 
     if (!phone) {
       return NextResponse.json({ error: 'Phone number required' }, { status: 400 });
@@ -163,6 +163,7 @@ export async function POST(req: NextRequest) {
       }
 
       const orgSlug = orgRecord?.slug || 'org_mangalagiri';
+      const pinSig = staff?.pin_hash ? staff.pin_hash.slice(-16) : 'no_pin';
 
       return NextResponse.json({
         success: true,
@@ -176,6 +177,7 @@ export async function POST(req: NextRequest) {
           organizationSlug: orgSlug,
           organizationName: orgRecord?.name || 'Mangalagiri Assembly',
           assignedWardId: staff?.assigned_ward_id || null,
+          pinSignature: pinSig,
         },
       });
     }
@@ -260,6 +262,7 @@ export async function POST(req: NextRequest) {
       }
 
       const orgSlug = orgRecord?.slug || 'org_mangalagiri';
+      const pinSig = staff?.pin_hash ? staff.pin_hash.slice(-16) : 'no_pin';
 
       return NextResponse.json({
         success: true,
@@ -272,6 +275,7 @@ export async function POST(req: NextRequest) {
           organizationSlug: orgSlug,
           organizationName: orgRecord?.name || 'Mangalagiri Assembly',
           assignedWardId: staff?.assigned_ward_id || null,
+          pinSignature: pinSig,
         },
       });
     }
@@ -334,6 +338,7 @@ export async function POST(req: NextRequest) {
       }
 
       const orgSlug = orgRecord?.slug || 'org_mangalagiri';
+      const pinSig = hashedPin.slice(-16);
 
       return NextResponse.json({
         success: true,
@@ -348,7 +353,56 @@ export async function POST(req: NextRequest) {
           organizationSlug: orgSlug,
           organizationName: orgRecord?.name || 'Mangalagiri Assembly',
           assignedWardId: updatedStaff?.assigned_ward_id || null,
+          pinSignature: pinSig,
         },
+      });
+    }
+
+    // -------------------------------------------------------------------------
+    // 6. ACTION: VALIDATE ACTIVE SESSION (CROSS-DEVICE INLINE CHECK)
+    // -------------------------------------------------------------------------
+    if (action === 'validate_session') {
+      const { data: staff } = await supabaseAdmin
+        .from('staff_whitelist')
+        .select('id, full_name, phone, role, is_active, organization_id, assigned_ward_id, pin_hash, updated_at')
+        .or(`phone.eq.${cleanPhone},phone.eq.91${cleanPhone},phone.eq.+91${cleanPhone}`)
+        .maybeSingle();
+
+      const { data: orgFounder } = await supabaseAdmin
+        .from('organizations')
+        .select('id, name, slug, founder_phone')
+        .or(`founder_phone.eq.${cleanPhone},founder_phone.eq.91${cleanPhone},founder_phone.eq.+91${cleanPhone}`)
+        .maybeSingle();
+
+      if (!staff && !orgFounder) {
+        return NextResponse.json({
+          valid: false,
+          reason: 'ACCOUNT_NOT_FOUND',
+          error: 'Your account access has been revoked.',
+        }, { status: 401 });
+      }
+
+      if (staff && staff.is_active === false) {
+        return NextResponse.json({
+          valid: false,
+          reason: 'ACCOUNT_DEACTIVATED',
+          error: 'Your account has been deactivated.',
+        }, { status: 401 });
+      }
+
+      // Check if PIN was changed on another device!
+      const currentSignature = staff?.pin_hash ? staff.pin_hash.slice(-16) : 'no_pin';
+      if (pinSignature && pinSignature !== 'no_pin' && currentSignature !== 'no_pin' && pinSignature !== currentSignature) {
+        return NextResponse.json({
+          valid: false,
+          reason: 'PIN_CHANGED_ELSEWHERE',
+          error: 'Security Alert: Your security PIN was updated on another device. Please log in with your new PIN.',
+        }, { status: 401 });
+      }
+
+      return NextResponse.json({
+        valid: true,
+        currentSignature,
       });
     }
 

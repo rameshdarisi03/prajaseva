@@ -19,6 +19,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTarget = searchParams.get('redirect');
+  const reasonParam = searchParams.get('reason');
 
   // Step state: PHONE -> PIN (if pin exists) -> OTP (if new or forgot pin or requested) -> SET_PIN
   const [authStep, setAuthStep] = useState<'PHONE' | 'PIN' | 'OTP' | 'SET_PIN'>('PHONE');
@@ -38,8 +39,19 @@ function LoginForm() {
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
 
-  // If already logged in, redirect right away
+  // If already logged in, redirect right away (unless redirected due to remote PIN change)
   useEffect(() => {
+    if (reasonParam === 'pin_changed') {
+      localStorage.removeItem('praja_seva_session');
+      setAuthError('Security Alert: Your security PIN was changed on another device. Please log in with your new PIN.');
+      return;
+    }
+    if (reasonParam === 'revoked') {
+      localStorage.removeItem('praja_seva_session');
+      setAuthError('Access Alert: Your account authorization was revoked by the administrator.');
+      return;
+    }
+
     const saved = localStorage.getItem('praja_seva_session');
     if (saved) {
       try {
@@ -55,7 +67,7 @@ function LoginForm() {
         }
       } catch {}
     }
-  }, [router, redirectTarget]);
+  }, [router, redirectTarget, reasonParam]);
 
   // Smart Indian Phone Input Sanitizer: Automatically strips +91, 91, or leading 0 if pasted/typed
   const handlePhoneChange = (val: string) => {
