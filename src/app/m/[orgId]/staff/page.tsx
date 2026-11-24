@@ -352,18 +352,6 @@ export default function StaffManagementPage({
                 </div>
               )}
 
-              <div className="p-3.5 bg-blue-50/80 border border-blue-200/80 rounded-xl text-xs flex items-start gap-3">
-                <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-0.5">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                <div className="space-y-0.5">
-                  <p className="font-bold text-blue-900 text-xs">Self-Managed 4-Digit Security PIN</p>
-                  <p className="text-[11px] text-blue-700 leading-relaxed">
-                    No need to set a temporary password. The staff member will set their own private 4-digit PIN upon first login via WhatsApp OTP, synced across all their devices.
-                  </p>
-                </div>
-              </div>
-
               <div className="flex gap-2 pt-2">
                 <button
                   type="button"
