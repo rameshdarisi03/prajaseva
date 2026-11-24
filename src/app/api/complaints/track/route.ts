@@ -18,9 +18,26 @@ export async function GET(req: NextRequest) {
     let dbQuery = supabaseAdmin
       .from('complaints')
       .select(`
-        *,
-        ward:wards(name, ward_number),
-        assigned_staff:staff_whitelist(full_name, phone)
+        id,
+        ticket_number,
+        category,
+        description,
+        location_address,
+        latitude,
+        longitude,
+        status,
+        created_at,
+        assigned_at,
+        work_started_at,
+        submitted_for_approval_at,
+        resolved_at,
+        before_photo_url,
+        after_photo_url,
+        poster_url,
+        rejection_reason,
+        citizen_name,
+        citizen_phone,
+        ward:wards(name, ward_number)
       `)
       .order('created_at', { ascending: false });
 

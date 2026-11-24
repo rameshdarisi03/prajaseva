@@ -25,7 +25,8 @@ import {
   RotateCcw,
   KeyRound,
   Menu,
-  X
+  X,
+  UserCheck
 } from 'lucide-react';
 import { IndianLanguage, MGMT_TRANSLATIONS } from '@/lib/mgmtI18n';
 import { SUPPORTED_LANGUAGES } from '@/lib/landingI18n';
@@ -120,6 +121,13 @@ export default function ManagementLayout({
     }
     setIsVerifyingSession(false);
   }, []);
+
+  // Volunteer role enforcement: dedicated single-page field desk
+  useEffect(() => {
+    if (session?.role === 'VOLUNTEER' && pathname !== `/m/${orgParam}/volunteer`) {
+      router.replace(`/m/${orgParam}/volunteer`);
+    }
+  }, [session?.role, pathname, orgParam, router]);
 
   // Fetch Org metadata & Pending Review tickets count
   useEffect(() => {
@@ -251,6 +259,13 @@ export default function ManagementLayout({
       icon: ShieldCheck,
       badge: pendingReviewCount > 0 ? `${pendingReviewCount}` : null,
       badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
+    },
+    {
+      label: t.volunteerDeskTitle || 'Volunteer Desk',
+      href: `/m/${orgParam}/volunteer`,
+      exact: false,
+      icon: UserCheck,
+      badge: null,
     },
     {
       label: t.navStaff,
@@ -592,16 +607,20 @@ export default function ManagementLayout({
     </div>
   );
 
-  // Authenticated Executive Dashboard Shell
+  // Authenticated Executive / Volunteer Dashboard Shell
+  const isVolunteer = session.role === 'VOLUNTEER';
+
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-slate-800 antialiased flex flex-col lg:flex-row">
-      {/* 1. Desktop Persistent Sidebar (Only visible on lg: 1024px and up) */}
-      <aside className="hidden lg:flex fixed left-0 top-0 h-full w-72 bg-white border-r border-slate-200 z-50 flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.03)]">
-        {renderSidebarContent(false)}
-      </aside>
+      {/* 1. Desktop Persistent Sidebar (Only for ADMIN on lg: 1024px and up) */}
+      {!isVolunteer && (
+        <aside className="hidden lg:flex fixed left-0 top-0 h-full w-72 bg-white border-r border-slate-200 z-50 flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.03)]">
+          {renderSidebarContent(false)}
+        </aside>
+      )}
 
-      {/* 2. Mobile Slide-Over Drawer with Backdrop (for phones / tablets) */}
-      {mobileMenuOpen && (
+      {/* 2. Mobile Slide-Over Drawer with Backdrop (Only for ADMIN) */}
+      {!isVolunteer && mobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
@@ -613,25 +632,25 @@ export default function ManagementLayout({
         </div>
       )}
 
-      {/* 3. Main Workspace Area (pl-0 on mobile, pl-72 on desktop, pb-20 for mobile bottom bar) */}
-      <div className="pl-0 lg:pl-72 flex-1 flex flex-col min-w-0 pb-20 lg:pb-6">
+      {/* 3. Main Workspace Area */}
+      <div className={`${isVolunteer ? 'pl-0 pb-6' : 'pl-0 lg:pl-72 pb-20 lg:pb-6'} flex-1 flex flex-col min-w-0`}>
         {/* Top Sticky Bar */}
         <header className="sticky top-0 z-40 h-14 sm:h-16 bg-white/95 backdrop-blur-md border-b border-slate-200 px-3.5 sm:px-6 flex items-center justify-between gap-2">
-          {/* Left: Mobile Hamburger + Brand / Desktop Status Pill */}
+          {/* Left: Brand / Volunteer Title / Desktop Status Pill */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            {/* Mobile Hamburger Button */}
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-2 -ml-1 rounded-xl text-slate-700 hover:bg-slate-100 transition active:scale-95"
-              aria-label="Open menu"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
+            {!isVolunteer && (
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(true)}
+                className="lg:hidden p-2 -ml-1 rounded-xl text-slate-700 hover:bg-slate-100 transition active:scale-95"
+                aria-label="Open menu"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+            )}
 
-            {/* Mobile Brand Name */}
-            <div className="flex items-center gap-2 lg:hidden min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold shrink-0">
+            <div className={`flex items-center gap-2 ${!isVolunteer ? 'lg:hidden' : ''} min-w-0`}>
+              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold shrink-0">
                 <Building2 className="w-4 h-4" />
               </div>
               <div className="flex flex-col min-w-0">
@@ -639,20 +658,23 @@ export default function ManagementLayout({
                   <span className="font-black text-slate-900 text-xs sm:text-sm truncate">Praja Seva</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
                 </div>
-                <span className="text-[10px] text-slate-500 truncate">{org?.name || 'Mangalagiri'}</span>
+                <span className="text-[10px] text-slate-500 truncate">
+                  {isVolunteer ? (t.volunteerDeskTitle || 'Volunteer Desk') : (org?.name || 'Constituency Ops')}
+                </span>
               </div>
             </div>
 
-            {/* Desktop Status Pill */}
-            <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-semibold text-slate-800">{t.groundNetworkActive}</span>
-              <span className="text-slate-300">•</span>
-              <span className="text-slate-500 font-medium">{t.autoSyncOn}</span>
-            </div>
+            {!isVolunteer && (
+              <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="font-semibold text-slate-800">{t.groundNetworkActive}</span>
+                <span className="text-slate-300">•</span>
+                <span className="text-slate-500 font-medium">{t.autoSyncOn}</span>
+              </div>
+            )}
           </div>
 
-          {/* Right: Language + Review Bell + User */}
+          {/* Right: Language + (Bell if Admin) + User Avatar + Logout */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Interactive Indian Language Dropdown */}
             <div className="relative">
@@ -691,23 +713,25 @@ export default function ManagementLayout({
               )}
             </div>
 
-            {/* Notification Bell */}
-            <Link
-              href={`/m/${orgParam}/review`}
-              className="relative p-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 transition active:scale-95 shrink-0"
-              title="Review Queue"
-            >
-              <Bell className="w-4 h-4" />
-              {pendingReviewCount > 0 && (
-                <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-red-600 text-white text-[10px] font-bold leading-tight">
-                  {pendingReviewCount}
-                </span>
-              )}
-            </Link>
+            {/* Notification Bell (Only for ADMIN) */}
+            {!isVolunteer && (
+              <Link
+                href={`/m/${orgParam}/review`}
+                className="relative p-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 transition active:scale-95 shrink-0"
+                title="Review Queue"
+              >
+                <Bell className="w-4 h-4" />
+                {pendingReviewCount > 0 && (
+                  <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-red-600 text-white text-[10px] font-bold leading-tight">
+                    {pendingReviewCount}
+                  </span>
+                )}
+              </Link>
+            )}
 
-            {/* User Avatar */}
+            {/* User Avatar & Logout */}
             <div className="flex items-center gap-2 pl-1 sm:pl-2 border-l border-slate-200">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
                 {session.name.slice(0, 2).toUpperCase()}
               </div>
               <div className="hidden md:flex flex-col text-left">
@@ -718,6 +742,16 @@ export default function ManagementLayout({
                   {session.role === 'ADMIN' ? 'Chief of Staff' : 'Field Volunteer'}
                 </span>
               </div>
+              {isVolunteer && (
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition ml-1"
+                  title={t.navLogout}
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
         </header>
@@ -726,77 +760,82 @@ export default function ManagementLayout({
         <main className="p-3.5 sm:p-6 max-w-[1440px] w-full mx-auto">{children}</main>
       </div>
 
-      {/* 4. One-Handed Mobile Bottom Navigation Bar (Fixed for phones & thumb access) */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 flex items-center justify-around shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
-        {/* Operations Board */}
-        <Link
-          href={`/m/${orgParam}`}
-          className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition min-w-[56px] ${
-            pathname === `/m/${orgParam}`
-              ? 'text-blue-600 font-bold'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <ClipboardList className="w-5 h-5" />
-          <span className="text-[10px] mt-0.5 leading-tight">{t.navBoardShort || t.navBoard}</span>
-        </Link>
+      {/* 4. One-Handed Mobile Bottom Navigation Bar (ONLY FOR ADMIN) */}
+      {!isVolunteer && (
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 flex items-center justify-around shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+          {/* Operations Board */}
+          <Link
+            href={`/m/${orgParam}`}
+            className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition min-w-[56px] ${
+              pathname === `/m/${orgParam}`
+                ? 'text-blue-600 font-bold'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <ClipboardList className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5 leading-tight">{t.navBoardShort || t.navBoard}</span>
+          </Link>
 
-        {/* Approvals (Review Desk) with red badge */}
-        <Link
-          href={`/m/${orgParam}/review`}
-          className={`relative flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition min-w-[56px] ${
-            pathname.startsWith(`/m/${orgParam}/review`)
-              ? 'text-blue-600 font-bold'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <div className="relative">
-            <ShieldCheck className="w-5 h-5" />
-            {pendingReviewCount > 0 && (
-              <span className="absolute -top-1 -right-2 px-1 rounded-full bg-red-600 text-white text-[9px] font-bold">
-                {pendingReviewCount}
-              </span>
-            )}
-          </div>
-          <span className="text-[10px] mt-0.5 leading-tight">{t.navApprove}</span>
-        </Link>
+          {/* Approvals (Review Desk) with red badge */}
+          <Link
+            href={`/m/${orgParam}/review`}
+            className={`relative flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition min-w-[56px] ${
+              pathname.startsWith(`/m/${orgParam}/review`)
+                ? 'text-blue-600 font-bold'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <div className="relative">
+              <ShieldCheck className="w-5 h-5" />
+              {pendingReviewCount > 0 && (
+                <span className="absolute -top-1 -right-2 px-1 rounded-full bg-red-600 text-white text-[9px] font-bold">
+                  {pendingReviewCount}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] mt-0.5 leading-tight">{t.navApprove}</span>
+          </Link>
 
-        {/* Volunteers / Staff */}
-        <Link
-          href={`/m/${orgParam}/staff`}
-          className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition min-w-[56px] ${
-            pathname.startsWith(`/m/${orgParam}/staff`)
-              ? 'text-blue-600 font-bold'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Users className="w-5 h-5" />
-          <span className="text-[10px] mt-0.5 leading-tight">{t.navStaffShort || t.navStaff}</span>
-        </Link>
+          {/* Volunteer Desk */}
+          <Link
+            href={`/m/${orgParam}/volunteer`}
+            className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition min-w-[56px] ${
+              pathname.startsWith(`/m/${orgParam}/volunteer`)
+                ? 'text-blue-600 font-bold'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <UserCheck className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5 leading-tight">Volunteer</span>
+          </Link>
 
-        {/* Analytics */}
-        <Link
-          href={`/m/${orgParam}/analytics`}
-          className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition min-w-[56px] ${
-            pathname.startsWith(`/m/${orgParam}/analytics`)
-              ? 'text-blue-600 font-bold'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <BarChart3 className="w-5 h-5" />
-          <span className="text-[10px] mt-0.5 leading-tight">{t.navAnalyticsShort || t.navAnalytics}</span>
-        </Link>
+          {/* Volunteers / Staff */}
+          <Link
+            href={`/m/${orgParam}/staff`}
+            className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition min-w-[56px] ${
+              pathname.startsWith(`/m/${orgParam}/staff`)
+                ? 'text-blue-600 font-bold'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Users className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5 leading-tight">{t.navStaffShort || t.navStaff}</span>
+          </Link>
 
-        {/* More Drawer Trigger */}
-        <button
-          type="button"
-          onClick={() => setMobileMenuOpen(true)}
-          className="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-slate-500 hover:text-slate-800 transition min-w-[56px]"
-        >
-          <Menu className="w-5 h-5" />
-          <span className="text-[10px] mt-0.5 leading-tight">{t.navMore}</span>
-        </button>
-      </nav>
+          {/* Settings */}
+          <Link
+            href={`/m/${orgParam}/settings`}
+            className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition min-w-[56px] ${
+              pathname.startsWith(`/m/${orgParam}/settings`)
+                ? 'text-blue-600 font-bold'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Settings className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5 leading-tight">{t.navSettings}</span>
+          </Link>
+        </nav>
+      )}
     </div>
   );
 }

@@ -30,7 +30,9 @@ import {
   Maximize2,
   User,
   ArrowUpRight,
-  ImageIcon
+  ImageIcon,
+  Info,
+  RefreshCw
 } from 'lucide-react';
 import { Complaint, ComplaintCategory } from '@/types';
 import { formatDateTime, calculateTurnaround } from '@/lib/dateUtils';
@@ -76,8 +78,27 @@ export default function OperationsBoardPage({
   const [volunteers, setVolunteers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Active Tab: driven by top 3 cards (NEW, IN_PROGRESS, RESOLVED)
-  const [activeTab, setActiveTab] = useState<'NEW' | 'IN_PROGRESS' | 'RESOLVED'>('NEW');
+  // Active Tab: driven by top 4 cards (NEW, ASSIGNED, IN_PROGRESS, RESOLVED)
+  const [activeTab, setActiveTab] = useState<'NEW' | 'ASSIGNED' | 'IN_PROGRESS' | 'RESOLVED'>('NEW');
+
+  // 3-Second Info Popover State
+  const [activeInfoCard, setActiveInfoCard] = useState<string | null>(null);
+  const infoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleShowInfo = (cardKey: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (infoTimeoutRef.current) clearTimeout(infoTimeoutRef.current);
+    setActiveInfoCard(cardKey);
+    infoTimeoutRef.current = setTimeout(() => {
+      setActiveInfoCard(null);
+    }, 3000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (infoTimeoutRef.current) clearTimeout(infoTimeoutRef.current);
+    };
+  }, []);
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState('');
@@ -225,6 +246,7 @@ export default function OperationsBoardPage({
 
   // 4. Counts by Status
   const newCount = allTickets.filter((t) => t.status === 'NEW').length;
+  const assignedCount = allTickets.filter((t) => t.status === 'ASSIGNED').length;
   const inProgressCount = allTickets.filter((t) => t.status === 'IN_PROGRESS').length;
   const pendingReviewCount = allTickets.filter((t) => t.status === 'PENDING_APPROVAL').length;
   const resolvedCount = allTickets.filter((t) => t.status === 'RESOLVED').length;
@@ -407,11 +429,19 @@ export default function OperationsBoardPage({
                 <span className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold border ${
                   detailTicket.status === 'NEW'
                     ? 'bg-blue-100 text-blue-800 border-blue-200'
+                    : detailTicket.status === 'ASSIGNED'
+                    ? 'bg-indigo-100 text-indigo-800 border-indigo-200'
                     : detailTicket.status === 'IN_PROGRESS'
                     ? 'bg-amber-100 text-amber-800 border-amber-200'
                     : 'bg-emerald-100 text-emerald-800 border-emerald-200'
                 }`}>
-                  {detailTicket.status === 'NEW' ? t.statusNew : detailTicket.status === 'IN_PROGRESS' ? t.statusInProgress : t.statusResolved}
+                  {detailTicket.status === 'NEW'
+                    ? t.statusNew
+                    : detailTicket.status === 'ASSIGNED'
+                    ? t.statusAssigned
+                    : detailTicket.status === 'IN_PROGRESS'
+                    ? t.statusInProgress
+                    : t.statusResolved}
                 </span>
                 <button
                   onClick={() => setDetailTicket(null)}
@@ -566,7 +596,7 @@ export default function OperationsBoardPage({
                 </div>
               </div>
 
-              {/* Action Zone: Assign Volunteer */}
+              {/* Action Zone: Assign / Reassign Volunteer */}
               <div className="pt-3 border-t border-slate-200">
                 {detailTicket.status === 'NEW' && (
                   <div className="space-y-2">
@@ -606,6 +636,51 @@ export default function OperationsBoardPage({
                       >
                         <UserCheck className="w-4 h-4 shrink-0" />
                         <span>{assigningId === detailTicket.id ? t.assigningBtn : t.assignBtn}</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {detailTicket.status === 'ASSIGNED' && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-700 block">
+                        {t.currentlyAssignedTo}: <strong className="text-indigo-700">{detailTicket.assigned_staff?.full_name || 'Volunteer'}</strong>
+                      </span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2.5">
+                      <div className="relative w-full sm:flex-1 min-w-0">
+                        <select
+                          value={selectedVolunteerMap[detailTicket.id] || detailTicket.assigned_to || volunteers[0]?.id || ''}
+                          onChange={(e) =>
+                            setSelectedVolunteerMap({
+                              ...selectedVolunteerMap,
+                              [detailTicket.id]: e.target.value,
+                            })
+                          }
+                          className="w-full h-11 pl-3 pr-8 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 appearance-none truncate"
+                        >
+                          {volunteers.map((vol) => (
+                            <option key={vol.id} value={vol.id}>
+                              {vol.full_name} ({vol.role})
+                            </option>
+                          ))}
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
+                          ▼
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleAssignVolunteer(detailTicket.id);
+                          setDetailTicket(null);
+                        }}
+                        disabled={assigningId === detailTicket.id}
+                        className="w-full sm:w-auto h-11 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm cursor-pointer shrink-0 active:scale-95"
+                      >
+                        <RefreshCw className="w-4 h-4 shrink-0" />
+                        <span>{assigningId === detailTicket.id ? t.reassigningBtn : t.reassignBtn}</span>
                       </button>
                     </div>
                   </div>
@@ -660,6 +735,9 @@ export default function OperationsBoardPage({
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-1">
             {t.pageTitle}
           </h1>
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
+            "{t.constituencySlogan}"
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -683,151 +761,301 @@ export default function OperationsBoardPage({
       </div>
 
       {/* ===================================================================== */}
-      {/* 1. MOBILE THUMB-FRIENDLY SEGMENTED STATUS SWITCHER (ONE-HAND ACCESS)   */}
+      {/* 1. MOBILE 4-CARD SEGMENTED STATUS SWITCHER (COMPACT, NO SUBTITLES)    */}
       {/* ===================================================================== */}
-      <div className="md:hidden grid grid-cols-3 gap-1.5 p-1 bg-slate-200/70 rounded-2xl">
-        <button
-          type="button"
-          onClick={() => setActiveTab('NEW')}
-          className={`py-2 px-1 rounded-xl text-xs font-bold transition flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95 ${
-            activeTab === 'NEW'
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <span className="text-[10px] uppercase tracking-wider font-extrabold opacity-85">{t.statusNew}</span>
-          <span className="text-base font-black leading-none">{newCount}</span>
-        </button>
+      <div className="md:hidden grid grid-cols-4 gap-1 p-1 bg-slate-200/70 rounded-2xl relative">
+        {/* NEW */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setActiveTab('NEW')}
+            className={`w-full py-2 px-1 rounded-xl text-xs font-bold transition flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95 ${
+              activeTab === 'NEW'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <div className="flex items-center gap-1 max-w-full">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold opacity-90 truncate">{t.statusNew}</span>
+              <span
+                onClick={(e) => handleShowInfo('NEW', e)}
+                className="opacity-70 hover:opacity-100 p-0.5 cursor-pointer shrink-0"
+              >
+                <Info className="w-2.5 h-2.5" />
+              </span>
+            </div>
+            <span className="text-base font-black leading-none">{newCount}</span>
+          </button>
+          {activeInfoCard === 'NEW' && (
+            <div className="absolute top-full left-0 mt-1.5 z-40 w-44 p-2 bg-slate-900/95 text-white text-[11px] rounded-xl shadow-xl backdrop-blur-xs animate-in fade-in zoom-in-95 leading-snug">
+              {t.infoNew}
+            </div>
+          )}
+        </div>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('IN_PROGRESS')}
-          className={`py-2 px-1 rounded-xl text-xs font-bold transition flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95 ${
-            activeTab === 'IN_PROGRESS'
-              ? 'bg-amber-500 text-white shadow-xs'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <span className="text-[10px] uppercase tracking-wider font-extrabold opacity-85">{t.statusInProgress}</span>
-          <span className="text-base font-black leading-none">{inProgressCount}</span>
-        </button>
+        {/* ASSIGNED */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setActiveTab('ASSIGNED')}
+            className={`w-full py-2 px-1 rounded-xl text-xs font-bold transition flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95 ${
+              activeTab === 'ASSIGNED'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <div className="flex items-center gap-1 max-w-full">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold opacity-90 truncate">{t.statusAssigned}</span>
+              <span
+                onClick={(e) => handleShowInfo('ASSIGNED', e)}
+                className="opacity-70 hover:opacity-100 p-0.5 cursor-pointer shrink-0"
+              >
+                <Info className="w-2.5 h-2.5" />
+              </span>
+            </div>
+            <span className="text-base font-black leading-none">{assignedCount}</span>
+          </button>
+          {activeInfoCard === 'ASSIGNED' && (
+            <div className="absolute top-full -left-6 mt-1.5 z-40 w-48 p-2 bg-slate-900/95 text-white text-[11px] rounded-xl shadow-xl backdrop-blur-xs animate-in fade-in zoom-in-95 leading-snug">
+              {t.infoAssigned}
+            </div>
+          )}
+        </div>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('RESOLVED')}
-          className={`py-2 px-1 rounded-xl text-xs font-bold transition flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95 ${
-            activeTab === 'RESOLVED'
-              ? 'bg-emerald-600 text-white shadow-xs'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <span className="text-[10px] uppercase tracking-wider font-extrabold opacity-85">{t.statusResolved}</span>
-          <span className="text-base font-black leading-none">{resolvedCount}</span>
-        </button>
+        {/* IN_PROGRESS */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setActiveTab('IN_PROGRESS')}
+            className={`w-full py-2 px-1 rounded-xl text-xs font-bold transition flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95 ${
+              activeTab === 'IN_PROGRESS'
+                ? 'bg-amber-500 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <div className="flex items-center gap-1 max-w-full">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold opacity-90 truncate">{t.statusInProgress}</span>
+              <span
+                onClick={(e) => handleShowInfo('IN_PROGRESS', e)}
+                className="opacity-70 hover:opacity-100 p-0.5 cursor-pointer shrink-0"
+              >
+                <Info className="w-2.5 h-2.5" />
+              </span>
+            </div>
+            <span className="text-base font-black leading-none">{inProgressCount}</span>
+          </button>
+          {activeInfoCard === 'IN_PROGRESS' && (
+            <div className="absolute top-full -right-6 mt-1.5 z-40 w-48 p-2 bg-slate-900/95 text-white text-[11px] rounded-xl shadow-xl backdrop-blur-xs animate-in fade-in zoom-in-95 leading-snug">
+              {t.infoInProgress}
+            </div>
+          )}
+        </div>
+
+        {/* RESOLVED */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setActiveTab('RESOLVED')}
+            className={`w-full py-2 px-1 rounded-xl text-xs font-bold transition flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95 ${
+              activeTab === 'RESOLVED'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <div className="flex items-center gap-1 max-w-full">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold opacity-90 truncate">{t.statusResolved}</span>
+              <span
+                onClick={(e) => handleShowInfo('RESOLVED', e)}
+                className="opacity-70 hover:opacity-100 p-0.5 cursor-pointer shrink-0"
+              >
+                <Info className="w-2.5 h-2.5" />
+              </span>
+            </div>
+            <span className="text-base font-black leading-none">{resolvedCount}</span>
+          </button>
+          {activeInfoCard === 'RESOLVED' && (
+            <div className="absolute top-full right-0 mt-1.5 z-40 w-44 p-2 bg-slate-900/95 text-white text-[11px] rounded-xl shadow-xl backdrop-blur-xs animate-in fade-in zoom-in-95 leading-snug">
+              {t.infoResolved}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ===================================================================== */}
-      {/* 2. DESKTOP 3 INTERACTIVE STATUS CARDS (NEW, IN PROGRESS, RESOLVED)    */}
+      {/* 2. DESKTOP 4 STATUS METRIC CARDS (CLEAN, SINGLE LINE TITLE + COUNT)   */}
       {/* ===================================================================== */}
-      <div className="hidden md:grid md:grid-cols-3 gap-4">
-        {/* CARD 1: NEW / UNASSIGNED */}
-        <button
-          type="button"
-          onClick={() => setActiveTab('NEW')}
-          className={`p-4 rounded-2xl border text-left transition flex flex-col justify-between cursor-pointer ${
-            activeTab === 'NEW'
-              ? 'bg-blue-50/80 border-blue-600 ring-2 ring-blue-500/20 shadow-sm'
-              : 'bg-white border-slate-200 hover:border-slate-300 shadow-2xs'
-          }`}
-        >
-          <div className="flex items-start justify-between w-full">
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                {t.newCardTitle}
-              </span>
-              <div className="text-2xl font-black text-blue-700 mt-1">
-                {newCount}
+      <div className="hidden md:grid md:grid-cols-4 gap-3.5">
+        {/* CARD 1: NEW */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setActiveTab('NEW')}
+            className={`w-full p-4 rounded-2xl border text-left transition flex flex-col justify-between cursor-pointer ${
+              activeTab === 'NEW'
+                ? 'bg-blue-50/80 border-blue-600 ring-2 ring-blue-500/20 shadow-sm'
+                : 'bg-white border-slate-200 hover:border-slate-300 shadow-2xs'
+            }`}
+          >
+            <div className="flex items-start justify-between w-full">
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 block">
+                    {t.newCardTitle}
+                  </span>
+                  <span
+                    onClick={(e) => handleShowInfo('NEW', e)}
+                    className="text-slate-400 hover:text-blue-600 cursor-pointer p-0.5 transition"
+                    title="Help info"
+                  >
+                    <Info className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+                <div className="text-2xl font-black text-blue-700 mt-1">
+                  {newCount}
+                </div>
+              </div>
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
+                activeTab === 'NEW' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'
+              }`}>
+                <Inbox className="w-5 h-5" />
               </div>
             </div>
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
-              activeTab === 'NEW' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'
-            }`}>
-              <Inbox className="w-5 h-5" />
+          </button>
+          {activeInfoCard === 'NEW' && (
+            <div className="absolute top-full left-0 mt-2 z-30 w-64 p-3 bg-slate-900/95 text-white text-xs rounded-xl shadow-2xl backdrop-blur-xs animate-in fade-in zoom-in-95 border border-slate-700 leading-relaxed">
+              {t.infoNew}
             </div>
-          </div>
-          <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 w-full">
-            <span>{t.statusNew}</span>
-            <span className={`font-bold ${activeTab === 'NEW' ? 'text-blue-700' : 'text-slate-400'}`}>
-              {activeTab === 'NEW' ? t.selectedView : t.clickToView}
-            </span>
-          </div>
-        </button>
+          )}
+        </div>
 
-        {/* CARD 2: IN FIELD ACTION */}
-        <button
-          type="button"
-          onClick={() => setActiveTab('IN_PROGRESS')}
-          className={`p-4 rounded-2xl border text-left transition flex flex-col justify-between cursor-pointer ${
-            activeTab === 'IN_PROGRESS'
-              ? 'bg-amber-50/80 border-amber-600 ring-2 ring-amber-500/20 shadow-sm'
-              : 'bg-white border-slate-200 hover:border-slate-300 shadow-2xs'
-          }`}
-        >
-          <div className="flex items-start justify-between w-full">
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                {t.inProgressCardTitle}
-              </span>
-              <div className="text-2xl font-black text-amber-600 mt-1">
-                {inProgressCount}
+        {/* CARD 2: ASSIGNED */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setActiveTab('ASSIGNED')}
+            className={`w-full p-4 rounded-2xl border text-left transition flex flex-col justify-between cursor-pointer ${
+              activeTab === 'ASSIGNED'
+                ? 'bg-indigo-50/80 border-indigo-600 ring-2 ring-indigo-500/20 shadow-sm'
+                : 'bg-white border-slate-200 hover:border-slate-300 shadow-2xs'
+            }`}
+          >
+            <div className="flex items-start justify-between w-full">
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 block">
+                    {t.assignedCardTitle}
+                  </span>
+                  <span
+                    onClick={(e) => handleShowInfo('ASSIGNED', e)}
+                    className="text-slate-400 hover:text-indigo-600 cursor-pointer p-0.5 transition"
+                    title="Help info"
+                  >
+                    <Info className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+                <div className="text-2xl font-black text-indigo-700 mt-1">
+                  {assignedCount}
+                </div>
+              </div>
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
+                activeTab === 'ASSIGNED' ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600'
+              }`}>
+                <UserCheck className="w-5 h-5" />
               </div>
             </div>
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
-              activeTab === 'IN_PROGRESS' ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-600'
-            }`}>
-              <Flame className="w-5 h-5" />
+          </button>
+          {activeInfoCard === 'ASSIGNED' && (
+            <div className="absolute top-full left-0 mt-2 z-30 w-64 p-3 bg-slate-900/95 text-white text-xs rounded-xl shadow-2xl backdrop-blur-xs animate-in fade-in zoom-in-95 border border-slate-700 leading-relaxed">
+              {t.infoAssigned}
             </div>
-          </div>
-          <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 w-full">
-            <span>{t.statusInProgress}</span>
-            <span className={`font-bold ${activeTab === 'IN_PROGRESS' ? 'text-amber-600' : 'text-slate-400'}`}>
-              {activeTab === 'IN_PROGRESS' ? t.selectedView : t.clickToView}
-            </span>
-          </div>
-        </button>
+          )}
+        </div>
 
-        {/* CARD 3: TOTAL RESOLVED */}
-        <button
-          type="button"
-          onClick={() => setActiveTab('RESOLVED')}
-          className={`p-4 rounded-2xl border text-left transition flex flex-col justify-between cursor-pointer ${
-            activeTab === 'RESOLVED'
-              ? 'bg-emerald-50/80 border-emerald-600 ring-2 ring-emerald-500/20 shadow-sm'
-              : 'bg-white border-slate-200 hover:border-slate-300 shadow-2xs'
-          }`}
-        >
-          <div className="flex items-start justify-between w-full">
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                {t.resolvedCardTitle}
-              </span>
-              <div className="text-2xl font-black text-emerald-600 mt-1">
-                {resolvedCount}
+        {/* CARD 3: IN PROGRESS */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setActiveTab('IN_PROGRESS')}
+            className={`w-full p-4 rounded-2xl border text-left transition flex flex-col justify-between cursor-pointer ${
+              activeTab === 'IN_PROGRESS'
+                ? 'bg-amber-50/80 border-amber-600 ring-2 ring-amber-500/20 shadow-sm'
+                : 'bg-white border-slate-200 hover:border-slate-300 shadow-2xs'
+            }`}
+          >
+            <div className="flex items-start justify-between w-full">
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 block">
+                    {t.inProgressCardTitle}
+                  </span>
+                  <span
+                    onClick={(e) => handleShowInfo('IN_PROGRESS', e)}
+                    className="text-slate-400 hover:text-amber-600 cursor-pointer p-0.5 transition"
+                    title="Help info"
+                  >
+                    <Info className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+                <div className="text-2xl font-black text-amber-600 mt-1">
+                  {inProgressCount}
+                </div>
+              </div>
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
+                activeTab === 'IN_PROGRESS' ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-600'
+              }`}>
+                <Flame className="w-5 h-5" />
               </div>
             </div>
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
-              activeTab === 'RESOLVED' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-600'
-            }`}>
-              <CheckCircle2 className="w-5 h-5" />
+          </button>
+          {activeInfoCard === 'IN_PROGRESS' && (
+            <div className="absolute top-full left-0 mt-2 z-30 w-64 p-3 bg-slate-900/95 text-white text-xs rounded-xl shadow-2xl backdrop-blur-xs animate-in fade-in zoom-in-95 border border-slate-700 leading-relaxed">
+              {t.infoInProgress}
             </div>
-          </div>
-          <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 w-full">
-            <span>{t.statusResolved}</span>
-            <span className={`font-bold ${activeTab === 'RESOLVED' ? 'text-emerald-600' : 'text-slate-400'}`}>
-              {activeTab === 'RESOLVED' ? t.selectedView : t.clickToView}
-            </span>
-          </div>
-        </button>
+          )}
+        </div>
+
+        {/* CARD 4: RESOLVED */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setActiveTab('RESOLVED')}
+            className={`w-full p-4 rounded-2xl border text-left transition flex flex-col justify-between cursor-pointer ${
+              activeTab === 'RESOLVED'
+                ? 'bg-emerald-50/80 border-emerald-600 ring-2 ring-emerald-500/20 shadow-sm'
+                : 'bg-white border-slate-200 hover:border-slate-300 shadow-2xs'
+            }`}
+          >
+            <div className="flex items-start justify-between w-full">
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 block">
+                    {t.resolvedCardTitle}
+                  </span>
+                  <span
+                    onClick={(e) => handleShowInfo('RESOLVED', e)}
+                    className="text-slate-400 hover:text-emerald-600 cursor-pointer p-0.5 transition"
+                    title="Help info"
+                  >
+                    <Info className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+                <div className="text-2xl font-black text-emerald-600 mt-1">
+                  {resolvedCount}
+                </div>
+              </div>
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
+                activeTab === 'RESOLVED' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-600'
+              }`}>
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+            </div>
+          </button>
+          {activeInfoCard === 'RESOLVED' && (
+            <div className="absolute top-full right-0 mt-2 z-30 w-64 p-3 bg-slate-900/95 text-white text-xs rounded-xl shadow-2xl backdrop-blur-xs animate-in fade-in zoom-in-95 border border-slate-700 leading-relaxed">
+              {t.infoResolved}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ===================================================================== */}
@@ -926,12 +1154,15 @@ export default function OperationsBoardPage({
             <span className={`w-2.5 h-2.5 rounded-full ${
               activeTab === 'NEW'
                 ? 'bg-blue-600'
+                : activeTab === 'ASSIGNED'
+                ? 'bg-indigo-600'
                 : activeTab === 'IN_PROGRESS'
                 ? 'bg-amber-500 animate-pulse'
                 : 'bg-emerald-600'
             }`} />
             <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">
               {activeTab === 'NEW' && `${t.newCardTitle} (${newCount})`}
+              {activeTab === 'ASSIGNED' && `${t.assignedCardTitle} (${assignedCount})`}
               {activeTab === 'IN_PROGRESS' && `${t.inProgressCardTitle} (${inProgressCount})`}
               {activeTab === 'RESOLVED' && `${t.resolvedCardTitle} (${resolvedCount})`}
             </h2>
@@ -998,16 +1229,32 @@ export default function OperationsBoardPage({
                           {getCategoryLabel(ticket.category)}
                         </span>
 
-                        {/* 3. Status Badge (Strict colors: Blue / Orange / Green) */}
+                        {/* 3. Status Badge (Strict colors: Blue / Indigo / Amber / Green) */}
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider border ${
                           ticket.status === 'NEW'
                             ? 'bg-blue-100 text-blue-800 border-blue-300'
+                            : ticket.status === 'ASSIGNED'
+                            ? 'bg-indigo-100 text-indigo-800 border-indigo-300'
                             : ticket.status === 'IN_PROGRESS'
                             ? 'bg-amber-100 text-amber-800 border-amber-300'
                             : 'bg-emerald-100 text-emerald-800 border-emerald-300'
                         }`}>
-                          {ticket.status === 'NEW' ? t.statusNew : ticket.status === 'IN_PROGRESS' ? t.statusInProgress : t.statusResolved}
+                          {ticket.status === 'NEW'
+                            ? t.statusNew
+                            : ticket.status === 'ASSIGNED'
+                            ? t.statusAssigned
+                            : ticket.status === 'IN_PROGRESS'
+                            ? t.statusInProgress
+                            : t.statusResolved}
                         </span>
+
+                        {/* Assigned Volunteer Badge for ASSIGNED & IN_PROGRESS */}
+                        {(ticket.status === 'ASSIGNED' || ticket.status === 'IN_PROGRESS') && ticket.assigned_staff?.full_name && (
+                          <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold border border-slate-200 flex items-center gap-1">
+                            <UserCheck className="w-3 h-3 text-indigo-600" />
+                            <span>{ticket.assigned_staff.full_name}</span>
+                          </span>
+                        )}
                       </div>
 
                       {/* Citizen & Location Snippet */}

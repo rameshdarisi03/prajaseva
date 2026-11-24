@@ -28,7 +28,7 @@ import {
   Trash,
   LucideIcon
 } from 'lucide-react';
-import { IndianLanguage } from '@/lib/mgmtI18n';
+import { IndianLanguage, MGMT_TRANSLATIONS } from '@/lib/mgmtI18n';
 import { SUPPORTED_LANGUAGES } from '@/lib/landingI18n';
 import { CITIZEN_TRANSLATIONS } from '@/lib/citizenI18n';
 import { ComplaintCategory, Complaint } from '@/types';
@@ -516,7 +516,7 @@ export default function ScopedCitizenPortal({
               {ct.portalSubtitle}
             </p>
             <h2 className="text-lg font-bold text-white mt-0.5">
-              {org.constituencySlogan || 'ప్రజల కోసం... ప్రజా సేవలో...'}
+              {MGMT_TRANSLATIONS[lang]?.constituencySlogan || org.constituencySlogan || 'ప్రజల కోసం... ప్రజా సేవలో...'}
             </h2>
           </div>
           <div className="hidden sm:flex items-center gap-2 bg-white/10 backdrop-blur-xs px-3 py-1.5 rounded-full text-xs font-medium border border-white/20">
@@ -974,6 +974,8 @@ export default function ScopedCitizenPortal({
                     const statusText =
                       item.status === 'NEW'
                         ? ct.statusNew
+                        : item.status === 'ASSIGNED'
+                        ? ct.statusAssigned
                         : item.status === 'IN_PROGRESS'
                         ? ct.statusInProgress
                         : item.status === 'PENDING_APPROVAL'
@@ -993,6 +995,8 @@ export default function ScopedCitizenPortal({
                             className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
                               item.status === 'RESOLVED'
                                 ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                : item.status === 'ASSIGNED'
+                                ? 'bg-indigo-100 text-indigo-800 border-indigo-300'
                                 : item.status === 'IN_PROGRESS'
                                 ? 'bg-amber-100 text-amber-800 border-amber-300'
                                 : item.status === 'PENDING_APPROVAL'

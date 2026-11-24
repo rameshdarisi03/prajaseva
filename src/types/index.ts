@@ -4,7 +4,7 @@
 
 export type ComplaintCategory = 'DRAINAGE' | 'ROADS' | 'WATER' | 'LIGHTS' | 'GARBAGE' | 'OTHER';
 
-export type TicketStatus = 'NEW' | 'IN_PROGRESS' | 'PENDING_APPROVAL' | 'RESOLVED' | 'REJECTED';
+export type TicketStatus = 'NEW' | 'ASSIGNED' | 'IN_PROGRESS' | 'PENDING_APPROVAL' | 'RESOLVED' | 'REJECTED';
 
 export type UserRole = 'ADMIN' | 'VOLUNTEER';
 

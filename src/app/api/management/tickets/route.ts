@@ -86,8 +86,24 @@ export async function PATCH(req: NextRequest) {
         .from('complaints')
         .update({
           assigned_to: volunteerId,
-          status: 'IN_PROGRESS',
+          status: 'ASSIGNED',
           assigned_at: new Date().toISOString(),
+        })
+        .eq('id', ticketId)
+        .select()
+        .single();
+
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ success: true, complaint: data });
+    }
+
+    // 1B. ACTION: START WORK (VOLUNTEER MOVES ASSIGNED -> IN_PROGRESS)
+    if (action === 'start_work') {
+      const { data, error } = await supabaseAdmin
+        .from('complaints')
+        .update({
+          status: 'IN_PROGRESS',
+          work_started_at: new Date().toISOString(),
         })
         .eq('id', ticketId)
         .select()

@@ -76,6 +76,7 @@ export interface CitizenPortalTranslations {
   categoryLabel: string;
   lodgedLabel: string;
   statusNew: string;
+  statusAssigned: string;
   statusInProgress: string;
   statusPendingApproval: string;
   statusResolved: string;
@@ -142,6 +143,7 @@ export const CITIZEN_TRANSLATIONS: Record<IndianLanguage, CitizenPortalTranslati
     categoryLabel: 'Category:',
     lodgedLabel: 'Lodged:',
     statusNew: 'NEW',
+    statusAssigned: 'VOLUNTEER ASSIGNED',
     statusInProgress: 'IN PROGRESS',
     statusPendingApproval: 'PENDING APPROVAL',
     statusResolved: 'RESOLVED',
@@ -207,6 +209,7 @@ export const CITIZEN_TRANSLATIONS: Record<IndianLanguage, CitizenPortalTranslati
     categoryLabel: 'విభాగం:',
     lodgedLabel: 'నమోదు తేదీ:',
     statusNew: 'కొత్తది',
+    statusAssigned: 'వాలంటీర్ కేటాయించబడింది',
     statusInProgress: 'పురోగతిలో ఉంది',
     statusPendingApproval: 'ఆమోదం కోసం వేచి ఉంది',
     statusResolved: 'పరిష్కరించబడింది',
@@ -272,6 +275,7 @@ export const CITIZEN_TRANSLATIONS: Record<IndianLanguage, CitizenPortalTranslati
     categoryLabel: 'श्रेणी:',
     lodgedLabel: 'दर्ज तिथि:',
     statusNew: 'नई',
+    statusAssigned: 'कार्यकर्ता को सौंपा गया',
     statusInProgress: 'प्रगति पर',
     statusPendingApproval: 'स्वीकृति प्रतीक्षित',
     statusResolved: 'हल किया गया',
@@ -337,6 +341,7 @@ export const CITIZEN_TRANSLATIONS: Record<IndianLanguage, CitizenPortalTranslati
     categoryLabel: 'பிரிவு:',
     lodgedLabel: 'பதிவு நாள்:',
     statusNew: 'புதியது',
+    statusAssigned: 'தன்னார்வலர் நியமிக்கப்பட்டார்',
     statusInProgress: 'நடவடிக்கையில்',
     statusPendingApproval: 'ஒப்புதலுக்கு காத்திருக்கிறது',
     statusResolved: 'தீர்க்கப்பட்டது',
@@ -402,6 +407,7 @@ export const CITIZEN_TRANSLATIONS: Record<IndianLanguage, CitizenPortalTranslati
     categoryLabel: 'ವರ್ಗ:',
     lodgedLabel: 'ದಿನಾಂಕ:',
     statusNew: 'ಹೊಸದು',
+    statusAssigned: 'ಸ್ವಯಂಸೇವಕರನ್ನು ನಿಯೋಜಿಸಲಾಗಿದೆ',
     statusInProgress: 'ಪ್ರಗತಿಯಲ್ಲಿದೆ',
     statusPendingApproval: 'ಅನುಮೋದನೆಗಾಗಿ ಕಾಯುತ್ತಿದೆ',
     statusResolved: 'ಪರಿಹರಿಸಲಾಗಿದೆ',
@@ -467,6 +473,7 @@ export const CITIZEN_TRANSLATIONS: Record<IndianLanguage, CitizenPortalTranslati
     categoryLabel: 'വിഭാഗം:',
     lodgedLabel: 'തീയതി:',
     statusNew: 'പുതിയത്',
+    statusAssigned: 'വോളണ്ടിയറെ ചുമതലപ്പെടുത്തി',
     statusInProgress: 'നടപടിയിൽ',
     statusPendingApproval: 'അംഗീകാരത്തിനായി കാത്തിരിക്കുന്നു',
     statusResolved: 'പരിഹരിച്ചു',
@@ -532,6 +539,7 @@ export const CITIZEN_TRANSLATIONS: Record<IndianLanguage, CitizenPortalTranslati
     categoryLabel: 'বিভাগ:',
     lodgedLabel: 'তারিখ:',
     statusNew: 'নতুন',
+    statusAssigned: 'স্বেচ্ছাসেবক নিয়োগ করা হয়েছে',
     statusInProgress: 'প্রক্রিয়াধীন',
     statusPendingApproval: 'অনুমোদন অপেক্ষমাণ',
     statusResolved: 'সমাধানকৃত',
@@ -597,6 +605,7 @@ export const CITIZEN_TRANSLATIONS: Record<IndianLanguage, CitizenPortalTranslati
     categoryLabel: 'प्रवर्ग:',
     lodgedLabel: 'दाखल दिनांक:',
     statusNew: 'नवीन',
+    statusAssigned: 'स्वयंसेवक नियुक्त',
     statusInProgress: 'प्रगतीपथावर',
     statusPendingApproval: 'मंजुरीची प्रतीक्षा',
     statusResolved: 'सोडवली',
@@ -662,6 +671,7 @@ export const CITIZEN_TRANSLATIONS: Record<IndianLanguage, CitizenPortalTranslati
     categoryLabel: 'કેટેગરી:',
     lodgedLabel: 'તારીખ:',
     statusNew: 'નવી',
+    statusAssigned: 'સ્વયંસેવક સોંપાયા',
     statusInProgress: 'પ્રગતિમાં',
     statusPendingApproval: 'મંજૂરીની રાહમાં',
     statusResolved: 'ઉકેલાયેલ',
