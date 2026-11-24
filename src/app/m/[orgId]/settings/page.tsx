@@ -91,7 +91,6 @@ export default function SettingsAndQRPage({
 
   // Simplified UI & Accordion State
   const [expandedLeader, setExpandedLeader] = useState<'pm' | 'cm' | 'dyCm' | 'mla' | null>('pm');
-  const [mobilePrView, setMobilePrView] = useState<'settings' | 'preview'>('settings');
 
   // Image Crop Modal State
   const [cropModalOpen, setCropModalOpen] = useState(false);
@@ -513,8 +512,8 @@ export default function SettingsAndQRPage({
               activeTab === 'pr_poster' ? 'bg-white text-blue-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span>PR Poster & Coalition</span>
+            <Users className="w-3.5 h-3.5 text-blue-600" />
+            <span>Coalition & Leaders</span>
           </button>
           <button
             onClick={() => setActiveTab('poster')}
@@ -543,36 +542,10 @@ export default function SettingsAndQRPage({
         </div>
       )}
 
-      {/* Tab 0: Political PR Poster & Coalition Leadership Settings (Simplified & Collapsible) */}
+      {/* Tab 0: Coalition Leadership & Branding Settings (Clean Single-Column) */}
       {activeTab === 'pr_poster' && (
-        <>
-          {/* Mobile Tab Switcher between Settings & Live Preview */}
-          <div className="lg:hidden flex bg-slate-100 p-1 rounded-xl border border-slate-200 mb-3">
-            <button
-              type="button"
-              onClick={() => setMobilePrView('settings')}
-              className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
-                mobilePrView === 'settings' ? 'bg-white text-blue-600 shadow-2xs' : 'text-slate-600'
-              }`}
-            >
-              ⚙️ Coalition & Leaders
-            </button>
-            <button
-              type="button"
-              onClick={() => setMobilePrView('preview')}
-              className={`flex-1 py-2 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 ${
-                mobilePrView === 'preview' ? 'bg-white text-blue-600 shadow-2xs' : 'text-slate-600'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>Live 4:5 Poster Preview</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Left Column: Clean Setup Cards (7 cols on desktop) */}
-            <div className={`lg:col-span-7 space-y-4 ${mobilePrView === 'preview' ? 'hidden lg:block' : 'block'}`}>
-              <form onSubmit={handleSaveCoalitionConfig} className="space-y-4">
+        <div className="max-w-3xl space-y-4">
+          <form onSubmit={handleSaveCoalitionConfig} className="space-y-4">
                 {/* 1. Coalition Identity & Editable Party Badges */}
                 <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-2xs space-y-3.5">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
@@ -885,52 +858,10 @@ export default function SettingsAndQRPage({
                   className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition active:scale-98 cursor-pointer"
                 >
                   <Save className="w-4 h-4" />
-                  <span>Save All Changes to Poster</span>
+                  <span>Save Coalition & Leader Branding</span>
                 </button>
               </form>
             </div>
-
-            {/* Right Column: Live Sample 4:5 Poster Preview (5 cols on desktop) */}
-            <div className={`lg:col-span-5 space-y-4 ${mobilePrView === 'settings' ? 'hidden lg:block' : 'block'}`}>
-              <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-2xs space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-amber-500" />
-                    Live 4:5 JPEG Preview (WhatsApp/Instagram)
-                  </span>
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                    High-Res JPEG
-                  </span>
-                </div>
-
-                <VictoryPRPoster
-                  ticket={{
-                    id: 'sample-001',
-                    organization_id: orgParam,
-                    ticket_number: 'CMP-1005',
-                    citizen_name: 'రమేష్ దరిసి (Citizen)',
-                    citizen_phone: '9206651295',
-                    category: 'Drainage & Sewage',
-                    location_address: 'Kaggadasapura To Ring Road, Ward 01',
-                    latitude: 16.4419,
-                    longitude: 80.5658,
-                    is_phone_verified: true,
-                    description: 'Underground drainage overflow rectified with municipal jetting team.',
-                    status: 'RESOLVED',
-                    created_at: new Date(Date.now() - 3.5 * 3600 * 1000).toISOString(),
-                    submitted_for_approval_at: new Date().toISOString(),
-                    before_photo_url: 'https://images.unsplash.com/photo-1541888946425-d0fbb186156f?w=600&auto=format&fit=crop&q=80',
-                    after_photo_url: 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
-                    proximity_meters: 18,
-                    is_proximity_verified: true,
-                  } as unknown as Complaint}
-                  org={org}
-                  config={coalitionConfig}
-                />
-              </div>
-            </div>
-          </div>
-        </>
       )}
 
       {/* Hidden File Picker for Photo & Logo Uploads */}
