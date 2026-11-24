@@ -82,11 +82,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Resolve organization ID
+    // Resolve organization ID (supports both UUID and slug e.g. 'org_mangalagiri')
     let finalOrgId = organizationId;
     if (!finalOrgId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(finalOrgId)) {
-      const { data: org } = await supabaseAdmin.from('organizations').select('id').limit(1).single();
-      finalOrgId = org?.id;
+      const { data: org } = await supabaseAdmin
+        .from('organizations')
+        .select('id')
+        .or(`slug.eq.${organizationId || 'org_mangalagiri'},id.eq.00000000-0000-0000-0000-000000000001`)
+        .limit(1)
+        .maybeSingle();
+      finalOrgId = org?.id || '00000000-0000-0000-0000-000000000001';
     }
 
     const { data: newStaff, error } = await supabaseAdmin
