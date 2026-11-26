@@ -1,9 +1,9 @@
 {
-  "id": "/",
+  "id": "/login",
   "name": "Praja Seva Portal | ప్రజా సేవ",
   "short_name": "PrajaSeva",
   "description": "Civic Grievance Redressal and Citizen Service Portal",
-  "start_url": "/",
+  "start_url": "/login",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
