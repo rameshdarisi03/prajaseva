@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import bcrypt from 'bcryptjs';
 import { sendWhatsAppOtp } from '@/lib/whatsapp';
-import { storeOtp, verifyStoredOtp } from '@/lib/otpStore';
+import {
+  storeOtp,
+  verifyStoredOtp,
+  createSignedOtpToken,
+  verifySignedOtpToken,
+} from '@/lib/otpStore';
 
 interface MembershipRecord {
   staffId: string;
@@ -205,7 +210,8 @@ export async function POST(req: NextRequest) {
       }
 
       const first = memberships[0];
-      return NextResponse.json({
+      const otpCookieToken = createSignedOtpToken(cleanPhone, otpCode, 10 * 60 * 1000);
+      const res = NextResponse.json({
         success: true,
         whitelisted: true,
         otpSent: true,
@@ -218,6 +224,14 @@ export async function POST(req: NextRequest) {
         organizationName: first.organizationName,
         message: 'WhatsApp OTP dispatched successfully',
       });
+      res.cookies.set('ps_otp_token', otpCookieToken, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+        maxAge: 600,
+      });
+      return res;
     }
 
     // -------------------------------------------------------------------------
@@ -230,13 +244,16 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: '6-digit OTP required' }, { status: 400 });
       }
 
-      const otpResult = verifyStoredOtp(cleanPhone, inputCode);
+      const otpCookie = req.cookies.get('ps_otp_token')?.value;
+      const cookieResult = otpCookie ? verifySignedOtpToken(otpCookie, cleanPhone, inputCode) : null;
+      const otpResult = cookieResult?.valid ? cookieResult : verifyStoredOtp(cleanPhone, inputCode);
       if (!otpResult.valid) {
-        return NextResponse.json({ error: otpResult.reason || 'Invalid verification code' }, { status: 401 });
+        return NextResponse.json({ error: cookieResult?.reason || otpResult.reason || 'Invalid verification code' }, { status: 401 });
       }
 
-      // Re-store a short reset token so set_pin can be authenticated
+      // Re-store a short reset token (both in-memory and stateless signed cookie) so set_pin works across Vercel lambdas
       storeOtp(`reset_${cleanPhone}`, 'VERIFIED', 5 * 60 * 1000);
+      const resetCookieToken = createSignedOtpToken(`reset_${cleanPhone}`, 'VERIFIED', 5 * 60 * 1000);
 
       const memberships = await getMembershipsForPhone(cleanPhone);
       if (memberships.length === 0) {
@@ -245,13 +262,22 @@ export async function POST(req: NextRequest) {
 
       const sessions = memberships.map(toClientSession);
 
-      return NextResponse.json({
+      const res = NextResponse.json({
         success: true,
         multiOrg: sessions.length > 1,
         hasPin: sessions[0].hasPin,
         session: sessions[0],
         sessions,
       });
+      res.cookies.delete('ps_otp_token');
+      res.cookies.set('ps_reset_token', resetCookieToken, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+        maxAge: 300,
+      });
+      return res;
     }
 
     // -------------------------------------------------------------------------
@@ -331,8 +357,17 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'PIN must be exactly 4 digits (0-9)' }, { status: 400 });
       }
 
-      const resetAuth = verifyStoredOtp(`reset_${cleanPhone}`, 'VERIFIED');
-      const directOtpAuth = otp ? verifyStoredOtp(cleanPhone, String(otp).trim()) : null;
+      const resetCookie = req.cookies.get('ps_reset_token')?.value;
+      const otpCookie = req.cookies.get('ps_otp_token')?.value;
+      const resetCookieAuth = resetCookie ? verifySignedOtpToken(resetCookie, `reset_${cleanPhone}`, 'VERIFIED') : null;
+      const directCookieAuth = otp && otpCookie ? verifySignedOtpToken(otpCookie, cleanPhone, String(otp).trim()) : null;
+
+      const resetAuth = resetCookieAuth?.valid ? resetCookieAuth : verifyStoredOtp(`reset_${cleanPhone}`, 'VERIFIED');
+      const directOtpAuth = directCookieAuth?.valid
+        ? directCookieAuth
+        : otp
+        ? verifyStoredOtp(cleanPhone, String(otp).trim())
+        : null;
 
       if (!resetAuth.valid && (!directOtpAuth || !directOtpAuth.valid)) {
         return NextResponse.json({
@@ -390,7 +425,7 @@ export async function POST(req: NextRequest) {
         updatedMemberships.find((item) => item.organizationId === targetMembership.organizationId) ||
         targetMembership;
 
-      return NextResponse.json({
+      const res = NextResponse.json({
         success: true,
         pinUpdated: true,
         message: 'Security PIN set successfully for this organization!',
@@ -400,6 +435,9 @@ export async function POST(req: NextRequest) {
           pinSignature: hashedPin.slice(-16),
         }),
       });
+      res.cookies.delete('ps_reset_token');
+      res.cookies.delete('ps_otp_token');
+      return res;
     }
 
     // -------------------------------------------------------------------------
