@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import PwaBootstrapper from '@/components/PwaBootstrapper';
 
 export const metadata: Metadata = {
   title: 'Praja Seva Portal | ప్రజా సేవ',
@@ -27,6 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
       <body className="h-full antialiased font-sans flex flex-col" suppressHydrationWarning>
+        <PwaBootstrapper />
         {children}
       </body>
     </html>

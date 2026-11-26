@@ -21,6 +21,7 @@ import {
 import { IndianLanguage, MGMT_TRANSLATIONS } from '@/lib/mgmtI18n';
 import { SUPPORTED_LANGUAGES } from '@/lib/landingI18n';
 import { UserRole } from '@/types';
+import PwaInstallButton from '@/components/PwaInstallButton';
 
 interface SessionUser {
   staffId: string;
@@ -515,7 +516,12 @@ export default function ManagementLayout({
         </header>
 
         {/* Page Content Injection */}
-        <main className="p-3.5 sm:p-6 max-w-[1440px] w-full mx-auto">{children}</main>
+        <main className="p-3.5 sm:p-6 max-w-[1440px] w-full mx-auto">
+          {children}
+          <div className="mt-8">
+            <PwaInstallButton lang={lang} />
+          </div>
+        </main>
       </div>
 
       {/* 4. One-Handed Mobile Bottom Navigation Bar (ONLY FOR ADMIN) */}

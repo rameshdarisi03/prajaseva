@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, use } from 'react';
+import PwaInstallButton from '@/components/PwaInstallButton';
 import {
   Camera,
   MapPin,
@@ -1335,6 +1336,10 @@ export default function ScopedCitizenPortal({
             </div>
           </div>
         )}
+        {/* Install PWA App Button (Respects selected top-bar language) */}
+        <div className="mt-6 mb-4">
+          <PwaInstallButton lang={lang} />
+        </div>
       </main>
     </div>
   );

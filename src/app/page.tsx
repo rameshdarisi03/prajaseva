@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import PwaInstallButton from '@/components/PwaInstallButton';
 import {
   Building2,
   Globe2,
@@ -1051,6 +1052,10 @@ export default function HomePage() {
                 {t.footer.email}
               </a>
             </div>
+          </div>
+
+          <div className="pt-5 pb-4 border-b border-slate-100">
+            <PwaInstallButton lang={selectedLang} />
           </div>
 
           <div className="pt-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
