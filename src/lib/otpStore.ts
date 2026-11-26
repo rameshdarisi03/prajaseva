@@ -22,8 +22,11 @@ function getHmacSecret(): string {
 }
 
 function normalizeOtpKey(key: string): string {
-  if (key.startsWith('reset_')) {
-    return `reset_${key.slice(6).replace(/\D/g, '').slice(-10)}`;
+  const prefixes = ['founder_otp_', 'founder_', 'verified_', 'reset_'];
+  for (const prefix of prefixes) {
+    if (key.startsWith(prefix)) {
+      return `${prefix}${key.slice(prefix.length).replace(/\D/g, '').slice(-10)}`;
+    }
   }
   return key.replace(/\D/g, '').slice(-10);
 }
