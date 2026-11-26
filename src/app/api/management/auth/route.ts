@@ -4,9 +4,127 @@ import bcrypt from 'bcryptjs';
 import { sendWhatsAppOtp } from '@/lib/whatsapp';
 import { storeOtp, verifyStoredOtp } from '@/lib/otpStore';
 
+interface MembershipRecord {
+  staffId: string;
+  isFounderRecord: boolean;
+  name: string;
+  phone: string;
+  role: 'ADMIN' | 'VOLUNTEER';
+  organizationId: string;
+  organizationSlug: string;
+  organizationName: string;
+  assignedWardId: string | null;
+  pinHash: string | null;
+  hasPin: boolean;
+  pinSignature: string;
+  failedPinAttempts: number;
+  lockedUntil: string | null;
+  isLocked: boolean;
+}
+
+async function getMembershipsForPhone(cleanPhone: string): Promise<MembershipRecord[]> {
+  const { data: staffRows } = await supabaseAdmin
+    .from('staff_whitelist')
+    .select('id, full_name, phone, role, is_active, organization_id, assigned_ward_id, failed_pin_attempts, locked_until, pin_hash')
+    .or(`phone.eq.${cleanPhone},phone.eq.91${cleanPhone},phone.eq.+91${cleanPhone}`)
+    .eq('is_active', true);
+
+  const { data: founderOrgs } = await supabaseAdmin
+    .from('organizations')
+    .select('id, name, slug, mla_name, founder_phone')
+    .or(`founder_phone.eq.${cleanPhone},founder_phone.eq.91${cleanPhone},founder_phone.eq.+91${cleanPhone}`);
+
+  // Fetch organizations referenced by staffRows
+  const staffOrgIds = Array.from(
+    new Set((staffRows || []).map((s) => s.organization_id).filter(Boolean))
+  );
+
+  let orgMap = new Map<string, { id: string; name: string; slug: string; mla_name?: string }>();
+  for (const org of founderOrgs || []) {
+    orgMap.set(org.id, org);
+  }
+
+  const missingOrgIds = staffOrgIds.filter((id) => !orgMap.has(id));
+  if (missingOrgIds.length > 0) {
+    const { data: extraOrgs } = await supabaseAdmin
+      .from('organizations')
+      .select('id, name, slug, mla_name')
+      .in('id', missingOrgIds);
+    for (const org of extraOrgs || []) {
+      orgMap.set(org.id, org);
+    }
+  }
+
+  const membershipsByOrg = new Map<string, MembershipRecord>();
+
+  for (const staff of staffRows || []) {
+    const org = orgMap.get(staff.organization_id);
+    const pinHash = staff.pin_hash || null;
+    const lockedUntil = staff.locked_until || null;
+    const isLocked = Boolean(lockedUntil && new Date(lockedUntil).getTime() > Date.now());
+
+    membershipsByOrg.set(staff.organization_id, {
+      staffId: staff.id,
+      isFounderRecord: false,
+      name: staff.full_name,
+      phone: cleanPhone,
+      role: (staff.role as 'ADMIN' | 'VOLUNTEER') || 'VOLUNTEER',
+      organizationId: staff.organization_id,
+      organizationSlug: org?.slug || 'org_mangalagiri',
+      organizationName: org?.name || 'Constituency Command Center',
+      assignedWardId: staff.assigned_ward_id || null,
+      pinHash,
+      hasPin: Boolean(pinHash),
+      pinSignature: pinHash ? pinHash.slice(-16) : 'no_pin',
+      failedPinAttempts: staff.failed_pin_attempts || 0,
+      lockedUntil,
+      isLocked,
+    });
+  }
+
+  for (const org of founderOrgs || []) {
+    if (!membershipsByOrg.has(org.id)) {
+      membershipsByOrg.set(org.id, {
+        staffId: 'founder-admin',
+        isFounderRecord: true,
+        name: org.mla_name || org.name || 'Administrator',
+        phone: cleanPhone,
+        role: 'ADMIN',
+        organizationId: org.id,
+        organizationSlug: org.slug || 'org_mangalagiri',
+        organizationName: org.name || 'Constituency Command Center',
+        assignedWardId: null,
+        pinHash: null,
+        hasPin: false,
+        pinSignature: 'no_pin',
+        failedPinAttempts: 0,
+        lockedUntil: null,
+        isLocked: false,
+      });
+    }
+  }
+
+  return Array.from(membershipsByOrg.values());
+}
+
+function toClientSession(m: MembershipRecord) {
+  return {
+    staffId: m.staffId,
+    name: m.name,
+    phone: m.phone,
+    role: m.role,
+    organizationId: m.organizationId,
+    organizationSlug: m.organizationSlug,
+    organizationName: m.organizationName,
+    assignedWardId: m.assignedWardId,
+    pinSignature: m.pinSignature,
+    hasPin: m.hasPin,
+  };
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { action, phone, pin, newPin, otp, code, pinSignature } = await req.json();
+    const { action, phone, pin, newPin, otp, code, pinSignature, organizationId, staffId } = await req.json();
 
     if (!phone) {
       return NextResponse.json({ error: 'Phone number required' }, { status: 400 });
@@ -22,23 +140,12 @@ export async function POST(req: NextRequest) {
     cleanPhone = cleanPhone.slice(-10);
 
     // -------------------------------------------------------------------------
-    // 1. ACTION: CHECK PHONE & RETURN PIN STATUS
+    // 1. ACTION: CHECK PHONE & RETURN PIN / MULTI-ORG STATUS
     // -------------------------------------------------------------------------
     if (action === 'check_phone') {
-      const { data: staff } = await supabaseAdmin
-        .from('staff_whitelist')
-        .select('id, full_name, role, is_active, organization_id, failed_pin_attempts, locked_until, pin_hash')
-        .or(`phone.eq.${cleanPhone},phone.eq.91${cleanPhone},phone.eq.+91${cleanPhone}`)
-        .eq('is_active', true)
-        .maybeSingle();
+      const memberships = await getMembershipsForPhone(cleanPhone);
 
-      const { data: orgFounder } = await supabaseAdmin
-        .from('organizations')
-        .select('id, name, slug, founder_phone')
-        .or(`founder_phone.eq.${cleanPhone},founder_phone.eq.91${cleanPhone},founder_phone.eq.+91${cleanPhone}`)
-        .maybeSingle();
-
-      if (!staff && !orgFounder) {
+      if (memberships.length === 0) {
         return NextResponse.json({
           exists: false,
           error:
@@ -46,15 +153,28 @@ export async function POST(req: NextRequest) {
         }, { status: 403 });
       }
 
-      const isLocked = staff?.locked_until && new Date(staff.locked_until).getTime() > Date.now();
+      // If enrolled in 2+ organizations, require WhatsApp OTP first before listing orgs
+      if (memberships.length > 1) {
+        return NextResponse.json({
+          success: true,
+          exists: true,
+          multiOrg: true,
+          hasPin: false,
+          name: memberships[0].name,
+          locked: false,
+        });
+      }
 
+      const m = memberships[0];
       return NextResponse.json({
         success: true,
         exists: true,
-        hasPin: Boolean(staff?.pin_hash),
-        name: staff?.full_name || orgFounder?.name || 'Administrator',
-        role: staff?.role || 'ADMIN',
-        locked: Boolean(isLocked),
+        multiOrg: false,
+        hasPin: m.hasPin,
+        name: m.name,
+        role: m.role,
+        organizationId: m.organizationId,
+        locked: m.isLocked,
       });
     }
 
@@ -62,20 +182,9 @@ export async function POST(req: NextRequest) {
     // 2. ACTION: SEND WHATSAPP OTP
     // -------------------------------------------------------------------------
     if (action === 'send_otp' || action === 'check_whitelist') {
-      const { data: staff } = await supabaseAdmin
-        .from('staff_whitelist')
-        .select('id, full_name, role, is_active, organization_id, failed_pin_attempts, locked_until, pin_hash')
-        .or(`phone.eq.${cleanPhone},phone.eq.91${cleanPhone},phone.eq.+91${cleanPhone}`)
-        .eq('is_active', true)
-        .maybeSingle();
+      const memberships = await getMembershipsForPhone(cleanPhone);
 
-      const { data: orgFounder } = await supabaseAdmin
-        .from('organizations')
-        .select('id, name, slug, founder_phone')
-        .or(`founder_phone.eq.${cleanPhone},founder_phone.eq.91${cleanPhone},founder_phone.eq.+91${cleanPhone}`)
-        .maybeSingle();
-
-      if (!staff && !orgFounder) {
+      if (memberships.length === 0) {
         return NextResponse.json({
           whitelisted: false,
           error:
@@ -83,46 +192,36 @@ export async function POST(req: NextRequest) {
         }, { status: 403 });
       }
 
-      // Resolve organization info
-      const orgId = staff?.organization_id || orgFounder?.id;
-      let orgSlug = orgFounder?.slug || 'org_mangalagiri';
-      let orgName = orgFounder?.name || 'Constituency Command Center';
-
-      if (staff?.organization_id && !orgFounder) {
-        const { data: orgRecord } = await supabaseAdmin
-          .from('organizations')
-          .select('id, name, slug')
-          .eq('id', staff.organization_id)
-          .maybeSingle();
-        if (orgRecord) {
-          orgSlug = orgRecord.slug || 'org_mangalagiri';
-          orgName = orgRecord.name || orgName;
-        }
-      }
-
       // Generate 6-digit WhatsApp OTP
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
       storeOtp(cleanPhone, otpCode, 10 * 60 * 1000);
 
       // Dispatch via Meta WhatsApp Cloud API
-      await sendWhatsAppOtp(cleanPhone, otpCode);
+      const sent = await sendWhatsAppOtp(cleanPhone, otpCode);
+      if (!sent) {
+        return NextResponse.json({
+          error: 'Failed to dispatch WhatsApp verification code. Please check your WhatsApp number or try again shortly.',
+        }, { status: 502 });
+      }
 
+      const first = memberships[0];
       return NextResponse.json({
         success: true,
         whitelisted: true,
         otpSent: true,
-        hasPin: Boolean(staff?.pin_hash),
-        name: staff?.full_name || 'Constituency Administrator',
-        role: staff?.role || 'ADMIN',
-        organizationId: orgId,
-        organizationSlug: orgSlug,
-        organizationName: orgName,
+        multiOrg: memberships.length > 1,
+        hasPin: first.hasPin,
+        name: first.name,
+        role: first.role,
+        organizationId: first.organizationId,
+        organizationSlug: first.organizationSlug,
+        organizationName: first.organizationName,
         message: 'WhatsApp OTP dispatched successfully',
       });
     }
 
     // -------------------------------------------------------------------------
-    // 3. ACTION: VERIFY WHATSAPP OTP
+    // 3. ACTION: VERIFY WHATSAPP OTP (RETURNS ALL ENROLLED ORGANIZATIONS)
     // -------------------------------------------------------------------------
     if (action === 'verify_otp') {
       const inputCode = String(otp || code || '').trim();
@@ -136,49 +235,22 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: otpResult.reason || 'Invalid verification code' }, { status: 401 });
       }
 
-      // Re-store a short reset token in memory so set_pin can be authenticated
+      // Re-store a short reset token so set_pin can be authenticated
       storeOtp(`reset_${cleanPhone}`, 'VERIFIED', 5 * 60 * 1000);
 
-      // Fetch user profile
-      const { data: staff } = await supabaseAdmin
-        .from('staff_whitelist')
-        .select('*')
-        .or(`phone.eq.${cleanPhone},phone.eq.91${cleanPhone},phone.eq.+91${cleanPhone}`)
-        .maybeSingle();
-
-      const { data: orgFounder } = await supabaseAdmin
-        .from('organizations')
-        .select('*')
-        .or(`founder_phone.eq.${cleanPhone},founder_phone.eq.91${cleanPhone},founder_phone.eq.+91${cleanPhone}`)
-        .maybeSingle();
-
-      let orgRecord = orgFounder;
-      if (!orgRecord && staff?.organization_id) {
-        const { data: org } = await supabaseAdmin
-          .from('organizations')
-          .select('*')
-          .eq('id', staff.organization_id)
-          .maybeSingle();
-        orgRecord = org;
+      const memberships = await getMembershipsForPhone(cleanPhone);
+      if (memberships.length === 0) {
+        return NextResponse.json({ error: 'Account access not found' }, { status: 403 });
       }
 
-      const orgSlug = orgRecord?.slug || 'org_mangalagiri';
-      const pinSig = staff?.pin_hash ? staff.pin_hash.slice(-16) : 'no_pin';
+      const sessions = memberships.map(toClientSession);
 
       return NextResponse.json({
         success: true,
-        hasPin: Boolean(staff?.pin_hash),
-        session: {
-          staffId: staff?.id || 'founder-admin',
-          name: staff?.full_name || orgRecord?.mla_name || 'Ramesh Darisi',
-          phone: cleanPhone,
-          role: staff?.role || 'ADMIN',
-          organizationId: staff?.organization_id || orgRecord?.id || '00000000-0000-0000-0000-000000000001',
-          organizationSlug: orgSlug,
-          organizationName: orgRecord?.name || 'Mangalagiri Assembly',
-          assignedWardId: staff?.assigned_ward_id || null,
-          pinSignature: pinSig,
-        },
+        multiOrg: sessions.length > 1,
+        hasPin: sessions[0].hasPin,
+        session: sessions[0],
+        sessions,
       });
     }
 
@@ -190,47 +262,39 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: '4-digit PIN required' }, { status: 400 });
       }
 
-      const { data: staff } = await supabaseAdmin
-        .from('staff_whitelist')
-        .select('*')
-        .or(`phone.eq.${cleanPhone},phone.eq.91${cleanPhone},phone.eq.+91${cleanPhone}`)
-        .maybeSingle();
-
-      const { data: orgFounder } = await supabaseAdmin
-        .from('organizations')
-        .select('*')
-        .or(`founder_phone.eq.${cleanPhone},founder_phone.eq.91${cleanPhone},founder_phone.eq.+91${cleanPhone}`)
-        .maybeSingle();
-
-      if (!staff && !orgFounder) {
+      const memberships = await getMembershipsForPhone(cleanPhone);
+      if (memberships.length === 0) {
         return NextResponse.json({ error: 'Unauthorized access' }, { status: 403 });
       }
 
-      // Check lock state
-      if (staff?.locked_until && new Date(staff.locked_until).getTime() > Date.now()) {
+      const m = organizationId
+        ? memberships.find((item) => item.organizationId === organizationId) || memberships[0]
+        : memberships[0];
+
+      if (m.isLocked) {
         return NextResponse.json({
           error: 'Account temporarily locked due to repeated incorrect PIN attempts. Use "Forgot PIN?" to reset via WhatsApp OTP.',
         }, { status: 423 });
       }
 
-      // Check if user has a PIN configured
-      if (!staff?.pin_hash) {
+      if (!m.pinHash) {
         return NextResponse.json({
           error: 'No PIN configured yet. Please log in using WhatsApp OTP to create your PIN.',
           needsSetup: true,
         }, { status: 400 });
       }
 
-      // Strict bcrypt PIN verification
-      const isValidPin = await bcrypt.compare(String(pin), staff.pin_hash);
+      const isValidPin = await bcrypt.compare(String(pin), m.pinHash);
 
       if (!isValidPin) {
-        const attempts = (staff.failed_pin_attempts || 0) + 1;
+        const attempts = m.failedPinAttempts + 1;
         const lockedUntil = attempts >= 5 ? new Date(Date.now() + 15 * 60 * 1000).toISOString() : null;
-        await supabaseAdmin
-          .from('staff_whitelist')
-          .update({ failed_pin_attempts: attempts, locked_until: lockedUntil })
-          .eq('id', staff.id);
+        if (!m.isFounderRecord) {
+          await supabaseAdmin
+            .from('staff_whitelist')
+            .update({ failed_pin_attempts: attempts, locked_until: lockedUntil })
+            .eq('id', m.staffId);
+        }
 
         if (attempts >= 5) {
           return NextResponse.json({
@@ -244,44 +308,21 @@ export async function POST(req: NextRequest) {
         }, { status: 401 });
       }
 
-      // Reset failed attempts on success
-      await supabaseAdmin
-        .from('staff_whitelist')
-        .update({ failed_pin_attempts: 0, locked_until: null })
-        .eq('id', staff.id);
-
-      // Resolve organization
-      let orgRecord = orgFounder;
-      if (!orgRecord && staff?.organization_id) {
-        const { data: org } = await supabaseAdmin
-          .from('organizations')
-          .select('*')
-          .eq('id', staff.organization_id)
-          .maybeSingle();
-        orgRecord = org;
+      if (!m.isFounderRecord) {
+        await supabaseAdmin
+          .from('staff_whitelist')
+          .update({ failed_pin_attempts: 0, locked_until: null })
+          .eq('id', m.staffId);
       }
-
-      const orgSlug = orgRecord?.slug || 'org_mangalagiri';
-      const pinSig = staff?.pin_hash ? staff.pin_hash.slice(-16) : 'no_pin';
 
       return NextResponse.json({
         success: true,
-        session: {
-          staffId: staff?.id || 'founder-admin',
-          name: staff?.full_name || orgRecord?.mla_name || 'Ramesh Darisi',
-          phone: cleanPhone,
-          role: staff?.role || 'ADMIN',
-          organizationId: staff?.organization_id || orgRecord?.id || '00000000-0000-0000-0000-000000000001',
-          organizationSlug: orgSlug,
-          organizationName: orgRecord?.name || 'Mangalagiri Assembly',
-          assignedWardId: staff?.assigned_ward_id || null,
-          pinSignature: pinSig,
-        },
+        session: toClientSession(m),
       });
     }
 
     // -------------------------------------------------------------------------
-    // 5. ACTION: SET OR RESET 4-DIGIT PIN (SYNCED TO SUPABASE ACROSS ALL DEVICES)
+    // 5. ACTION: SET OR RESET 4-DIGIT PIN (SCOPED TO SELECTED ORGANIZATION)
     // -------------------------------------------------------------------------
     if (action === 'set_pin' || action === 'reset_pin') {
       const pinToSet = String(newPin || pin || '').trim();
@@ -290,7 +331,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'PIN must be exactly 4 digits (0-9)' }, { status: 400 });
       }
 
-      // Verify that the user authenticated via WhatsApp OTP
       const resetAuth = verifyStoredOtp(`reset_${cleanPhone}`, 'VERIFIED');
       const directOtpAuth = otp ? verifyStoredOtp(cleanPhone, String(otp).trim()) : null;
 
@@ -300,81 +340,81 @@ export async function POST(req: NextRequest) {
         }, { status: 401 });
       }
 
-      // Hash the 4-digit PIN with bcrypt
+      const memberships = await getMembershipsForPhone(cleanPhone);
+      if (memberships.length === 0) {
+        return NextResponse.json({ error: 'Unauthorized access' }, { status: 403 });
+      }
+
+      const targetMembership = organizationId
+        ? memberships.find((item) => item.organizationId === organizationId) || memberships[0]
+        : memberships[0];
+
       const hashedPin = await bcrypt.hash(pinToSet, 10);
 
-      // Update in Supabase staff_whitelist
-      const { data: updatedStaff, error: updateErr } = await supabaseAdmin
-        .from('staff_whitelist')
-        .update({
-          pin_hash: hashedPin,
-          failed_pin_attempts: 0,
-          locked_until: null,
-          updated_at: new Date().toISOString(),
-        })
-        .or(`phone.eq.${cleanPhone},phone.eq.91${cleanPhone},phone.eq.+91${cleanPhone}`)
-        .select('*')
-        .maybeSingle();
+      if (targetMembership.isFounderRecord) {
+        // Ensure founder has a staff_whitelist row in this organization so PIN persists
+        await supabaseAdmin
+          .from('staff_whitelist')
+          .upsert(
+            {
+              organization_id: targetMembership.organizationId,
+              full_name: targetMembership.name,
+              phone: cleanPhone,
+              role: 'ADMIN',
+              pin_hash: hashedPin,
+              is_active: true,
+              failed_pin_attempts: 0,
+              locked_until: null,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: 'organization_id,phone' }
+          );
+      } else {
+        const { error: updateErr } = await supabaseAdmin
+          .from('staff_whitelist')
+          .update({
+            pin_hash: hashedPin,
+            failed_pin_attempts: 0,
+            locked_until: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', targetMembership.staffId);
 
-      if (updateErr) {
-        return NextResponse.json({ error: 'Failed to save security PIN to database' }, { status: 500 });
+        if (updateErr) {
+          return NextResponse.json({ error: 'Failed to save security PIN to database' }, { status: 500 });
+        }
       }
 
-      // Check if Founder organization
-      const { data: orgFounder } = await supabaseAdmin
-        .from('organizations')
-        .select('*')
-        .or(`founder_phone.eq.${cleanPhone},founder_phone.eq.91${cleanPhone},founder_phone.eq.+91${cleanPhone}`)
-        .maybeSingle();
-
-      let orgRecord = orgFounder;
-      if (!orgRecord && updatedStaff?.organization_id) {
-        const { data: org } = await supabaseAdmin
-          .from('organizations')
-          .select('*')
-          .eq('id', updatedStaff.organization_id)
-          .maybeSingle();
-        orgRecord = org;
-      }
-
-      const orgSlug = orgRecord?.slug || 'org_mangalagiri';
-      const pinSig = hashedPin.slice(-16);
+      const updatedMemberships = await getMembershipsForPhone(cleanPhone);
+      const updated =
+        updatedMemberships.find((item) => item.organizationId === targetMembership.organizationId) ||
+        targetMembership;
 
       return NextResponse.json({
         success: true,
         pinUpdated: true,
-        message: 'Security PIN set successfully! It is now synced across all your devices.',
-        session: {
-          staffId: updatedStaff?.id || 'founder-admin',
-          name: updatedStaff?.full_name || orgRecord?.mla_name || 'Ramesh Darisi',
-          phone: cleanPhone,
-          role: updatedStaff?.role || 'ADMIN',
-          organizationId: updatedStaff?.organization_id || orgRecord?.id || '00000000-0000-0000-0000-000000000001',
-          organizationSlug: orgSlug,
-          organizationName: orgRecord?.name || 'Mangalagiri Assembly',
-          assignedWardId: updatedStaff?.assigned_ward_id || null,
-          pinSignature: pinSig,
-        },
+        message: 'Security PIN set successfully for this organization!',
+        session: toClientSession({
+          ...updated,
+          hasPin: true,
+          pinSignature: hashedPin.slice(-16),
+        }),
       });
     }
 
     // -------------------------------------------------------------------------
-    // 6. ACTION: VALIDATE ACTIVE SESSION (CROSS-DEVICE INLINE CHECK)
+    // 6. ACTION: VALIDATE ACTIVE SESSION (PER-ORG CROSS-DEVICE CHECK)
     // -------------------------------------------------------------------------
     if (action === 'validate_session') {
-      const { data: staff } = await supabaseAdmin
-        .from('staff_whitelist')
-        .select('id, full_name, phone, role, is_active, organization_id, assigned_ward_id, pin_hash, updated_at')
-        .or(`phone.eq.${cleanPhone},phone.eq.91${cleanPhone},phone.eq.+91${cleanPhone}`)
-        .maybeSingle();
+      const memberships = await getMembershipsForPhone(cleanPhone);
 
-      const { data: orgFounder } = await supabaseAdmin
-        .from('organizations')
-        .select('id, name, slug, founder_phone')
-        .or(`founder_phone.eq.${cleanPhone},founder_phone.eq.91${cleanPhone},founder_phone.eq.+91${cleanPhone}`)
-        .maybeSingle();
+      const matched = organizationId
+        ? memberships.find((item) => item.organizationId === organizationId)
+        : staffId && staffId !== 'founder-admin'
+        ? memberships.find((item) => item.staffId === staffId)
+        : memberships[0];
 
-      if (!staff && !orgFounder) {
+      if (!matched) {
         return NextResponse.json({
           valid: false,
           reason: 'ACCOUNT_NOT_FOUND',
@@ -382,16 +422,7 @@ export async function POST(req: NextRequest) {
         }, { status: 401 });
       }
 
-      if (staff && staff.is_active === false) {
-        return NextResponse.json({
-          valid: false,
-          reason: 'ACCOUNT_DEACTIVATED',
-          error: 'Your account has been deactivated.',
-        }, { status: 401 });
-      }
-
-      // Check if PIN was changed on another device!
-      const currentSignature = staff?.pin_hash ? staff.pin_hash.slice(-16) : 'no_pin';
+      const currentSignature = matched.pinSignature;
       if (pinSignature && pinSignature !== 'no_pin' && currentSignature !== 'no_pin' && pinSignature !== currentSignature) {
         return NextResponse.json({
           valid: false,

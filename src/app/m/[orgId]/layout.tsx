@@ -98,6 +98,8 @@ export default function ManagementLayout({
           action: 'validate_session',
           phone: userSession.phone,
           pinSignature: userSession.pinSignature || null,
+          organizationId: userSession.organizationId || null,
+          staffId: userSession.staffId || null,
         }),
       });
       const data = await res.json().catch(() => null);
@@ -155,14 +157,20 @@ export default function ManagementLayout({
     }
   }, [isVerifyingSession, session, pathname, router]);
 
-  // Volunteer / Admin role route enforcement
+  // Volunteer / Admin & Organization route enforcement
   useEffect(() => {
-    if (session?.role === 'VOLUNTEER' && pathname !== `/m/${orgParam}/volunteer`) {
+    if (!session) return;
+    if (session.organizationSlug && orgParam && session.organizationSlug !== orgParam) {
+      const targetBase = `/m/${session.organizationSlug}`;
+      router.replace(session.role === 'VOLUNTEER' ? `${targetBase}/volunteer` : targetBase);
+      return;
+    }
+    if (session.role === 'VOLUNTEER' && pathname !== `/m/${orgParam}/volunteer`) {
       router.replace(`/m/${orgParam}/volunteer`);
-    } else if (session?.role === 'ADMIN' && pathname.endsWith('/volunteer')) {
+    } else if (session.role === 'ADMIN' && pathname.endsWith('/volunteer')) {
       router.replace(`/m/${orgParam}`);
     }
-  }, [session?.role, pathname, orgParam, router]);
+  }, [session?.role, session?.organizationSlug, pathname, orgParam, router]);
 
   // Fetch Org metadata & Pending Review tickets count
   useEffect(() => {
