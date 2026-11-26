@@ -121,7 +121,7 @@ export default function VolunteerDeskPage({
     try {
       if (isManual) setIsRefreshing(true);
       const res = await fetch(
-        `/api/management/tickets?role=VOLUNTEER&staffId=${session.staffId}&status=ALL`
+        `/api/management/tickets?role=VOLUNTEER&staffId=${session.staffId}&status=ALL&organizationId=${encodeURIComponent(orgParam)}`
       );
       const data = await res.json();
       if (data.tickets) {

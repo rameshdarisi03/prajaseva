@@ -28,6 +28,26 @@ export async function GET(req: NextRequest) {
     const role = searchParams.get('role');
     const staffId = searchParams.get('staffId');
     const status = searchParams.get('status');
+    const orgParam = searchParams.get('organizationId');
+
+    let resolvedOrgId: string | null = null;
+    if (orgParam) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orgParam);
+      if (isUuid) {
+        resolvedOrgId = orgParam;
+      } else {
+        const cleanSlug = orgParam.replace(/^org[_-]/i, '');
+        const { data: orgRow } = await supabaseAdmin
+          .from('organizations')
+          .select('id')
+          .or(`slug.eq.${orgParam},slug.eq.org_${cleanSlug},slug.eq.${cleanSlug}`)
+          .limit(1)
+          .maybeSingle();
+        if (orgRow?.id) {
+          resolvedOrgId = orgRow.id;
+        }
+      }
+    }
 
     let query = supabaseAdmin
       .from('complaints')
@@ -37,6 +57,10 @@ export async function GET(req: NextRequest) {
         assigned_staff:staff_whitelist(id, full_name, phone)
       `)
       .order('created_at', { ascending: false });
+
+    if (resolvedOrgId) {
+      query = query.eq('organization_id', resolvedOrgId);
+    }
 
     // Scoped view: Volunteer can ONLY see assigned tickets
     if (role === 'VOLUNTEER' && staffId) {
@@ -53,10 +77,14 @@ export async function GET(req: NextRequest) {
     // Also fetch active volunteers list for Admin assignment dropdown
     let volunteers: any[] = [];
     if (role === 'ADMIN') {
-      const { data: vList } = await supabaseAdmin
+      let vQuery = supabaseAdmin
         .from('staff_whitelist')
         .select('id, full_name, phone, role, assigned_ward_id, assigned_ward_ids')
         .eq('is_active', true);
+      if (resolvedOrgId) {
+        vQuery = vQuery.eq('organization_id', resolvedOrgId);
+      }
+      const { data: vList } = await vQuery;
       volunteers = vList || [];
     }
 

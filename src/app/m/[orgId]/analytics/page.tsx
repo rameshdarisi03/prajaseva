@@ -64,7 +64,7 @@ export default function AnalyticsPage({
       try {
         setLoading(true);
         const [tRes, wRes] = await Promise.all([
-          fetch('/api/management/tickets?role=ADMIN&status=ALL'),
+          fetch(`/api/management/tickets?role=ADMIN&status=ALL&organizationId=${encodeURIComponent(orgParam)}`),
           fetch(`/api/organizations/${orgParam}`),
         ]);
         const tData = await tRes.json();

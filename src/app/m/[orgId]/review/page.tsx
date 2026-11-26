@@ -108,7 +108,7 @@ export default function ReviewQAPage({
   const fetchTickets = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/management/tickets?status=ALL`);
+      const res = await fetch(`/api/management/tickets?status=ALL&organizationId=${encodeURIComponent(orgParam)}`);
       const data = await res.json();
       const list = data.tickets || [];
       setTickets(list);

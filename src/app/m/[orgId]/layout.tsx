@@ -185,7 +185,7 @@ export default function ManagementLayout({
 
       // Count pending review
       try {
-        const countRes = await fetch(`/api/management/tickets?status=PENDING_APPROVAL`);
+        const countRes = await fetch(`/api/management/tickets?status=PENDING_APPROVAL&organizationId=${encodeURIComponent(orgParam)}`);
         const countData = await countRes.json();
         if (countData.tickets) {
           setPendingReviewCount(countData.tickets.length);

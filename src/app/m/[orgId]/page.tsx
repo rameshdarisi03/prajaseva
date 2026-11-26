@@ -124,7 +124,7 @@ export default function OperationsBoardPage({
   const fetchData = async () => {
     try {
       setLoading(true);
-      const tRes = await fetch(`/api/management/tickets?role=ADMIN&status=ALL`);
+      const tRes = await fetch(`/api/management/tickets?role=ADMIN&status=ALL&organizationId=${encodeURIComponent(orgParam)}`);
       const tData = await tRes.json();
       if (tData.tickets) setAllTickets(tData.tickets);
       if (tData.volunteers) setVolunteers(tData.volunteers);
