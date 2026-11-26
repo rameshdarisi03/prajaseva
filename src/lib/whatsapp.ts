@@ -144,7 +144,7 @@ export async function sendStaffOnboardingMessage(params: {
 
   const cleanPhone = sanitizePhone(params.phone);
   const isVolunteer = params.role === 'VOLUNTEER';
-  const roleTitle = isVolunteer ? 'Field Volunteer' : 'Secretariat Admin';
+  const roleTitle = isVolunteer ? 'Field Volunteer' : 'Admin';
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://prajaseva-one.vercel.app';
   const loginUrl = `${appUrl}/login`;
   const cleanMobile = params.phone.replace(/\D/g, '').slice(-10);

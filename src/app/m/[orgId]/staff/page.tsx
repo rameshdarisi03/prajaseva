@@ -288,7 +288,7 @@ export default function StaffManagementPage({
                         : 'bg-white border-slate-200 text-slate-600'
                     }`}
                   >
-                    <span>Secretariat Admin</span>
+                    <span>Admin</span>
                   </button>
                 </div>
               </div>
