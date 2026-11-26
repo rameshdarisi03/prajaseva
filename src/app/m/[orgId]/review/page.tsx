@@ -31,7 +31,8 @@ import {
   User,
   Phone,
   Building2,
-  FileText
+  FileText,
+  Share2
 } from 'lucide-react';
 import { Complaint, Ward } from '@/types';
 import { formatDateTime, calculateTurnaround } from '@/lib/dateUtils';
@@ -299,6 +300,62 @@ export default function ReviewQAPage({
       alert(err.message || 'Failed to reject ticket');
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const [isSharingPoster, setIsSharingPoster] = useState(false);
+
+  // 1-Tap Share 4:5 Poster directly to WhatsApp Group (Web Share API on mobile, WA Web fallback on desktop)
+  const handleSharePosterToWhatsApp = async (ticket: Complaint) => {
+    try {
+      setIsSharingPoster(true);
+      let blob: Blob | null = null;
+
+      const posterElem = document.getElementById('victory-pr-poster');
+      if (posterElem) {
+        const dataUrl = await toJpeg(posterElem as HTMLElement, {
+          quality: 0.92,
+          pixelRatio: 2,
+          cacheBust: true,
+        });
+        const res = await fetch(dataUrl);
+        blob = await res.blob();
+      } else if (ticket.poster_url) {
+        const res = await fetch(ticket.poster_url);
+        blob = await res.blob();
+      }
+
+      const wardLabel = ticket.ward?.name || ticket.location_address || 'Constituency';
+      const caption = `✅ *ISSUE RESOLVED! / పరిష్కారం లభించింది*\n\n📋 *Ticket Ref:* ${ticket.ticket_number}\n📍 *Location:* ${wardLabel}\n🏷️ *Category:* ${ticket.category}\n\nProblem inspected and fixed on the ground by Team ${org?.mlaName || 'Praja Seva'}.`;
+
+      if (blob) {
+        const file = new File([blob], `${ticket.ticket_number}_resolved.jpg`, { type: 'image/jpeg' });
+        const nav = navigator as any;
+        if (typeof nav.share === 'function' && (!nav.canShare || nav.canShare({ files: [file] }))) {
+          await nav.share({
+            files: [file],
+            title: `${ticket.ticket_number} Resolved`,
+            text: caption,
+          });
+          return;
+        }
+
+        // Desktop fallback: download JPEG & open WhatsApp with caption
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${ticket.ticket_number}_resolved.jpg`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      window.open(`https://wa.me/?text=${encodeURIComponent(caption)}`, '_blank', 'noopener,noreferrer');
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        console.warn('[Share Poster]:', err);
+      }
+    } finally {
+      setIsSharingPoster(false);
     }
   };
 
@@ -1337,6 +1394,16 @@ export default function ReviewQAPage({
                       ticket={selectedTicket}
                       org={org}
                     />
+
+                    <button
+                      type="button"
+                      onClick={() => handleSharePosterToWhatsApp(selectedTicket)}
+                      disabled={isSharingPoster}
+                      className="w-full py-2.5 px-4 rounded-xl bg-[#25D366] hover:bg-[#1fb858] text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer active:scale-[0.99] disabled:opacity-60"
+                    >
+                      <Share2 className="w-4 h-4 shrink-0" />
+                      <span>{isSharingPoster ? 'Preparing Poster...' : 'Share Poster to WhatsApp Group'}</span>
+                    </button>
                   </div>
                 </div>
               </div>
