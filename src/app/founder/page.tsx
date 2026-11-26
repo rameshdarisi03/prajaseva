@@ -6,10 +6,7 @@ import {
   Crown,
   Building2,
   Plus,
-  ShieldCheck,
-  Database,
   MessageSquare,
-  HardDrive,
   Globe,
   Users,
   MapPin,
@@ -40,11 +37,6 @@ interface OrganizationItem {
   whatsapp_group_mla?: string | null;
   whatsapp_group_town?: string | null;
   infrastructure_mode?: 'SHARED' | 'DEDICATED_BYOK';
-  custom_supabase_url?: string | null;
-  custom_supabase_anon_key?: string | null;
-  custom_whatsapp_phone_number_id?: string | null;
-  custom_whatsapp_access_token?: string | null;
-  custom_zoho_folder_id?: string | null;
   stats?: {
     staffCount: number;
     wardCount: number;
@@ -92,12 +84,6 @@ export default function FounderPortalPage() {
   const [initialWardCount, setInitialWardCount] = useState(5);
   const [whatsappGroupMla, setWhatsappGroupMla] = useState('');
   const [whatsappGroupTown, setWhatsappGroupTown] = useState('');
-  const [infrastructureMode, setInfrastructureMode] = useState<'SHARED' | 'DEDICATED_BYOK'>('SHARED');
-  const [customSupabaseUrl, setCustomSupabaseUrl] = useState('');
-  const [customSupabaseAnonKey, setCustomSupabaseAnonKey] = useState('');
-  const [customWhatsappPhoneNumberId, setCustomWhatsappPhoneNumberId] = useState('');
-  const [customWhatsappAccessToken, setCustomWhatsappAccessToken] = useState('');
-  const [customZohoFolderId, setCustomZohoFolderId] = useState('');
 
   const fetchOrganizations = async () => {
     setLoadingOrgs(true);
@@ -207,12 +193,6 @@ export default function FounderPortalPage() {
     setInitialWardCount(5);
     setWhatsappGroupMla('');
     setWhatsappGroupTown('');
-    setInfrastructureMode('SHARED');
-    setCustomSupabaseUrl('');
-    setCustomSupabaseAnonKey('');
-    setCustomWhatsappPhoneNumberId('');
-    setCustomWhatsappAccessToken('');
-    setCustomZohoFolderId('');
     setModalOpen(true);
   };
 
@@ -233,12 +213,6 @@ export default function FounderPortalPage() {
     setCustomDomain(org.custom_domain || '');
     setWhatsappGroupMla(org.whatsapp_group_mla || '');
     setWhatsappGroupTown(org.whatsapp_group_town || '');
-    setInfrastructureMode(org.infrastructure_mode || 'SHARED');
-    setCustomSupabaseUrl(org.custom_supabase_url || '');
-    setCustomSupabaseAnonKey(org.custom_supabase_anon_key || '');
-    setCustomWhatsappPhoneNumberId(org.custom_whatsapp_phone_number_id || '');
-    setCustomWhatsappAccessToken(org.custom_whatsapp_access_token || '');
-    setCustomZohoFolderId(org.custom_zoho_folder_id || '');
     setModalOpen(true);
   };
 
@@ -276,12 +250,6 @@ export default function FounderPortalPage() {
             constituencySlogan,
             whatsappGroupMla,
             whatsappGroupTown,
-            infrastructureMode,
-            customSupabaseUrl,
-            customSupabaseAnonKey,
-            customWhatsappPhoneNumberId,
-            customWhatsappAccessToken,
-            customZohoFolderId,
           }
         : {
             name,
@@ -297,12 +265,6 @@ export default function FounderPortalPage() {
             customDomain,
             whatsappGroupMla,
             whatsappGroupTown,
-            infrastructureMode,
-            customSupabaseUrl,
-            customSupabaseAnonKey,
-            customWhatsappPhoneNumberId,
-            customWhatsappAccessToken,
-            customZohoFolderId,
             initialWardCount,
           };
 
@@ -593,36 +555,8 @@ export default function FounderPortalPage() {
                         className="px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-bold text-zinc-200 flex items-center gap-1.5 shrink-0 cursor-pointer"
                       >
                         <Sliders className="w-3.5 h-3.5 text-[#EECDA3]" />
-                        <span>BYOK</span>
+                        <span>Edit</span>
                       </button>
-                    </div>
-
-                    {/* 4 Modular BYOK Slot Indicators */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-                      <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5 flex items-center gap-1.5">
-                        <Database className="w-3.5 h-3.5 text-[#EECDA3] shrink-0" />
-                        <span className="truncate text-zinc-300">
-                          {org.custom_supabase_url ? 'Custom DB' : 'Shared DB'}
-                        </span>
-                      </div>
-                      <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5 flex items-center gap-1.5">
-                        <MessageSquare className="w-3.5 h-3.5 text-[#EF629F] shrink-0" />
-                        <span className="truncate text-zinc-300">
-                          {org.custom_whatsapp_phone_number_id ? 'Dedicated WA' : 'Shared WA'}
-                        </span>
-                      </div>
-                      <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5 flex items-center gap-1.5">
-                        <HardDrive className="w-3.5 h-3.5 text-[#EECDA3] shrink-0" />
-                        <span className="truncate text-zinc-300">
-                          {org.custom_zoho_folder_id ? 'Custom Drive' : 'Shared Drive'}
-                        </span>
-                      </div>
-                      <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5 flex items-center gap-1.5">
-                        <Globe className="w-3.5 h-3.5 text-[#EF629F] shrink-0" />
-                        <span className="truncate text-zinc-300">
-                          {org.custom_domain ? 'Custom Domain' : 'Default URL'}
-                        </span>
-                      </div>
                     </div>
 
                     {/* Live Org Stats + Quick Launch */}
@@ -830,71 +764,11 @@ export default function FounderPortalPage() {
                 </div>
               </div>
 
-              {/* 3. Modular BYOK Infrastructure Mode */}
+              {/* 3. WhatsApp Dispatch Channels */}
               <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-extrabold text-[#EF629F] flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4" /> Modular BYOK Infrastructure
-                  </p>
-                  <div className="flex gap-1.5">
-                    {(['SHARED', 'DEDICATED_BYOK'] as const).map((mode) => (
-                      <button
-                        key={mode}
-                        type="button"
-                        onClick={() => setInfrastructureMode(mode)}
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer ${
-                          infrastructureMode === mode
-                            ? 'text-[#09090E]'
-                            : 'bg-white/[0.06] text-zinc-400'
-                        }`}
-                        style={infrastructureMode === mode ? { background: TRANQUIL_GRADIENT } : undefined}
-                      >
-                        {mode === 'SHARED' ? 'Shared Cloud' : 'Dedicated BYOK'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {infrastructureMode === 'DEDICATED_BYOK' && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                    <input
-                      type="text"
-                      value={customSupabaseUrl}
-                      onChange={(e) => setCustomSupabaseUrl(e.target.value)}
-                      placeholder="Custom Supabase URL"
-                      className="h-9 px-3 rounded-xl bg-white/[0.06] border border-white/10 text-xs text-white"
-                    />
-                    <input
-                      type="password"
-                      value={customSupabaseAnonKey}
-                      onChange={(e) => setCustomSupabaseAnonKey(e.target.value)}
-                      placeholder="Custom Supabase Anon Key"
-                      className="h-9 px-3 rounded-xl bg-white/[0.06] border border-white/10 text-xs text-white"
-                    />
-                    <input
-                      type="text"
-                      value={customWhatsappPhoneNumberId}
-                      onChange={(e) => setCustomWhatsappPhoneNumberId(e.target.value)}
-                      placeholder="Dedicated WhatsApp Phone ID"
-                      className="h-9 px-3 rounded-xl bg-white/[0.06] border border-white/10 text-xs text-white"
-                    />
-                    <input
-                      type="password"
-                      value={customWhatsappAccessToken}
-                      onChange={(e) => setCustomWhatsappAccessToken(e.target.value)}
-                      placeholder="Dedicated WhatsApp Token"
-                      className="h-9 px-3 rounded-xl bg-white/[0.06] border border-white/10 text-xs text-white"
-                    />
-                    <input
-                      type="text"
-                      value={customZohoFolderId}
-                      onChange={(e) => setCustomZohoFolderId(e.target.value)}
-                      placeholder="Dedicated Zoho Drive Folder ID"
-                      className="sm:col-span-2 h-9 px-3 rounded-xl bg-white/[0.06] border border-white/10 text-xs text-white"
-                    />
-                  </div>
-                )}
-
+                <p className="text-xs font-extrabold text-[#EF629F] flex items-center gap-1.5">
+                  <MessageSquare className="w-4 h-4" /> WhatsApp Dispatch Channels
+                </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <input
                     type="text"

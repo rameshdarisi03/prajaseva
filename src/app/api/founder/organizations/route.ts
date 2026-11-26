@@ -33,8 +33,13 @@ export async function GET(req: NextRequest) {
 
     const enriched = (orgsRes.data || []).map((org) => {
       const orgComplaints = complaintsList.filter((c) => c.organization_id === org.id);
+      const {
+        custom_supabase_anon_key: _k1,
+        custom_whatsapp_access_token: _k2,
+        ...safeOrg
+      } = org;
       return {
-        ...org,
+        ...safeOrg,
         stats: {
           staffCount: staffList.filter((s) => s.organization_id === org.id).length,
           wardCount: wardsList.filter((w) => w.organization_id === org.id).length,
