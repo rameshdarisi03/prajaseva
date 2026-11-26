@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import PwaInstallButton from '@/components/PwaInstallButton';
 import {
   Lock,
   AlertCircle,
@@ -597,6 +598,11 @@ function LoginForm() {
               </button>
             </form>
           )}
+        </div>
+
+        {/* Direct PWA Install Button */}
+        <div className="mt-4">
+          <PwaInstallButton />
         </div>
       </div>
     </div>
