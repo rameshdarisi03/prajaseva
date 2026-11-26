@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { resolveComplaintFolder, uploadToZohoWorkDrive } from '@/lib/zoho';
 import { sendTicketConfirmation } from '@/lib/whatsapp';
 import { formatDDMMYYYY } from '@/lib/dateUtils';
+import { verifySignedOtpToken } from '@/lib/otpStore';
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,6 +28,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'Missing required complaint parameters' },
         { status: 400 }
+      );
+    }
+
+    const cleanCitizenPhone = String(citizenPhone).replace(/\D/g, '').slice(-10);
+    const verifiedCookie = req.cookies.get('ps_citizen_verified')?.value;
+    const otpCheck = verifySignedOtpToken(verifiedCookie, `verified_${cleanCitizenPhone}`, 'VERIFIED');
+    if (!otpCheck.valid) {
+      return NextResponse.json(
+        { error: 'Please verify your WhatsApp mobile number via OTP before submitting a complaint.' },
+        { status: 401 }
       );
     }
 
@@ -194,11 +205,13 @@ export async function POST(req: NextRequest) {
       console.error('[WhatsApp Notification Error]:', waError);
     }
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       success: true,
       ticketNumber: ticketNumber,
       complaint: complaint,
     });
+    res.cookies.delete('ps_citizen_verified');
+    return res;
   } catch (err: any) {
     console.error('[Complaint Submission API Error]:', err);
     return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });

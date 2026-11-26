@@ -62,8 +62,16 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      const verifiedToken = createSignedOtpToken(`verified_${cleanPhone}`, 'VERIFIED', 15 * 60 * 1000);
       const res = NextResponse.json({ success: true, verified: true });
       res.cookies.delete('ps_citizen_otp');
+      res.cookies.set('ps_citizen_verified', verifiedToken, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+        maxAge: 900,
+      });
       return res;
     }
 

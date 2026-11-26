@@ -114,6 +114,12 @@ export default function ScopedCitizenPortal({
   // Form State
   const [citizenName, setCitizenName] = useState('');
   const [citizenPhone, setCitizenPhone] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [otpCooldown, setOtpCooldown] = useState(0);
   const [category, setCategory] = useState<ComplaintCategory>('ROADS');
   const [description, setDescription] = useState('');
 
@@ -338,6 +344,162 @@ export default function ScopedCitizenPortal({
     audioChunksRef.current = [];
   };
 
+  // OTP Cooldown Timer
+  useEffect(() => {
+    if (otpCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setOtpCooldown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [otpCooldown]);
+
+  const OTP_LABELS: Record<
+    IndianLanguage,
+    {
+      sendOtp: string;
+      resendIn: string;
+      enterOtp: string;
+      verifyBtn: string;
+      verifiedBadge: string;
+      verifyRequired: string;
+      sentHint: string;
+    }
+  > = {
+    en: {
+      sendOtp: 'Send OTP',
+      resendIn: 'Resend in',
+      enterOtp: 'Enter 6-digit WhatsApp OTP',
+      verifyBtn: 'Verify OTP',
+      verifiedBadge: 'WhatsApp Verified',
+      verifyRequired: 'Please verify your WhatsApp mobile number with OTP first.',
+      sentHint: '6-digit code sent to your WhatsApp',
+    },
+    te: {
+      sendOtp: 'OTP పంపండి',
+      resendIn: 'మళ్ళీ పంపండి',
+      enterOtp: '6-అంకెల WhatsApp OTP నమోదు చేయండి',
+      verifyBtn: 'నిర్ధారించండి',
+      verifiedBadge: 'WhatsApp ధృవీకరించబడింది',
+      verifyRequired: 'దయచేసి ముందుగా మీ WhatsApp నంబర్‌ను OTP తో నిర్ధారించండి.',
+      sentHint: 'మీ WhatsApp కు 6-అంకెల కోడ్ పంపబడింది',
+    },
+    hi: {
+      sendOtp: 'OTP भेजें',
+      resendIn: 'पुनः भेजें',
+      enterOtp: '6-अंकों का WhatsApp OTP दर्ज करें',
+      verifyBtn: 'सत्यापित करें',
+      verifiedBadge: 'WhatsApp सत्यापित',
+      verifyRequired: 'कृपया पहले OTP के माध्यम से अपना WhatsApp नंबर सत्यापित करें।',
+      sentHint: 'आपके WhatsApp पर 6-अंकों का कोड भेजा गया है',
+    },
+    ta: {
+      sendOtp: 'OTP அனுப்பு',
+      resendIn: 'மீண்டும் அனுப்பு',
+      enterOtp: '6-இலக்க WhatsApp OTP உள்ளிடவும்',
+      verifyBtn: 'சரிபார்',
+      verifiedBadge: 'WhatsApp சரிபார்க்கப்பட்டது',
+      verifyRequired: 'முதலில் உங்கள் WhatsApp எண்ணை OTP மூலம் சரிபார்க்கவும்.',
+      sentHint: 'உங்கள் WhatsApp-க்கு 6-இலக்க குறியீடு அனுப்பப்பட்டது',
+    },
+    kn: {
+      sendOtp: 'OTP ಕಳುಹಿಸಿ',
+      resendIn: 'ಮತ್ತೆ ಕಳುಹಿಸಿ',
+      enterOtp: '6-ಅಂಕಿಯ WhatsApp OTP ನಮೂದಿಸಿ',
+      verifyBtn: 'ಪರಿಶೀಲಿಸಿ',
+      verifiedBadge: 'WhatsApp ಪರಿಶೀಲಿಸಲಾಗಿದೆ',
+      verifyRequired: 'ದಯವಿಟ್ಟು ಮೊದಲು OTP ಮೂಲಕ ನಿಮ್ಮ WhatsApp ಸಂಖ್ಯೆಯನ್ನು ಪರಿಶೀಲಿಸಿ.',
+      sentHint: 'ನಿಮ್ಮ WhatsApp ಗೆ 6-ಅಂಕಿಯ ಕೋಡ್ ಕಳುಹಿಸಲಾಗಿದೆ',
+    },
+    ml: {
+      sendOtp: 'OTP അയക്കുക',
+      resendIn: 'വീണ്ടും അയക്കുക',
+      enterOtp: '6-അക്ക WhatsApp OTP നൽകുക',
+      verifyBtn: 'പരിശോധിക്കുക',
+      verifiedBadge: 'WhatsApp പരിശോധിച്ചു',
+      verifyRequired: 'ദയവായി ആദ്യം OTP വഴി നിങ്ങളുടെ WhatsApp നമ്പർ സ്ഥിരീകരിക്കുക.',
+      sentHint: 'നിങ്ങളുടെ WhatsApp-ലേക്ക് 6-അക്ക കോഡ് അയച്ചിട്ടുണ്ട്',
+    },
+    bn: {
+      sendOtp: 'OTP পাঠান',
+      resendIn: 'আবার পাঠান',
+      enterOtp: '৬-সংখ্যার WhatsApp OTP লিখুন',
+      verifyBtn: 'যাচাই করুন',
+      verifiedBadge: 'WhatsApp যাচাইকৃত',
+      verifyRequired: 'অনুগ্রহ করে প্রথমে OTP দিয়ে আপনার WhatsApp নম্বর যাচাই করুন।',
+      sentHint: 'আপনার WhatsApp-এ ৬-সংখ্যার কোড পাঠানো হয়েছে',
+    },
+    mr: {
+      sendOtp: 'OTP पाठवा',
+      resendIn: 'पुन्हा पाठवा',
+      enterOtp: '६-अंकी WhatsApp OTP टाका',
+      verifyBtn: 'पडताळा',
+      verifiedBadge: 'WhatsApp पडताळले',
+      verifyRequired: 'कृपया प्रथम OTP द्वारे तुमचा WhatsApp क्रमांक पडताळून घ्या.',
+      sentHint: 'तुमच्या WhatsApp वर ६-अंकी कोड पाठवला आहे',
+    },
+    gu: {
+      sendOtp: 'OTP મોકલો',
+      resendIn: 'ફરી મોકલો',
+      enterOtp: '૬-અંકનો WhatsApp OTP દાખલ કરો',
+      verifyBtn: 'ચકાસો',
+      verifiedBadge: 'WhatsApp ચકાસાયેલ',
+      verifyRequired: 'કૃપા કરીને પહેલા OTP દ્વારા તમારો WhatsApp નંબર ચકાસો.',
+      sentHint: 'તમારા WhatsApp પર ૬-અંકનો કોડ મોકલવામાં આવ્યો છે',
+    },
+  };
+  const otpT = OTP_LABELS[lang] || OTP_LABELS.en;
+
+  const handleSendCitizenOtp = async () => {
+    const cleanPhone = citizenPhone.replace(/\D/g, '');
+    if (cleanPhone.length !== 10) {
+      setOtpError('Please enter a valid 10-digit WhatsApp number');
+      return;
+    }
+    setOtpError(null);
+    setOtpLoading(true);
+    try {
+      const res = await fetch('/api/auth/otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'send', phone: cleanPhone }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+      setOtpSent(true);
+      setOtpCode('');
+      setOtpCooldown(45);
+    } catch (err: any) {
+      setOtpError(err.message || 'Failed to send WhatsApp OTP');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleVerifyCitizenOtp = async () => {
+    const cleanPhone = citizenPhone.replace(/\D/g, '');
+    if (otpCode.trim().length < 6) {
+      setOtpError('Please enter the 6-digit OTP');
+      return;
+    }
+    setOtpError(null);
+    setOtpLoading(true);
+    try {
+      const res = await fetch('/api/auth/otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verify', phone: cleanPhone, code: otpCode.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Invalid OTP code');
+      setOtpVerified(true);
+      setOtpSent(false);
+    } catch (err: any) {
+      setOtpError(err.message || 'Verification failed');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
   // 5. Submit Complaint
   const handleSubmitComplaint = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -349,6 +511,11 @@ export default function ScopedCitizenPortal({
     const cleanPhone = citizenPhone.replace(/\D/g, '');
     if (cleanPhone.length !== 10) {
       alert('Please enter a valid 10-digit WhatsApp phone number');
+      return;
+    }
+    if (!otpVerified) {
+      setOtpError(otpT.verifyRequired);
+      alert(otpT.verifyRequired);
       return;
     }
     if (!photoPreview) {
@@ -385,6 +552,9 @@ export default function ScopedCitizenPortal({
       if (!res.ok) throw new Error(data.error || 'Failed to submit grievance');
 
       setSubmittedTicket(data.complaint.ticket_number);
+      setOtpVerified(false);
+      setOtpSent(false);
+      setOtpCode('');
     } catch (err: any) {
       alert(err.message || 'Error lodging grievance. Please try again.');
     } finally {
@@ -908,27 +1078,91 @@ export default function ScopedCitizenPortal({
                       />
                     </div>
 
-                    <div className="relative">
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
-                        +91
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
+                          +91
+                        </div>
+                        <input
+                          type="tel"
+                          value={citizenPhone}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                            setCitizenPhone(val);
+                            setOtpVerified(false);
+                            setOtpSent(false);
+                            setOtpCode('');
+                            setOtpError(null);
+                          }}
+                          maxLength={10}
+                          placeholder={ct.phonePlaceholder}
+                          className="w-full h-11 pl-12 pr-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-mono font-medium text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
+                        />
                       </div>
-                      <input
-                        type="tel"
-                        value={citizenPhone}
-                        onChange={(e) => setCitizenPhone(e.target.value)}
-                        maxLength={10}
-                        placeholder={ct.phonePlaceholder}
-                        className="w-full h-11 pl-12 pr-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-mono font-medium text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                      />
+
+                      {otpVerified ? (
+                        <div className="h-11 px-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold flex items-center gap-1.5 shrink-0">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          <span className="hidden sm:inline">{otpT.verifiedBadge}</span>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleSendCitizenOtp}
+                          disabled={otpLoading || citizenPhone.replace(/\D/g, '').length !== 10 || otpCooldown > 0}
+                          className="h-11 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold transition shrink-0 cursor-pointer whitespace-nowrap"
+                        >
+                          {otpLoading
+                            ? '...'
+                            : otpCooldown > 0
+                            ? `${otpT.resendIn} ${otpCooldown}s`
+                            : otpT.sendOtp}
+                        </button>
+                      )}
                     </div>
+
+                    {otpSent && !otpVerified && (
+                      <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-200 space-y-2 animate-in fade-in">
+                        <p className="text-[11px] font-semibold text-blue-800">{otpT.sentHint}</p>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={6}
+                            value={otpCode}
+                            onChange={(e) => {
+                              setOtpCode(e.target.value.replace(/\D/g, ''));
+                              setOtpError(null);
+                            }}
+                            placeholder={otpT.enterOtp}
+                            className="flex-1 h-10 px-3 rounded-xl bg-white border border-blue-200 text-center font-mono text-sm font-bold tracking-widest text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleVerifyCitizenOtp}
+                            disabled={otpLoading || otpCode.length < 6}
+                            className="h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold transition shrink-0 cursor-pointer"
+                          >
+                            {otpT.verifyBtn}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {otpError && (
+                      <p className="text-xs font-semibold text-red-600 flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>{otpError}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 {/* Big Submit CTA */}
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !otpVerified}
                   className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-base shadow-lg shadow-blue-500/25 flex flex-col items-center justify-center transition disabled:opacity-50 cursor-pointer active:scale-98"
                 >
                   <span className="flex items-center gap-2">
