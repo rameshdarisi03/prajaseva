@@ -257,15 +257,15 @@ export default function PwaInstallButton({
 
   return (
     <>
-      {variant === 'compact' ? (
+      <div className={`flex justify-center ${className}`}>
         <button
           type="button"
           onClick={handleInstallClick}
-          className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+          className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition cursor-pointer active:scale-95 ${
             isInstalled && !hasPrompt
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
-              : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm hover:opacity-95 active:scale-[0.98]'
-          } ${className}`}
+              ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs'
+              : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm hover:opacity-95'
+          }`}
         >
           {isInstalled && !hasPrompt ? (
             <>
@@ -279,61 +279,7 @@ export default function PwaInstallButton({
             </>
           )}
         </button>
-      ) : (
-        <div
-          className={`rounded-2xl border p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xs ${
-            isInstalled && !hasPrompt
-              ? 'bg-emerald-50/70 border-emerald-200'
-              : 'bg-white border-slate-200'
-          } ${className}`}
-        >
-          <div className="flex items-center gap-3 text-center sm:text-left">
-            <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                isInstalled && !hasPrompt
-                  ? 'bg-emerald-100 text-emerald-700'
-                  : 'bg-blue-50 text-blue-600'
-              }`}
-            >
-              {isInstalled && !hasPrompt ? (
-                <CheckCircle2 className="w-5 h-5" />
-              ) : (
-                <Smartphone className="w-5 h-5" />
-              )}
-            </div>
-            <div>
-              <p className="text-xs font-extrabold text-slate-900">
-                {isInstalled && !hasPrompt ? copy.installedGuideTitle : 'Praja Seva App'}
-              </p>
-              <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                {isInstalled && !hasPrompt ? copy.installedGuideDesc : copy.subtitle}
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleInstallClick}
-            className={`w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition shrink-0 cursor-pointer active:scale-95 ${
-              isInstalled && !hasPrompt
-                ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm hover:opacity-95'
-            }`}
-          >
-            {isInstalled && !hasPrompt ? (
-              <>
-                <Info className="w-4 h-4" />
-                <span>{copy.installedBtn}</span>
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4" />
-                <span>{copy.installBtn}</span>
-              </>
-            )}
-          </button>
-        </div>
-      )}
+      </div>
 
       {/* Guidance Modal */}
       {modalMode !== 'none' && (
