@@ -732,7 +732,7 @@ export default function VolunteerDeskPage({
 
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
                       ticket.status === 'ASSIGNED'
-                        ? 'bg-indigo-100 text-indigo-800 border-indigo-300'
+                        ? 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-300'
                         : ticket.status === 'IN_PROGRESS'
                         ? 'bg-amber-100 text-amber-800 border-amber-300'
                         : ticket.status === 'PENDING_APPROVAL'

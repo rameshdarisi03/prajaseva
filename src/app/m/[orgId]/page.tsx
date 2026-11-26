@@ -430,7 +430,7 @@ export default function OperationsBoardPage({
                   detailTicket.status === 'NEW'
                     ? 'bg-blue-100 text-blue-800 border-blue-200'
                     : detailTicket.status === 'ASSIGNED'
-                    ? 'bg-indigo-100 text-indigo-800 border-indigo-200'
+                    ? 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200'
                     : detailTicket.status === 'IN_PROGRESS'
                     ? 'bg-amber-100 text-amber-800 border-amber-200'
                     : 'bg-emerald-100 text-emerald-800 border-emerald-200'
@@ -769,23 +769,23 @@ export default function OperationsBoardPage({
           <button
             type="button"
             onClick={() => setActiveTab('NEW')}
-            className={`relative w-full py-2 px-1 rounded-xl transition flex flex-col items-center justify-between min-h-[60px] cursor-pointer active:scale-95 ${
+            className={`relative w-full py-2 px-1 rounded-xl transition flex flex-col items-center justify-between min-h-[68px] cursor-pointer active:scale-95 ${
               activeTab === 'NEW'
                 ? 'bg-blue-600 text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 bg-white/40'
             }`}
           >
-            <span
-              onClick={(e) => handleShowInfo('NEW', e)}
-              className="absolute top-1 right-1 opacity-60 hover:opacity-100 p-0.5 cursor-pointer z-10"
-              title="Help info"
-            >
-              <Info className="w-2.5 h-2.5" />
-            </span>
             <span className="text-[9px] xs:text-[10px] font-black uppercase text-center leading-[1.15] px-0.5 line-clamp-2 max-w-full">
               {t.statusNew}
             </span>
-            <span className="text-base font-black leading-none mt-0.5">{newCount}</span>
+            <span className="text-base font-black leading-none mt-1">{newCount}</span>
+            <span
+              onClick={(e) => handleShowInfo('NEW', e)}
+              className="mt-1 opacity-65 hover:opacity-100 p-0.5 cursor-pointer z-10"
+              title="Help info"
+            >
+              <Info className="w-3 h-3" />
+            </span>
           </button>
           {activeInfoCard === 'NEW' && (
             <div className="absolute top-full left-0 mt-1.5 z-40 w-44 p-2 bg-slate-900/95 text-white text-[11px] rounded-xl shadow-xl backdrop-blur-xs animate-in fade-in zoom-in-95 leading-snug">
@@ -799,23 +799,23 @@ export default function OperationsBoardPage({
           <button
             type="button"
             onClick={() => setActiveTab('ASSIGNED')}
-            className={`relative w-full py-2 px-1 rounded-xl transition flex flex-col items-center justify-between min-h-[60px] cursor-pointer active:scale-95 ${
+            className={`relative w-full py-2 px-1 rounded-xl transition flex flex-col items-center justify-between min-h-[68px] cursor-pointer active:scale-95 ${
               activeTab === 'ASSIGNED'
-                ? 'bg-indigo-600 text-white shadow-xs'
+                ? 'bg-fuchsia-600 text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 bg-white/40'
             }`}
           >
-            <span
-              onClick={(e) => handleShowInfo('ASSIGNED', e)}
-              className="absolute top-1 right-1 opacity-60 hover:opacity-100 p-0.5 cursor-pointer z-10"
-              title="Help info"
-            >
-              <Info className="w-2.5 h-2.5" />
-            </span>
             <span className="text-[9px] xs:text-[10px] font-black uppercase text-center leading-[1.15] px-0.5 line-clamp-2 max-w-full">
               {t.statusAssigned}
             </span>
-            <span className="text-base font-black leading-none mt-0.5">{assignedCount}</span>
+            <span className="text-base font-black leading-none mt-1">{assignedCount}</span>
+            <span
+              onClick={(e) => handleShowInfo('ASSIGNED', e)}
+              className="mt-1 opacity-65 hover:opacity-100 p-0.5 cursor-pointer z-10"
+              title="Help info"
+            >
+              <Info className="w-3 h-3" />
+            </span>
           </button>
           {activeInfoCard === 'ASSIGNED' && (
             <div className="absolute top-full -left-6 mt-1.5 z-40 w-48 p-2 bg-slate-900/95 text-white text-[11px] rounded-xl shadow-xl backdrop-blur-xs animate-in fade-in zoom-in-95 leading-snug">
@@ -829,23 +829,23 @@ export default function OperationsBoardPage({
           <button
             type="button"
             onClick={() => setActiveTab('IN_PROGRESS')}
-            className={`relative w-full py-2 px-1 rounded-xl transition flex flex-col items-center justify-between min-h-[60px] cursor-pointer active:scale-95 ${
+            className={`relative w-full py-2 px-1 rounded-xl transition flex flex-col items-center justify-between min-h-[68px] cursor-pointer active:scale-95 ${
               activeTab === 'IN_PROGRESS'
                 ? 'bg-amber-500 text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 bg-white/40'
             }`}
           >
-            <span
-              onClick={(e) => handleShowInfo('IN_PROGRESS', e)}
-              className="absolute top-1 right-1 opacity-60 hover:opacity-100 p-0.5 cursor-pointer z-10"
-              title="Help info"
-            >
-              <Info className="w-2.5 h-2.5" />
-            </span>
             <span className="text-[9px] xs:text-[10px] font-black uppercase text-center leading-[1.15] px-0.5 line-clamp-2 max-w-full">
               {t.statusInProgress}
             </span>
-            <span className="text-base font-black leading-none mt-0.5">{inProgressCount}</span>
+            <span className="text-base font-black leading-none mt-1">{inProgressCount}</span>
+            <span
+              onClick={(e) => handleShowInfo('IN_PROGRESS', e)}
+              className="mt-1 opacity-65 hover:opacity-100 p-0.5 cursor-pointer z-10"
+              title="Help info"
+            >
+              <Info className="w-3 h-3" />
+            </span>
           </button>
           {activeInfoCard === 'IN_PROGRESS' && (
             <div className="absolute top-full -right-6 mt-1.5 z-40 w-48 p-2 bg-slate-900/95 text-white text-[11px] rounded-xl shadow-xl backdrop-blur-xs animate-in fade-in zoom-in-95 leading-snug">
@@ -859,23 +859,23 @@ export default function OperationsBoardPage({
           <button
             type="button"
             onClick={() => setActiveTab('RESOLVED')}
-            className={`relative w-full py-2 px-1 rounded-xl transition flex flex-col items-center justify-between min-h-[60px] cursor-pointer active:scale-95 ${
+            className={`relative w-full py-2 px-1 rounded-xl transition flex flex-col items-center justify-between min-h-[68px] cursor-pointer active:scale-95 ${
               activeTab === 'RESOLVED'
                 ? 'bg-emerald-600 text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 bg-white/40'
             }`}
           >
-            <span
-              onClick={(e) => handleShowInfo('RESOLVED', e)}
-              className="absolute top-1 right-1 opacity-60 hover:opacity-100 p-0.5 cursor-pointer z-10"
-              title="Help info"
-            >
-              <Info className="w-2.5 h-2.5" />
-            </span>
             <span className="text-[9px] xs:text-[10px] font-black uppercase text-center leading-[1.15] px-0.5 line-clamp-2 max-w-full">
               {t.statusResolved}
             </span>
-            <span className="text-base font-black leading-none mt-0.5">{resolvedCount}</span>
+            <span className="text-base font-black leading-none mt-1">{resolvedCount}</span>
+            <span
+              onClick={(e) => handleShowInfo('RESOLVED', e)}
+              className="mt-1 opacity-65 hover:opacity-100 p-0.5 cursor-pointer z-10"
+              title="Help info"
+            >
+              <Info className="w-3 h-3" />
+            </span>
           </button>
           {activeInfoCard === 'RESOLVED' && (
             <div className="absolute top-full right-0 mt-1.5 z-40 w-44 p-2 bg-slate-900/95 text-white text-[11px] rounded-xl shadow-xl backdrop-blur-xs animate-in fade-in zoom-in-95 leading-snug">
@@ -939,7 +939,7 @@ export default function OperationsBoardPage({
             onClick={() => setActiveTab('ASSIGNED')}
             className={`w-full p-4 rounded-2xl border text-left transition flex flex-col justify-between cursor-pointer ${
               activeTab === 'ASSIGNED'
-                ? 'bg-indigo-50/80 border-indigo-600 ring-2 ring-indigo-500/20 shadow-sm'
+                ? 'bg-fuchsia-50/80 border-fuchsia-600 ring-2 ring-fuchsia-500/20 shadow-sm'
                 : 'bg-white border-slate-200 hover:border-slate-300 shadow-2xs'
             }`}
           >
@@ -951,18 +951,18 @@ export default function OperationsBoardPage({
                   </span>
                   <span
                     onClick={(e) => handleShowInfo('ASSIGNED', e)}
-                    className="text-slate-400 hover:text-indigo-600 cursor-pointer p-0.5 transition"
+                    className="text-slate-400 hover:text-fuchsia-600 cursor-pointer p-0.5 transition"
                     title="Help info"
                   >
                     <Info className="w-3.5 h-3.5" />
                   </span>
                 </div>
-                <div className="text-2xl font-black text-indigo-700 mt-1">
+                <div className="text-2xl font-black text-fuchsia-700 mt-1">
                   {assignedCount}
                 </div>
               </div>
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
-                activeTab === 'ASSIGNED' ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600'
+                activeTab === 'ASSIGNED' ? 'bg-fuchsia-600 text-white' : 'bg-fuchsia-50 text-fuchsia-600'
               }`}>
                 <UserCheck className="w-5 h-5" />
               </div>
@@ -1159,7 +1159,7 @@ export default function OperationsBoardPage({
               activeTab === 'NEW'
                 ? 'bg-blue-600'
                 : activeTab === 'ASSIGNED'
-                ? 'bg-indigo-600'
+                ? 'bg-fuchsia-600'
                 : activeTab === 'IN_PROGRESS'
                 ? 'bg-amber-500 animate-pulse'
                 : 'bg-emerald-600'
@@ -1238,7 +1238,7 @@ export default function OperationsBoardPage({
                           ticket.status === 'NEW'
                             ? 'bg-blue-100 text-blue-800 border-blue-300'
                             : ticket.status === 'ASSIGNED'
-                            ? 'bg-indigo-100 text-indigo-800 border-indigo-300'
+                            ? 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-300'
                             : ticket.status === 'IN_PROGRESS'
                             ? 'bg-amber-100 text-amber-800 border-amber-300'
                             : 'bg-emerald-100 text-emerald-800 border-emerald-300'
@@ -1255,7 +1255,7 @@ export default function OperationsBoardPage({
                         {/* Assigned Volunteer Badge for ASSIGNED & IN_PROGRESS */}
                         {(ticket.status === 'ASSIGNED' || ticket.status === 'IN_PROGRESS') && ticket.assigned_staff?.full_name && (
                           <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold border border-slate-200 flex items-center gap-1">
-                            <UserCheck className="w-3 h-3 text-indigo-600" />
+                            <UserCheck className="w-3 h-3 text-fuchsia-600" />
                             <span>{ticket.assigned_staff.full_name}</span>
                           </span>
                         )}

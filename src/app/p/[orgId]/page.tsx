@@ -1084,7 +1084,7 @@ export default function ScopedCitizenPortal({
                               item.status === 'RESOLVED'
                                 ? 'bg-emerald-50 text-emerald-800 border-emerald-200 ring-2 ring-emerald-100/70'
                                 : item.status === 'ASSIGNED'
-                                ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                                ? 'bg-fuchsia-50 text-fuchsia-800 border-fuchsia-200'
                                 : item.status === 'IN_PROGRESS'
                                 ? 'bg-amber-50 text-amber-800 border-amber-200 ring-2 ring-amber-100/70'
                                 : item.status === 'PENDING_APPROVAL'
