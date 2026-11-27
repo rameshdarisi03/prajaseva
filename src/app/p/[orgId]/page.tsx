@@ -38,6 +38,7 @@ import {
   LucideIcon
 } from 'lucide-react';
 import { IndianLanguage, MGMT_TRANSLATIONS } from '@/lib/mgmtI18n';
+import { EXTRA_I18N, fitTextClass } from '@/lib/extraI18n';
 import { SUPPORTED_LANGUAGES } from '@/lib/landingI18n';
 import { CITIZEN_TRANSLATIONS } from '@/lib/citizenI18n';
 import { ComplaintCategory, Complaint } from '@/types';
@@ -103,6 +104,18 @@ export default function ScopedCitizenPortal({
   };
 
   const ct = CITIZEN_TRANSLATIONS[lang] || CITIZEN_TRANSLATIONS.te;
+  const ex = EXTRA_I18N[lang] || EXTRA_I18N.en;
+
+  const getTrackCategoryLabel = (cat: string) => {
+    switch (cat) {
+      case 'ROADS': return ct.catRoads;
+      case 'WATER': return ct.catWater;
+      case 'DRAINAGE': return ct.catDrainage;
+      case 'LIGHTS': return ct.catLights;
+      case 'GARBAGE': return ct.catGarbage;
+      default: return ct.catOther;
+    }
+  };
 
   // Organization & Wards State
   const [org, setOrg] = useState<Organization | null>(null);
@@ -295,7 +308,7 @@ export default function ScopedCitizenPortal({
       const res = await compressImage(file, 1280, 1280, 0.8);
       setPhotoPreview(res.base64);
     } catch (err) {
-      alert('Failed to process image. Please try again.');
+      alert(ex.errProcessImage);
     } finally {
       setIsCompressing(false);
     }
@@ -328,7 +341,7 @@ export default function ScopedCitizenPortal({
       mediaRecorder.start();
       setIsRecording(true);
     } catch {
-      alert('Microphone access denied. Please enable microphone permissions in your browser.');
+      alert(ex.errMicDenied);
     }
   };
 
@@ -505,12 +518,12 @@ export default function ScopedCitizenPortal({
     e.preventDefault();
 
     if (!citizenName.trim()) {
-      alert('Please enter your full name');
+      alert(ex.errEnterName);
       return;
     }
     const cleanPhone = citizenPhone.replace(/\D/g, '');
     if (cleanPhone.length !== 10) {
-      alert('Please enter a valid 10-digit WhatsApp phone number');
+      alert(ex.errValidPhone);
       return;
     }
     if (!otpVerified) {
@@ -519,11 +532,11 @@ export default function ScopedCitizenPortal({
       return;
     }
     if (!photoPreview) {
-      alert('Please take or attach a photo of the grievance');
+      alert(ex.errAttachPhoto);
       return;
     }
     if (!coords) {
-      alert('Location pin is required. Please enable GPS.');
+      alert(ex.errEnableGps);
       return;
     }
 
@@ -556,7 +569,7 @@ export default function ScopedCitizenPortal({
       setOtpSent(false);
       setOtpCode('');
     } catch (err: any) {
-      alert(err.message || 'Error lodging grievance. Please try again.');
+      alert(err.message || ex.errLodgeGrievance);
     } finally {
       setIsSubmitting(false);
     }
@@ -594,8 +607,8 @@ export default function ScopedCitizenPortal({
     return (
       <div className="min-h-screen bg-[#FAF9F6] flex flex-col items-center justify-center p-6 text-center">
         <div className="w-12 h-12 rounded-full border-4 border-blue-600 border-t-transparent animate-spin mb-4" />
-        <h2 className="text-xl font-bold text-slate-900 font-sans">Connecting to Constituency Portal...</h2>
-        <p className="text-sm text-slate-500 mt-1">Verifying official constituency credentials</p>
+        <h2 className="text-xl font-bold text-slate-900 font-sans">{ex.connectingPortal}</h2>
+        <p className="text-sm text-slate-500 mt-1">{ex.verifyingCredentials}</p>
       </div>
     );
   }
@@ -606,7 +619,7 @@ export default function ScopedCitizenPortal({
         <div className="w-14 h-14 rounded-full bg-red-100 text-red-600 flex items-center justify-center mb-4">
           <AlertCircle className="w-8 h-8" />
         </div>
-        <h1 className="text-2xl font-bold text-slate-900">Portal Not Found</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{ex.portalNotFound}</h1>
         <p className="text-slate-600 mt-2 text-sm">
           {orgError || 'The requested constituency organization is not enrolled or the link is invalid.'}
         </p>
@@ -1325,8 +1338,8 @@ export default function ScopedCitizenPortal({
                               <span className="font-mono font-black text-blue-600 text-lg tracking-tight">
                                 {item.ticket_number}
                               </span>
-                              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-extrabold uppercase tracking-wide">
-                                {item.category}
+                              <span className={`px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-extrabold uppercase tracking-wide ${fitTextClass(getTrackCategoryLabel(item.category))}`}>
+                                {getTrackCategoryLabel(item.category)}
                               </span>
                             </div>
                             <p className="text-[11px] text-slate-400 font-medium mt-0.5">
@@ -1418,7 +1431,7 @@ export default function ScopedCitizenPortal({
                                   <div className="flex-1 min-w-0 pt-0.5">
                                     <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                                       <span
-                                        className={`text-xs font-bold leading-snug ${
+                                        className={`font-bold ${fitTextClass(m.title)} ${
                                           isActive
                                             ? m.activeTitleClass
                                             : isCompleted

@@ -29,6 +29,7 @@ import { Complaint } from '@/types';
 import { formatDateTime } from '@/lib/dateUtils';
 import { compressImage } from '@/lib/imageCompression';
 import { IndianLanguage, MGMT_TRANSLATIONS } from '@/lib/mgmtI18n';
+import { EXTRA_I18N, fitTextClass } from '@/lib/extraI18n';
 
 interface Ward {
   id: string;
@@ -62,6 +63,7 @@ export default function VolunteerDeskPage({
   }, []);
 
   const t = MGMT_TRANSLATIONS[lang] || MGMT_TRANSLATIONS.en;
+  const ex = EXTRA_I18N[lang] || EXTRA_I18N.en;
 
   // User session
   const [session, setSession] = useState<any>(null);
@@ -348,8 +350,8 @@ export default function VolunteerDeskPage({
                 <div className="w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-md">
                   <Camera className="w-6 h-6" />
                 </div>
-                <span className="text-sm font-black">Tap to Take After Photo</span>
-                <span className="text-[11px] text-emerald-600 font-medium">GPS location stamped automatically</span>
+                <span className={`font-black ${fitTextClass(ex.tapTakeAfterPhoto, 'sm')}`}>{ex.tapTakeAfterPhoto}</span>
+                <span className="text-[11px] text-emerald-600 font-medium">{ex.gpsStampedAuto}</span>
               </button>
             )}
 

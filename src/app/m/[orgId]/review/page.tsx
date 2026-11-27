@@ -37,6 +37,7 @@ import {
 import { Complaint, Ward } from '@/types';
 import { formatDateTime, calculateTurnaround } from '@/lib/dateUtils';
 import { IndianLanguage, MGMT_TRANSLATIONS } from '@/lib/mgmtI18n';
+import { EXTRA_I18N, fitTextClass } from '@/lib/extraI18n';
 import VictoryPRPoster from '@/components/VictoryPRPoster';
 import { toJpeg } from 'html-to-image';
 
@@ -75,6 +76,7 @@ export default function ReviewQAPage({
   }, []);
 
   const t = MGMT_TRANSLATIONS[lang] || MGMT_TRANSLATIONS.en;
+  const ex = EXTRA_I18N[lang] || EXTRA_I18N.en;
 
   // Data States
   const [tickets, setTickets] = useState<Complaint[]>([]);
@@ -1319,7 +1321,7 @@ export default function ReviewQAPage({
                               : 'bg-amber-100 text-amber-800 border border-amber-200'
                           }`}
                         >
-                          {isGpsValid || proximity <= 150 ? 'Verified ✓' : 'Distance Warning'}
+                          {isGpsValid || proximity <= 150 ? ex.verifiedProximity : ex.distanceWarning}
                         </span>
                       </div>
 
@@ -1329,7 +1331,7 @@ export default function ReviewQAPage({
                         rel="noreferrer"
                         className="text-blue-600 hover:underline font-bold text-[11px] flex items-center gap-1 shrink-0"
                       >
-                        <span>Map</span>
+                        <span>{ex.mapLink}</span>
                         <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>
@@ -1344,7 +1346,7 @@ export default function ReviewQAPage({
                     <div className="p-3.5 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Volume2 className="w-4 h-4 text-purple-600" />
-                        <span className="text-xs font-bold text-purple-950">Citizen Voice Note Recording</span>
+                        <span className="text-xs font-bold text-purple-950">{ex.voiceNoteLabel}</span>
                       </div>
                       <audio src={selectedTicket.voice_note_url} controls className="h-8 max-w-[240px]" />
                     </div>
@@ -1360,6 +1362,7 @@ export default function ReviewQAPage({
                     <VictoryPRPoster
                       ticket={selectedTicket}
                       org={org}
+                      uiLang={lang}
                       onShareToGroup={() => handleSharePosterToWhatsApp(selectedTicket)}
                       isSharingToGroup={isSharingPoster}
                     />
@@ -1377,18 +1380,20 @@ export default function ReviewQAPage({
                 className="py-3 px-3.5 sm:px-4 rounded-xl border border-red-200 hover:bg-red-50 text-red-600 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-95 shrink-0"
               >
                 <RotateCcw className="w-4 h-4" />
-                <span className="hidden sm:inline">Reject & Return</span>
-                <span className="sm:hidden">Reject</span>
+                <span className="hidden sm:inline">{ex.rejectReturnBtn}</span>
+                <span className="sm:hidden">{ex.rejectBtn}</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleApprove}
                 disabled={isProcessing}
-                className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer active:scale-98"
+                className="flex-1 py-3 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition disabled:opacity-50 cursor-pointer active:scale-98"
               >
                 <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-                <span>{isProcessing ? 'Broadcasting...' : '✓ Approve & Send WhatsApp'}</span>
+                <span className={fitTextClass(isProcessing ? ex.broadcastingBtn : ex.approveSendBtn)}>
+                  {isProcessing ? ex.broadcastingBtn : ex.approveSendBtn}
+                </span>
               </button>
             </div>
           </div>

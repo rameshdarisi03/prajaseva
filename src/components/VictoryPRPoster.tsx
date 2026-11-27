@@ -6,6 +6,8 @@ import { QRCodeSVG } from 'qrcode.react';
 import { toJpeg } from 'html-to-image';
 import { Complaint } from '@/types';
 import { calculateTurnaround } from '@/lib/dateUtils';
+import { IndianLanguage } from '@/lib/mgmtI18n';
+import { EXTRA_I18N, fitTextClass } from '@/lib/extraI18n';
 
 export interface LeaderProfile {
   enabled: boolean;
@@ -199,6 +201,7 @@ interface VictoryPRPosterProps {
     slug?: string;
   } | null;
   config?: CoalitionBrandingConfig;
+  uiLang?: IndianLanguage;
   onDownloaded?: () => void;
   onShareToGroup?: () => void;
   isSharingToGroup?: boolean;
@@ -208,10 +211,12 @@ export default function VictoryPRPoster({
   ticket,
   org,
   config = DEFAULT_COALITION_CONFIG,
+  uiLang = 'en',
   onDownloaded,
   onShareToGroup,
   isSharingToGroup = false,
 }: VictoryPRPosterProps) {
+  const ex = EXTRA_I18N[uiLang] || EXTRA_I18N.en;
   const posterRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
@@ -390,7 +395,7 @@ export default function VictoryPRPoster({
           className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.99] cursor-pointer"
         >
           <Share2 className="w-4 h-4 shrink-0" />
-          <span>WhatsApp Status</span>
+          <span className={fitTextClass(ex.whatsappStatusBtn)}>{ex.whatsappStatusBtn}</span>
         </button>
 
         {onShareToGroup && (
@@ -398,10 +403,12 @@ export default function VictoryPRPoster({
             type="button"
             onClick={onShareToGroup}
             disabled={isSharingToGroup}
-            className="w-full py-2.5 px-4 rounded-xl bg-[#25D366] hover:bg-[#1fb858] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.99] cursor-pointer disabled:opacity-60"
+            className="w-full py-2.5 px-4 rounded-xl bg-[#25D366] hover:bg-[#1fb858] text-white font-bold flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.99] cursor-pointer disabled:opacity-60"
           >
             <Share2 className="w-4 h-4 shrink-0" />
-            <span>{isSharingToGroup ? 'Preparing Poster...' : 'Share Poster to WhatsApp Group'}</span>
+            <span className={fitTextClass(isSharingToGroup ? ex.preparingPoster : ex.shareGroupBtn)}>
+              {isSharingToGroup ? ex.preparingPoster : ex.shareGroupBtn}
+            </span>
           </button>
         )}
 
@@ -409,11 +416,11 @@ export default function VictoryPRPoster({
           type="button"
           onClick={handleDownloadJpeg}
           disabled={isGenerating}
-          className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.99] cursor-pointer disabled:opacity-60"
+          className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white font-bold flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.99] cursor-pointer disabled:opacity-60"
         >
           <Download className="w-4 h-4 shrink-0" />
-          <span>
-            {isGenerating ? 'Downloading JPEG...' : '1-Tap Download JPEG'}
+          <span className={fitTextClass(isGenerating ? ex.downloadingJpeg : ex.downloadJpegBtn)}>
+            {isGenerating ? ex.downloadingJpeg : ex.downloadJpegBtn}
           </span>
         </button>
       </div>

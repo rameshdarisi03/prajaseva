@@ -19,6 +19,7 @@ import {
   Plus
 } from 'lucide-react';
 import { IndianLanguage, MGMT_TRANSLATIONS } from '@/lib/mgmtI18n';
+import { EXTRA_I18N } from '@/lib/extraI18n';
 
 interface AssignedWardSummary {
   id: string;
@@ -80,6 +81,7 @@ export default function StaffManagementPage({
   }, []);
 
   const t = MGMT_TRANSLATIONS[lang] || MGMT_TRANSLATIONS.en;
+  const ex = EXTRA_I18N[lang] || EXTRA_I18N.en;
 
   // Add Member Modal State
   const [showAddModal, setShowAddModal] = useState(false);
@@ -305,7 +307,7 @@ export default function StaffManagementPage({
                       onClick={toggleSelectAllWards}
                       className="text-[11px] text-blue-600 hover:underline font-bold"
                     >
-                      {selectedWardIds.length === wards.length ? 'Deselect All' : 'Select All Wards'}
+                      {selectedWardIds.length === wards.length ? ex.deselectAll : ex.selectAllWards}
                     </button>
                   </div>
 

@@ -38,6 +38,7 @@ import { Complaint, ComplaintCategory } from '@/types';
 import { formatDateTime, calculateTurnaround } from '@/lib/dateUtils';
 import { compressImage } from '@/lib/imageCompression';
 import { IndianLanguage, MGMT_TRANSLATIONS } from '@/lib/mgmtI18n';
+import { EXTRA_I18N, fitTextClass } from '@/lib/extraI18n';
 
 interface Ward {
   id: string;
@@ -71,6 +72,7 @@ export default function OperationsBoardPage({
   }, []);
 
   const t = MGMT_TRANSLATIONS[lang] || MGMT_TRANSLATIONS.en;
+  const ex = EXTRA_I18N[lang] || EXTRA_I18N.en;
 
   // Tickets & Wards Data
   const [allTickets, setAllTickets] = useState<Complaint[]>([]);
@@ -407,8 +409,8 @@ export default function OperationsBoardPage({
                 className="w-full py-8 border-2 border-dashed border-emerald-300 rounded-2xl bg-emerald-50/50 hover:bg-emerald-50 text-emerald-700 flex flex-col items-center justify-center gap-1.5 transition cursor-pointer"
               >
                 <Camera className="w-8 h-8 text-emerald-600" />
-                <span className="text-xs font-bold">Tap to Capture Resolution Photo</span>
-                <span className="text-[11px] text-slate-400">GPS location stamped automatically</span>
+                <span className={`font-bold ${fitTextClass(ex.tapCapturePhoto)}`}>{ex.tapCapturePhoto}</span>
+                <span className="text-[11px] text-slate-400">{ex.gpsStampedAuto}</span>
               </button>
             )}
 
@@ -691,7 +693,7 @@ export default function OperationsBoardPage({
                         className="w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer active:scale-95 disabled:opacity-50"
                       >
                         <Flame className="w-4 h-4 shrink-0" />
-                        <span>{startingWorkId === detailTicket.id ? 'Starting...' : 'Start Ground Action'}</span>
+                        <span>{startingWorkId === detailTicket.id ? ex.starting : ex.startGroundAction}</span>
                       </button>
 
                       <button
@@ -821,7 +823,7 @@ export default function OperationsBoardPage({
           >
             <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
             <span className="hidden sm:inline">{t.citizenQrPortal}</span>
-            <span className="sm:hidden">Portal</span>
+            <span className="sm:hidden">{ex.portalBtn}</span>
           </Link>
         </div>
       </div>
@@ -1211,7 +1213,7 @@ export default function OperationsBoardPage({
                 }`}
               >
                 <UserCheck className="w-3 h-3" />
-                <span>Assigned to Me</span>
+                <span>{ex.assignedToMe}</span>
               </button>
             )}
           </div>
@@ -1225,7 +1227,7 @@ export default function OperationsBoardPage({
               }}
               className="text-blue-600 font-bold hover:underline"
             >
-              Reset Filters
+              {ex.resetFilters}
             </button>
           )}
         </div>
