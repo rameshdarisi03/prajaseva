@@ -1354,32 +1354,14 @@ export default function ReviewQAPage({
                 {/* ========================================================= */}
                 {/* RIGHT COLUMN: 4:5 PR Poster & Decisions (5 cols)          */}
                 {/* ========================================================= */}
-                <div className="lg:col-span-5 space-y-5">
+                <div className="lg:col-span-5 space-y-4">
                   {/* 4:5 Political PR Victory Poster (Coalition & Leadership Strip) */}
-                  <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                        <Sparkles className="w-4 h-4 text-amber-500" />
-                        1-Tap 4:5 Victory PR Poster (JPEG)
-                      </span>
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                        WhatsApp & Instagram 4:5 Ready
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleSharePosterToWhatsApp(selectedTicket)}
-                      disabled={isSharingPoster}
-                      className="w-full py-2.5 px-4 rounded-xl bg-[#25D366] hover:bg-[#1fb858] text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer active:scale-[0.99] disabled:opacity-60"
-                    >
-                      <Share2 className="w-4 h-4 shrink-0" />
-                      <span>{isSharingPoster ? 'Preparing Poster...' : 'Share Poster to WhatsApp Group'}</span>
-                    </button>
-
+                  <div className="bg-white rounded-2xl p-3 sm:p-4 border border-slate-200 shadow-2xs">
                     <VictoryPRPoster
                       ticket={selectedTicket}
                       org={org}
+                      onShareToGroup={() => handleSharePosterToWhatsApp(selectedTicket)}
+                      isSharingToGroup={isSharingPoster}
                     />
                   </div>
                 </div>

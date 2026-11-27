@@ -200,6 +200,8 @@ interface VictoryPRPosterProps {
   } | null;
   config?: CoalitionBrandingConfig;
   onDownloaded?: () => void;
+  onShareToGroup?: () => void;
+  isSharingToGroup?: boolean;
 }
 
 export default function VictoryPRPoster({
@@ -207,6 +209,8 @@ export default function VictoryPRPoster({
   org,
   config = DEFAULT_COALITION_CONFIG,
   onDownloaded,
+  onShareToGroup,
+  isSharingToGroup = false,
 }: VictoryPRPosterProps) {
   const posterRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -377,53 +381,60 @@ export default function VictoryPRPoster({
       });
 
   return (
-    <div className="space-y-3 w-full">
-      {/* Dynamic Controls Bar: Layout & Language */}
-      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-2.5 flex flex-wrap items-center justify-between gap-2 shadow-2xs">
-        {/* Dynamic Aspect Ratio Layout Switcher */}
-        <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200">
-          <span className="text-[10px] font-bold text-slate-400 uppercase px-1.5 hidden sm:inline">
-            Layout:
+    <div className="space-y-2.5 w-full">
+      {/* 1. Three Ordered Action Buttons: WhatsApp Status -> Share Poster -> 1-Tap Download JPEG */}
+      <div className="flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={handleShareToWhatsApp}
+          className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.99] cursor-pointer"
+        >
+          <Share2 className="w-4 h-4 shrink-0" />
+          <span>WhatsApp Status</span>
+        </button>
+
+        {onShareToGroup && (
+          <button
+            type="button"
+            onClick={onShareToGroup}
+            disabled={isSharingToGroup}
+            className="w-full py-2.5 px-4 rounded-xl bg-[#25D366] hover:bg-[#1fb858] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.99] cursor-pointer disabled:opacity-60"
+          >
+            <Share2 className="w-4 h-4 shrink-0" />
+            <span>{isSharingToGroup ? 'Preparing Poster...' : 'Share Poster to WhatsApp Group'}</span>
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={handleDownloadJpeg}
+          disabled={isGenerating}
+          className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.99] cursor-pointer disabled:opacity-60"
+        >
+          <Download className="w-4 h-4 shrink-0" />
+          <span>
+            {isGenerating ? 'Downloading JPEG...' : '1-Tap Download JPEG'}
           </span>
-          <button
-            type="button"
-            onClick={() => setLayoutMode('auto')}
-            className={`px-2 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer flex items-center gap-1 ${
-              layoutMode === 'auto' ? 'bg-blue-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
-            title="Auto-detect aspect ratio"
+        </button>
+      </div>
+
+      {/* 2. Slim Options Row: Layout Dropdown + Language Dropdown (Below 1-Tap Download JPEG) */}
+      <div className="grid grid-cols-2 gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1.5">
+        <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 min-w-0">
+          <LayoutGrid className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+          <select
+            value={layoutMode}
+            onChange={(e) => setLayoutMode(e.target.value as 'auto' | 'side' | 'stacked')}
+            className="w-full text-xs font-bold text-slate-800 bg-transparent border-none focus:outline-none cursor-pointer truncate"
           >
-            <span>Auto</span>
-            <span className="text-[9px] opacity-75">({detectedLayout === 'stacked' ? '↕️' : '↔️'})</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setLayoutMode('side')}
-            className={`px-2 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer flex items-center gap-1 ${
-              layoutMode === 'side' ? 'bg-blue-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
-            title="Side-by-side (Ideal for portrait photos)"
-          >
-            <LayoutGrid className="w-3 h-3" />
-            <span>Side-by-Side</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setLayoutMode('stacked')}
-            className={`px-2 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer flex items-center gap-1 ${
-              layoutMode === 'stacked' ? 'bg-blue-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
-            title="Stacked (Ideal for wide landscape photos)"
-          >
-            <Rows3 className="w-3 h-3" />
-            <span>Stacked</span>
-          </button>
+            <option value="auto">Auto ({detectedLayout === 'stacked' ? '↕️' : '↔️'})</option>
+            <option value="side">Side-by-Side</option>
+            <option value="stacked">Stacked</option>
+          </select>
         </div>
 
-        {/* Poster Language Switcher */}
-        <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-xl border border-slate-200">
+        <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 min-w-0">
           <Languages className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-          <span className="text-[10px] font-bold text-slate-400 uppercase hidden sm:inline">Lang:</span>
           <select
             value={activeLang}
             onChange={(e) => {
@@ -439,7 +450,7 @@ export default function VictoryPRPoster({
                 }
               } catch {}
             }}
-            className="text-xs font-bold text-slate-800 bg-transparent border-none focus:outline-none cursor-pointer"
+            className="w-full text-xs font-bold text-slate-800 bg-transparent border-none focus:outline-none cursor-pointer truncate"
           >
             <option value="te">తెలుగు (Telugu)</option>
             <option value="en">English</option>
@@ -448,30 +459,6 @@ export default function VictoryPRPoster({
             <option value="kn">ಕನ್ನಡ (Kannada)</option>
           </select>
         </div>
-      </div>
-
-      {/* Action Buttons Toolbar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-        <button
-          type="button"
-          onClick={handleDownloadJpeg}
-          disabled={isGenerating}
-          className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-blue-600/30 transition active:scale-98 cursor-pointer disabled:opacity-60"
-        >
-          <Download className="w-4 h-4 shrink-0" />
-          <span>
-            {isGenerating ? 'చిత్రం డౌన్‌లోడ్ అవుతోంది...' : '1-Tap Download JPEG (WhatsApp Status)'}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={handleShareToWhatsApp}
-          className="py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition active:scale-98 cursor-pointer shrink-0"
-        >
-          <Share2 className="w-4 h-4 shrink-0" />
-          <span>WhatsApp Status</span>
-        </button>
       </div>
 
       {downloadSuccess && (
