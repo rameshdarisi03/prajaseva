@@ -1231,7 +1231,7 @@ export default function ScopedCitizenPortal({
                     const isPendingApproval = ['PENDING_APPROVAL', 'RESOLVED'].includes(item.status);
                     const isResolved = item.status === 'RESOLVED';
 
-                    // Tenopilot-Style 5-Stage Live Milestones
+                    // Tenopilot-Style 5-Stage Live Milestones (colors matched to stage cards)
                     const milestones = [
                       {
                         stepNumber: 1,
@@ -1240,6 +1240,10 @@ export default function ScopedCitizenPortal({
                         timestamp: item.created_at,
                         status: 'completed',
                         icon: FileText,
+                        nodeActiveClass: 'bg-blue-600 text-white ring-4 ring-blue-100 shadow-md animate-pulse',
+                        nodeCompletedClass: 'bg-blue-600 text-white ring-4 ring-blue-50 shadow-xs',
+                        activeTitleClass: 'text-blue-900 font-extrabold',
+                        activeBadgeClass: 'bg-blue-100 text-blue-700',
                       },
                       {
                         stepNumber: 2,
@@ -1258,6 +1262,10 @@ export default function ScopedCitizenPortal({
                           ? 'active'
                           : 'pending',
                         icon: UserCheck,
+                        nodeActiveClass: 'bg-fuchsia-600 text-white ring-4 ring-fuchsia-100 shadow-md animate-pulse',
+                        nodeCompletedClass: 'bg-fuchsia-600 text-white ring-4 ring-fuchsia-50 shadow-xs',
+                        activeTitleClass: 'text-fuchsia-900 font-extrabold',
+                        activeBadgeClass: 'bg-fuchsia-100 text-fuchsia-700',
                       },
                       {
                         stepNumber: 3,
@@ -1270,6 +1278,10 @@ export default function ScopedCitizenPortal({
                             : 'completed'
                           : 'pending',
                         icon: Wrench,
+                        nodeActiveClass: 'bg-amber-500 text-white ring-4 ring-amber-100 shadow-md animate-pulse',
+                        nodeCompletedClass: 'bg-amber-500 text-white ring-4 ring-amber-50 shadow-xs',
+                        activeTitleClass: 'text-amber-900 font-extrabold',
+                        activeBadgeClass: 'bg-amber-100 text-amber-800',
                       },
                       {
                         stepNumber: 4,
@@ -1282,6 +1294,10 @@ export default function ScopedCitizenPortal({
                             : 'completed'
                           : 'pending',
                         icon: ShieldCheck,
+                        nodeActiveClass: 'bg-purple-600 text-white ring-4 ring-purple-100 shadow-md animate-pulse',
+                        nodeCompletedClass: 'bg-purple-600 text-white ring-4 ring-purple-50 shadow-xs',
+                        activeTitleClass: 'text-purple-900 font-extrabold',
+                        activeBadgeClass: 'bg-purple-100 text-purple-700',
                       },
                       {
                         stepNumber: 5,
@@ -1290,6 +1306,10 @@ export default function ScopedCitizenPortal({
                         timestamp: item.resolved_at,
                         status: isResolved ? 'completed' : 'pending',
                         icon: CheckCircle2,
+                        nodeActiveClass: 'bg-emerald-600 text-white ring-4 ring-emerald-100 shadow-md animate-pulse',
+                        nodeCompletedClass: 'bg-emerald-600 text-white ring-4 ring-emerald-50 shadow-xs',
+                        activeTitleClass: 'text-emerald-900 font-extrabold',
+                        activeBadgeClass: 'bg-emerald-100 text-emerald-700',
                       },
                     ];
 
@@ -1369,21 +1389,21 @@ export default function ScopedCitizenPortal({
                             </h4>
                           </div>
 
-                          <div className="relative pl-7 space-y-6 before:absolute before:left-3.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200">
-                            {milestones.map((m, idx) => {
+                          <div className="relative space-y-6 before:absolute before:left-[13px] before:top-3.5 before:bottom-3.5 before:w-0.5 before:bg-slate-200">
+                            {milestones.map((m) => {
                               const IconComponent = m.icon;
                               const isCompleted = m.status === 'completed';
                               const isActive = m.status === 'active';
 
                               return (
                                 <div key={m.stepNumber} className="relative flex items-start gap-3.5">
-                                  {/* Milestone Circular Node */}
+                                  {/* Milestone Circular Node (in-flow so text never overlaps) */}
                                   <div
-                                    className={`absolute -left-7 w-7 h-7 rounded-full flex items-center justify-center shrink-0 z-10 transition-all ${
+                                    className={`relative w-7 h-7 rounded-full flex items-center justify-center shrink-0 z-10 transition-all mt-0.5 ${
                                       isCompleted
-                                        ? 'bg-emerald-600 text-white ring-4 ring-emerald-50 shadow-xs'
+                                        ? m.nodeCompletedClass
                                         : isActive
-                                        ? 'bg-blue-600 text-white ring-4 ring-blue-100 shadow-md animate-pulse'
+                                        ? m.nodeActiveClass
                                         : 'bg-white border-2 border-slate-300 text-slate-300'
                                     }`}
                                   >
@@ -1396,11 +1416,11 @@ export default function ScopedCitizenPortal({
 
                                   {/* Milestone Content */}
                                   <div className="flex-1 min-w-0 pt-0.5">
-                                    <div className="flex items-center justify-between gap-2">
+                                    <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                                       <span
-                                        className={`text-xs font-bold ${
+                                        className={`text-xs font-bold leading-snug ${
                                           isActive
-                                            ? 'text-blue-900 font-extrabold'
+                                            ? m.activeTitleClass
                                             : isCompleted
                                             ? 'text-slate-900'
                                             : 'text-slate-400'
@@ -1410,7 +1430,7 @@ export default function ScopedCitizenPortal({
                                       </span>
 
                                       {isActive && (
-                                        <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[9px] font-black uppercase tracking-wider animate-pulse shrink-0">
+                                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider animate-pulse shrink-0 ${m.activeBadgeClass}`}>
                                           {ct.stepCurrent}
                                         </span>
                                       )}
