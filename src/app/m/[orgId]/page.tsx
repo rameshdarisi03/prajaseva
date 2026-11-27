@@ -104,6 +104,18 @@ export default function OperationsBoardPage({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWardId, setSelectedWardId] = useState<string>('ALL');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const [assignedToMeOnly, setAssignedToMeOnly] = useState(false);
+  const [currentStaffId, setCurrentStaffId] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('praja_seva_session');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.staffId) setCurrentStaffId(parsed.staffId);
+      }
+    } catch {}
+  }, []);
 
   // Selected Ticket for Full Details Modal
   const [detailTicket, setDetailTicket] = useState<Complaint | null>(null);
@@ -180,6 +192,30 @@ export default function OperationsBoardPage({
       alert(err.message || 'Failed to assign volunteer');
     } finally {
       setAssigningId(null);
+    }
+  };
+
+  // 2B. Start Ground Action (Moves ASSIGNED -> IN_PROGRESS)
+  const [startingWorkId, setStartingWorkId] = useState<string | null>(null);
+  const handleStartWork = async (ticketId: string) => {
+    try {
+      setStartingWorkId(ticketId);
+      const res = await fetch('/api/management/tickets', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'start_work',
+          ticketId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to start ground action');
+      setDetailTicket(null);
+      fetchData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to start ground action');
+    } finally {
+      setStartingWorkId(null);
     }
   };
 
@@ -265,6 +301,9 @@ export default function OperationsBoardPage({
       // Category filter
       if (selectedCategory !== 'ALL' && t.category !== selectedCategory) return false;
 
+      // Assigned to Me filter
+      if (assignedToMeOnly && currentStaffId && t.assigned_to !== currentStaffId) return false;
+
       // Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
@@ -278,7 +317,7 @@ export default function OperationsBoardPage({
 
       return true;
     });
-  }, [allTickets, activeTab, selectedWardId, selectedCategory, searchQuery]);
+  }, [allTickets, activeTab, selectedWardId, selectedCategory, searchQuery, assignedToMeOnly, currentStaffId]);
 
   // Category translation helper
   const getCategoryLabel = (cat: string) => {
@@ -642,46 +681,73 @@ export default function OperationsBoardPage({
                 )}
 
                 {detailTicket.status === 'ASSIGNED' && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-700 block">
-                        {t.currentlyAssignedTo}: <strong className="text-indigo-700">{detailTicket.assigned_staff?.full_name || 'Volunteer'}</strong>
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-2.5">
-                      <div className="relative w-full sm:flex-1 min-w-0">
-                        <select
-                          value={selectedVolunteerMap[detailTicket.id] || detailTicket.assigned_to || volunteers[0]?.id || ''}
-                          onChange={(e) =>
-                            setSelectedVolunteerMap({
-                              ...selectedVolunteerMap,
-                              [detailTicket.id]: e.target.value,
-                            })
-                          }
-                          className="w-full h-11 pl-3 pr-8 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 appearance-none truncate"
-                        >
-                          {volunteers.map((vol) => (
-                            <option key={vol.id} value={vol.id}>
-                              {vol.full_name} ({vol.role})
-                            </option>
-                          ))}
-                        </select>
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
-                          ▼
-                        </div>
-                      </div>
+                  <div className="space-y-3">
+                    {/* Admin / Assignee Action Buttons */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleStartWork(detailTicket.id)}
+                        disabled={startingWorkId === detailTicket.id}
+                        className="w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer active:scale-95 disabled:opacity-50"
+                      >
+                        <Flame className="w-4 h-4 shrink-0" />
+                        <span>{startingWorkId === detailTicket.id ? 'Starting...' : 'Start Ground Action'}</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => {
-                          handleAssignVolunteer(detailTicket.id);
                           setDetailTicket(null);
+                          handleOpenResolveModal(detailTicket);
                         }}
-                        disabled={assigningId === detailTicket.id}
-                        className="w-full sm:w-auto h-11 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm cursor-pointer shrink-0 active:scale-95"
+                        className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer active:scale-95"
                       >
-                        <RefreshCw className="w-4 h-4 shrink-0" />
-                        <span>{assigningId === detailTicket.id ? t.reassigningBtn : t.reassignBtn}</span>
+                        <Camera className="w-4 h-4 shrink-0" />
+                        <span>{t.submitProofBtn}</span>
                       </button>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-100 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-700 block">
+                          {t.currentlyAssignedTo}: <strong className="text-fuchsia-700">{detailTicket.assigned_staff?.full_name || 'Volunteer'}</strong>
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-2.5">
+                        <div className="relative w-full sm:flex-1 min-w-0">
+                          <select
+                            value={selectedVolunteerMap[detailTicket.id] || detailTicket.assigned_to || volunteers[0]?.id || ''}
+                            onChange={(e) =>
+                              setSelectedVolunteerMap({
+                                ...selectedVolunteerMap,
+                                [detailTicket.id]: e.target.value,
+                              })
+                            }
+                            className="w-full h-11 pl-3 pr-8 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 appearance-none truncate"
+                          >
+                            {volunteers.map((vol) => (
+                              <option key={vol.id} value={vol.id}>
+                                {vol.full_name} ({vol.role})
+                              </option>
+                            ))}
+                          </select>
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
+                            ▼
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleAssignVolunteer(detailTicket.id);
+                            setDetailTicket(null);
+                          }}
+                          disabled={assigningId === detailTicket.id}
+                          className="w-full sm:w-auto h-11 px-6 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm cursor-pointer shrink-0 active:scale-95"
+                        >
+                          <RefreshCw className="w-4 h-4 shrink-0" />
+                          <span>{assigningId === detailTicket.id ? t.reassigningBtn : t.reassignBtn}</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1128,17 +1194,34 @@ export default function OperationsBoardPage({
           </div>
         </div>
 
-        {/* Counter & Active Filter Reset */}
-        <div className="flex items-center justify-between text-[11px] text-slate-400 px-0.5 pt-0.5">
-          <span>
-            {t.showingCount} <strong className="text-slate-800 font-bold">{displayedTickets.length}</strong>
-          </span>
-          {(searchQuery || selectedWardId !== 'ALL' || selectedCategory !== 'ALL') && (
+        {/* Counter, Assigned to Me Toggle & Active Filter Reset */}
+        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400 px-0.5 pt-0.5">
+          <div className="flex items-center gap-2.5">
+            <span>
+              {t.showingCount} <strong className="text-slate-800 font-bold">{displayedTickets.length}</strong>
+            </span>
+            {currentStaffId && currentStaffId !== 'founder-admin' && (
+              <button
+                type="button"
+                onClick={() => setAssignedToMeOnly((prev) => !prev)}
+                className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition cursor-pointer flex items-center gap-1 ${
+                  assignedToMeOnly
+                    ? 'bg-fuchsia-600 text-white border-fuchsia-600 shadow-2xs'
+                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <UserCheck className="w-3 h-3" />
+                <span>Assigned to Me</span>
+              </button>
+            )}
+          </div>
+          {(searchQuery || selectedWardId !== 'ALL' || selectedCategory !== 'ALL' || assignedToMeOnly) && (
             <button
               onClick={() => {
                 setSearchQuery('');
                 setSelectedWardId('ALL');
                 setSelectedCategory('ALL');
+                setAssignedToMeOnly(false);
               }}
               className="text-blue-600 font-bold hover:underline"
             >
