@@ -1251,7 +1251,7 @@ export default function ScopedCitizenPortal({
                         title: ct.milestone1Title,
                         desc: ct.milestone1Desc,
                         timestamp: item.created_at,
-                        status: 'completed',
+                        status: item.status === 'NEW' ? 'active' : 'completed',
                         icon: FileText,
                         nodeActiveClass: 'bg-blue-600 text-white ring-4 ring-blue-100 shadow-md animate-pulse',
                         nodeCompletedClass: 'bg-blue-600 text-white ring-4 ring-blue-50 shadow-xs',
@@ -1261,18 +1261,18 @@ export default function ScopedCitizenPortal({
                       {
                         stepNumber: 2,
                         title: ct.milestone2Title,
-                        desc: (item as any).assigned_staff?.full_name
-                          ? `${ct.volunteerAssignedLabel} ${(item as any).assigned_staff.full_name}`
-                          : item.ward?.name
-                          ? `${item.ward.name} ${item.ward.ward_number ? `(#${item.ward.ward_number})` : ''}`
+                        desc: isAssigned
+                          ? (item as any).assigned_staff?.full_name
+                            ? `${ct.volunteerAssignedLabel} ${(item as any).assigned_staff.full_name}`
+                            : item.ward?.name
+                            ? `${item.ward.name} ${item.ward.ward_number ? `(#${item.ward.ward_number})` : ''}`
+                            : ct.milestone2Desc
                           : ct.milestone2Desc,
                         timestamp: item.assigned_at,
                         status: isAssigned
                           ? item.status === 'ASSIGNED'
                             ? 'active'
                             : 'completed'
-                          : item.status === 'NEW'
-                          ? 'active'
                           : 'pending',
                         icon: UserCheck,
                         nodeActiveClass: 'bg-fuchsia-600 text-white ring-4 ring-fuchsia-100 shadow-md animate-pulse',
